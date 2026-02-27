@@ -108,6 +108,8 @@ FitTrack is a comprehensive, modern MERN stack application designed to help user
 2. **Start Command**: `npm start`
 3. **Internal Port**: `5000`
 
+## 🌐 Deployment (Vercel)
+
 ### Frontend (Static Site)
 1. **Root Directory**: `client`
 2. **Build Command**: `npm install && npm run build`
@@ -123,4 +125,4 @@ Distributed under the ISC License.
 **Priyanshu Ranjan** - [GitHub](https://github.com/pr-04)
 
 ---
-*Developed with ❤️ as a portfolio-grade MERN application.*
+*Developed with ❤️ *
