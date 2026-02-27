@@ -2,7 +2,32 @@
 
 FitTrack is a comprehensive, modern MERN stack application designed to help users track their fitness journey. It features a robust dashboard, workout logging, calorie tracking with localized mock data, and weight progress monitoring with BMI calculations.
 
+**Live Demo:** [https://fit-track-phi-virid.app/](https://fit-track-phi-virid.vercel.app/)
+
 ![FitTrack Logo](https://raw.githubusercontent.com/pr-04/FitTrack/main/client/public/vite.svg)
+
+## 📁 Project Structure
+
+```text
+.
+├── client/                # React + Vite Frontend
+│   ├── src/
+│   │   ├── components/    # Reusable UI components (Card, Button, etc.)
+│   │   ├── pages/         # Main page views (Dashboard, Weight, Calories)
+│   │   ├── context/       # Authentication context (AuthContext)
+│   │   ├── services/      # Axios API service configurations
+│   │   └── App.jsx        # Root component & Routing
+│   └── public/            # Static assets
+├── server/                # Node.js + Express Backend
+│   ├── config/            # Database connection logic
+│   ├── controllers/       # API controllers (Auth, Food, Workout, Weight)
+│   ├── models/            # Mongoose schemas (User, Workout, Food, Weight)
+│   ├── routes/            # API route definitions
+│   ├── middleware/        # Auth & Error handling middleware
+│   └── server.js          # Backend entry point
+├── README.md              # Project documentation
+└── .gitignore             # Git ignore rules for root, client, and server
+```
 
 ## 🚀 Key Features
 
