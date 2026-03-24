@@ -9,10 +9,10 @@ const Button = ({
     ...props
 }) => {
     const variants = {
-        primary: 'bg-gradient-to-r from-accent-blue to-accent-purple text-white shadow-lg shadow-accent-blue/20 hover:shadow-accent-blue/40',
-        danger: 'bg-accent-red/10 text-accent-red border border-accent-red/30 hover:bg-accent-red hover:text-white',
-        ghost: 'text-slate-400 hover:text-white hover:bg-slate-700/50',
-        outline: 'border border-slate-700 text-slate-300 hover:border-slate-500 hover:text-white'
+        primary: 'bg-gradient-to-r from-accent-blue to-accent-purple text-white shadow-lg shadow-accent-blue/20 hover:shadow-accent-blue/40 border-transparent',
+        danger: 'bg-accent-red/10 dark:bg-accent-red/20 text-accent-red border border-accent-red/30 hover:bg-accent-red hover:text-white',
+        ghost: 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white hover:bg-slate-200/50 dark:hover:bg-slate-700/50 border-transparent',
+        outline: 'border border-slate-300 dark:border-slate-700 text-slate-600 dark:text-slate-300 hover:border-slate-400 dark:hover:border-slate-500 hover:text-slate-900 dark:hover:text-white hover:bg-white/50 dark:hover:bg-slate-800/50'
     };
 
     const baseStyles = 'inline-flex items-center justify-center font-semibold px-6 py-3 rounded-xl transition-all duration-200 active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed disabled:active:scale-100';

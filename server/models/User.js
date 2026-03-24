@@ -17,8 +17,17 @@ const userSchema = new mongoose.Schema(
         },
         password: {
             type: String,
-            required: [true, 'Password is required'],
             minlength: 6,
+            default: null,
+        },
+        googleId: {
+            type: String,
+            default: null,
+            sparse: true, // allow multiple null values
+        },
+        avatar: {
+            type: String,
+            default: null,
         },
         height: {
             type: Number, // in cm
@@ -37,17 +46,18 @@ const userSchema = new mongoose.Schema(
     { timestamps: true }
 );
 
-// Hash password before saving
+// Hash password before saving (skip for OAuth users with no password)
 userSchema.pre('save', async function () {
-    if (!this.isModified('password')) {
+    if (!this.isModified('password') || !this.password) {
         return;
     }
     const salt = await bcrypt.genSalt(10);
     this.password = await bcrypt.hash(this.password, salt);
 });
 
-// Method to compare password
+// Method to compare password (returns false if user has no password set)
 userSchema.methods.matchPassword = async function (enteredPassword) {
+    if (!this.password) return false;
     return await bcrypt.compare(enteredPassword, this.password);
 };
 

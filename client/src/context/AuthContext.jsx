@@ -52,8 +52,15 @@ export const AuthProvider = ({ children }) => {
         setUser(userData);
     };
 
+    // Used by OAuthCallback page to log in with a token received from server redirect
+    const loginWithToken = (token, userData) => {
+        localStorage.setItem('fittrack_token', token);
+        localStorage.setItem('fittrack_user', JSON.stringify(userData));
+        setUser(userData);
+    };
+
     return (
-        <AuthContext.Provider value={{ user, loading, signup, login, logout, updateUser }}>
+        <AuthContext.Provider value={{ user, loading, signup, login, logout, updateUser, loginWithToken }}>
             {children}
         </AuthContext.Provider>
     );

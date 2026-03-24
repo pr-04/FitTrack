@@ -6,9 +6,10 @@ import {
     BarChart, Bar, LineChart, Line, XAxis, YAxis, CartesianGrid,
     Tooltip, ResponsiveContainer
 } from 'recharts';
-import { Dumbbell, Flame, Scale, Target } from 'lucide-react';
+import { Dumbbell, Flame, Scale, Target, Sparkles, AlertCircle, TrendingUp, Info } from 'lucide-react';
 import Card from '../components/ui/Card';
 import Button from '../components/ui/Button';
+import { aiAPI } from '../services/api';
 
 const goalLabels = {
     lose_weight: 'Lose Weight',
@@ -21,8 +22,8 @@ const goalLabels = {
 const CustomTooltip = ({ active, payload, label }) => {
     if (active && payload && payload.length) {
         return (
-            <div className="bg-dark-800 border border-slate-700 rounded-lg px-3 py-2 text-sm">
-                <p className="text-slate-400 mb-1">{label}</p>
+            <div className="bg-white/80 dark:bg-slate-800/80 backdrop-blur-md border border-slate-200 dark:border-slate-700/50 rounded-lg px-3 py-2 text-sm shadow-xl">
+                <p className="text-slate-600 dark:text-slate-400 mb-1">{label}</p>
                 {payload.map((p, i) => (
                     <p key={i} style={{ color: p.color }} className="font-semibold">
                         {p.name}: {p.value}
@@ -40,6 +41,7 @@ const Dashboard = () => {
     const [weights, setWeights] = useState([]);
     const [todayCalories, setTodayCalories] = useState(0);
     const [weeklyCalories, setWeeklyCalories] = useState([]);
+    const [aiInsights, setAiInsights] = useState(null);
     const [loading, setLoading] = useState(true);
 
     const today = new Date().toISOString().split('T')[0];
@@ -94,6 +96,14 @@ const Dashboard = () => {
                     }
                 }
                 setWeeklyCalories(days);
+
+                // Fetch AI Insights
+                try {
+                    const aiRes = await aiAPI.getDashboardInsights();
+                    setAiInsights(aiRes.data);
+                } catch (aiErr) {
+                    console.error('AI Insights fetch error:', aiErr);
+                }
             } catch (err) {
                 console.error('Dashboard fetch error:', err.message);
             } finally {
@@ -120,13 +130,55 @@ const Dashboard = () => {
     return (
         <div className="space-y-6">
             <div>
-                <h2 className="text-2xl font-bold text-white">
+                <h2 className="text-2xl font-bold text-slate-900 dark:text-white">
                     Good {new Date().getHours() < 12 ? 'morning' : new Date().getHours() < 17 ? 'afternoon' : 'evening'},{' '}
-                    <span className="bg-gradient-to-r from-accent-blue to-accent-purple bg-clip-text text-transparent">
+                    <span className="bg-gradient-to-r from-accent-blue to-accent-purple bg-clip-text text-transparent drop-shadow-sm">
                         {user?.name?.split(' ')[0]}
                     </span>! 👋
                 </h2>
-                <p className="text-slate-400 mt-1">Here's your fitness summary for today.</p>
+                <p className="text-slate-600 dark:text-slate-400 mt-1">Here's your fitness summary for today.</p>
+            </div>
+
+            {/* AI Insights Section */}
+            <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
+                <div className="lg:col-span-2 bg-gradient-to-br from-blue-600/10 to-purple-600/10 border border-blue-500/20 rounded-2xl p-5 relative overflow-hidden group">
+                    <div className="absolute top-0 right-0 p-4 opacity-10 group-hover:opacity-20 transition-opacity">
+                        <Sparkles size={80} className="text-blue-500" />
+                    </div>
+                    <div className="relative z-10 flex items-start gap-4">
+                        <div className="w-12 h-12 rounded-xl bg-blue-600 flex items-center justify-center flex-shrink-0 shadow-lg shadow-blue-500/20">
+                            <Sparkles className="text-white" size={24} />
+                        </div>
+                        <div>
+                            <h3 className="font-bold text-slate-900 dark:text-white flex items-center gap-2">
+                                Daily AI Coach Advice
+                                <span className="text-[10px] bg-blue-500 text-white px-1.5 py-0.5 rounded uppercase tracking-tighter">AI Powered</span>
+                            </h3>
+                            <p className="text-slate-700 dark:text-slate-300 mt-2 italic leading-relaxed">
+                                {aiInsights?.dailyReminder || "Loading your daily motivation..."}
+                            </p>
+                            <div className="mt-4 flex items-center gap-2 text-xs font-semibold text-blue-600 dark:text-blue-400">
+                                <TrendingUp size={14} />
+                                <span>{aiInsights?.progressAnalysis || "Analyzing your recent progress..."}</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div className={`${aiInsights?.healthWarning?.toLowerCase().includes('warning') || aiInsights?.healthWarning?.toLowerCase().includes('risk') ? 'bg-red-500/10 border-red-500/20' : 'bg-green-500/10 border-green-500/20'} border rounded-2xl p-5 flex flex-col justify-between`}>
+                    <div className="flex items-start gap-3">
+                        <div className={`${aiInsights?.healthWarning?.toLowerCase().includes('warning') || aiInsights?.healthWarning?.toLowerCase().includes('risk') ? 'bg-red-500' : 'bg-green-500'} w-10 h-10 rounded-lg flex items-center justify-center flex-shrink-0`}>
+                            <AlertCircle className="text-white" size={20} />
+                        </div>
+                        <div>
+                            <h4 className="font-bold text-slate-900 dark:text-white text-sm">Health Status & Alerts</h4>
+                            <p className="text-xs text-slate-600 dark:text-slate-400 mt-1">Based on your BMI and history</p>
+                        </div>
+                    </div>
+                    <p className="text-sm font-medium text-slate-800 dark:text-slate-200 mt-4 leading-relaxed">
+                        {aiInsights?.healthWarning || "Everything looks good! Keep it up."}
+                    </p>
+                </div>
             </div>
 
             <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-4">
@@ -145,7 +197,7 @@ const Dashboard = () => {
 
             <div className="grid grid-cols-1 xl:grid-cols-2 gap-6">
                 <Card>
-                    <h3 className="text-base font-semibold text-white mb-5">Weekly Calories</h3>
+                    <h3 className="text-base font-semibold text-slate-800 dark:text-white mb-5">Weekly Calories</h3>
                     <ResponsiveContainer width="100%" height={220}>
                         <BarChart data={weeklyCalories} barSize={30}>
                             <CartesianGrid strokeDasharray="3 3" stroke="#334155" vertical={false} />
@@ -164,7 +216,7 @@ const Dashboard = () => {
                 </Card>
 
                 <Card>
-                    <h3 className="text-base font-semibold text-white mb-5">Weight Progress</h3>
+                    <h3 className="text-base font-semibold text-slate-800 dark:text-white mb-5">Weight Progress</h3>
                     {weightChartData.length > 0 ? (
                         <ResponsiveContainer width="100%" height={220}>
                             <LineChart data={weightChartData}>

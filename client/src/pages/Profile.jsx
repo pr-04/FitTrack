@@ -1,19 +1,14 @@
 import { useState } from 'react';
 import { useAuth } from '../context/AuthContext';
 import { authAPI } from '../services/api';
-import { User, Save, Zap } from 'lucide-react';
+import { User, Save, Sparkles } from 'lucide-react';
 import Card from '../components/ui/Card';
 import Button from '../components/ui/Button';
 import Input from '../components/ui/Input';
 import Select from '../components/ui/Select';
 import Alert from '../components/ui/Alert';
 
-const goalOptions = [
-    { value: 'lose_weight', label: 'Lose Weight' },
-    { value: 'gain_muscle', label: 'Gain Muscle' },
-    { value: 'maintain', label: 'Maintain Weight' },
-    { value: 'improve_fitness', label: 'Improve Fitness' },
-];
+
 
 const Profile = () => {
     const { user, updateUser } = useAuth();
@@ -21,7 +16,6 @@ const Profile = () => {
         name: user?.name || '',
         height: user?.height || '',
         weight: user?.weight || '',
-        goal: user?.goal || 'maintain',
         password: '',
     });
     const [loading, setLoading] = useState(false);
@@ -47,7 +41,6 @@ const Profile = () => {
                 name: form.name,
                 height: form.height ? Number(form.height) : undefined,
                 weight: form.weight ? Number(form.weight) : undefined,
-                goal: form.goal,
             };
             if (form.password) payload.password = form.password;
 
@@ -75,31 +68,25 @@ const Profile = () => {
                         {initials}
                     </div>
                     <div>
-                        <h2 className="text-xl font-bold text-white">{user?.name}</h2>
-                        <p className="text-slate-400 text-sm">{user?.email}</p>
-                        <div className="flex items-center gap-1.5 mt-1">
-                            <Zap size={12} className="text-accent-blue" />
-                            <span className="text-xs text-accent-blue font-medium uppercase tracking-wider">
-                                {goalOptions.find(g => g.value === user?.goal)?.label || 'FitTrack Member'}
-                            </span>
-                        </div>
+                        <h2 className="text-xl font-bold text-slate-900 dark:text-white">{user?.name}</h2>
+                        <p className="text-slate-600 dark:text-slate-400 text-sm">{user?.email}</p>
                     </div>
                 </div>
 
-                <div className="grid grid-cols-2 gap-4 mb-6 p-4 bg-dark-900/50 rounded-xl border border-slate-700/50">
+                <div className="grid grid-cols-2 gap-4 mb-6 p-4 bg-white/40 dark:bg-dark-900/50 rounded-xl border border-slate-300/50 dark:border-slate-700/50 shadow-inner">
                     <div className="text-center">
-                        <p className="text-2xl font-bold text-white">{user?.height ? `${user.height} cm` : '—'}</p>
-                        <p className="text-slate-400 text-xs mt-0.5 uppercase">Height</p>
+                        <p className="text-2xl font-bold text-slate-900 dark:text-white">{user?.height ? `${user.height} cm` : '—'}</p>
+                        <p className="text-slate-500 dark:text-slate-400 text-xs mt-0.5 uppercase">Height</p>
                     </div>
                     <div className="text-center">
-                        <p className="text-2xl font-bold text-white">{user?.weight ? `${user.weight} kg` : '—'}</p>
-                        <p className="text-slate-400 text-xs mt-0.5 uppercase">Starting Weight</p>
+                        <p className="text-2xl font-bold text-slate-900 dark:text-white">{user?.weight ? `${user.weight} kg` : '—'}</p>
+                        <p className="text-slate-500 dark:text-slate-400 text-xs mt-0.5 uppercase">Starting Weight</p>
                     </div>
                 </div>
 
                 <div className="flex items-center gap-2 mb-4">
                     <User size={16} className="text-accent-blue" />
-                    <h3 className="text-base font-semibold text-white">Edit Profile</h3>
+                    <h3 className="text-base font-semibold text-slate-900 dark:text-white">Edit Profile</h3>
                 </div>
 
                 <Alert type="error" className="mb-4">{error || null}</Alert>
@@ -113,7 +100,7 @@ const Profile = () => {
                         <Input label="Weight (kg)" type="number" name="weight" value={form.weight} onChange={handleChange} placeholder="70" min="30" max="300" />
                     </div>
 
-                    <Select label="Fitness Goal" name="goal" value={form.goal} onChange={handleChange} options={goalOptions} />
+
 
                     <Input
                         label="New Password"

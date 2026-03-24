@@ -28,10 +28,10 @@ const SummaryCard = ({ title, value, subtitle, icon: Icon, color = 'blue', trend
     };
 
     return (
-        <div className={`bg-gradient-to-br ${colorMap[color]} border rounded-2xl p-5 transition-transform duration-200 hover:-translate-y-2`}>
+        <div className={`glass-card rounded-3xl bg-gradient-to-br ${colorMap[color]} p-5 transition-transform duration-200 hover:-translate-y-2`}>
             <div className="flex items-start justify-between mb-4">
                 <div>
-                    <p className="text-slate-400 text-sm font-medium">{title}</p>
+                    <p className="text-slate-600 dark:text-slate-400 text-sm font-medium">{title}</p>
                 </div>
                 {Icon && (
                     <div className={`w-10 h-10 rounded-xl ${iconBg[color]} flex items-center justify-center`}>
@@ -40,11 +40,11 @@ const SummaryCard = ({ title, value, subtitle, icon: Icon, color = 'blue', trend
                 )}
             </div>
             <div>
-                <p className="text-3xl font-bold text-white">{value ?? '—'}</p>
-                {subtitle && <p className="text-slate-400 text-xs mt-1">{subtitle}</p>}
+                <p className="text-3xl font-bold text-slate-800 dark:text-white">{value ?? '—'}</p>
+                {subtitle && <p className="text-slate-500 dark:text-slate-400 text-xs mt-1">{subtitle}</p>}
 
                 {progress !== undefined && (
-                    <div className="w-full bg-dark-900 rounded-full h-1.5 mt-4 overflow-hidden">
+                    <div className="w-full bg-slate-200 dark:bg-dark-900 rounded-full h-1.5 mt-4 overflow-hidden shadow-inner">
                         <div
                             className={`h-full rounded-full transition-all duration-500 ${progress >= 100 && color === 'orange' ? 'bg-red-500' : progressBg[color]}`}
                             style={{ width: `${Math.min(progress, 100)}%` }}

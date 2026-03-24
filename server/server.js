@@ -1,5 +1,7 @@
 const express = require('express'); // Restarted to reload .env and connect to MongoDB Atlas
 const cors = require('cors');
+const session = require('express-session');
+const passport = require('passport');
 const dotenv = require('dotenv');
 const path = require('path');
 const connectDB = require('./config/db');
@@ -11,18 +13,33 @@ dotenv.config({ path: path.join(__dirname, '.env') });
 // Connect to MongoDB
 connectDB();
 
+// Configure Passport strategies
+require('./config/passport');
+
 const app = express();
 
 // ─── Middleware ───────────────────────────────────────────────────────────────
-app.use(cors());
+app.use(cors({
+    origin: process.env.CLIENT_URL || 'http://localhost:5173',
+    credentials: true,
+}));
 app.use(express.json());
 app.use(express.urlencoded({ extended: false }));
+
+// Session (required by Passport for OAuth flow even with session:false on callback)
+app.use(session({
+    secret: process.env.SESSION_SECRET || 'fittrack_session_secret_123',
+    resave: false,
+    saveUninitialized: false,
+}));
+app.use(passport.initialize());
 
 // ─── Routes ──────────────────────────────────────────────────────────────────
 app.use('/api/auth', require('./routes/authRoutes'));
 app.use('/api/workouts', require('./routes/workoutRoutes'));
 app.use('/api/foods', require('./routes/foodRoutes'));
 app.use('/api/weights', require('./routes/weightRoutes'));
+app.use('/api/ai', require('./routes/aiRoutes'));
 
 // Health check
 app.get('/', (req, res) => {

@@ -121,4 +121,13 @@ const updateProfile = async (req, res) => {
     }
 };
 
-module.exports = { signup, login, getMe, updateProfile };
+// @desc    Google OAuth callback — redirects to client with JWT
+// @route   GET /api/auth/google/callback
+// @access  Public (after Passport verifies)
+const googleCallback = (req, res) => {
+    const token = generateToken(req.user._id);
+    const clientURL = process.env.CLIENT_URL || 'http://localhost:5173';
+    res.redirect(`${clientURL}/oauth-callback?token=${token}`);
+};
+
+module.exports = { signup, login, getMe, updateProfile, googleCallback };

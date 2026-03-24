@@ -30,6 +30,10 @@ const workoutSchema = new mongoose.Schema(
             type: Date,
             default: Date.now,
         },
+        image: {
+            type: String,
+            default: '',
+        },
     },
     { timestamps: true }
 );

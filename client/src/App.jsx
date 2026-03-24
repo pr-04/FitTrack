@@ -1,6 +1,7 @@
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { AuthProvider, useAuth } from './context/AuthContext';
 import Layout from './components/Layout';
+import { ThemeProvider } from './context/ThemeContext';
 import Login from './pages/Login';
 import Signup from './pages/Signup';
 import Dashboard from './pages/Dashboard';
@@ -8,6 +9,9 @@ import Workouts from './pages/Workouts';
 import Calories from './pages/Calories';
 import Weight from './pages/Weight';
 import Profile from './pages/Profile';
+import PersonalizePlan from './pages/PersonalizePlan';
+import OAuthCallback from './pages/OAuthCallback';
+import PageBackground from './components/PageBackground';
 
 // Protected Route — redirects to /login if not authenticated
 const ProtectedRoute = ({ children }) => {
@@ -36,6 +40,7 @@ function AppRoutes() {
       {/* Public Auth Routes */}
       <Route path="/login" element={<AuthRoute><Login /></AuthRoute>} />
       <Route path="/signup" element={<AuthRoute><Signup /></AuthRoute>} />
+      <Route path="/oauth-callback" element={<OAuthCallback />} />
 
       {/* Protected App Routes */}
       <Route path="/" element={<ProtectedRoute><Layout /></ProtectedRoute>}>
@@ -45,6 +50,7 @@ function AppRoutes() {
         <Route path="calories" element={<Calories />} />
         <Route path="weight" element={<Weight />} />
         <Route path="profile" element={<Profile />} />
+        <Route path="personalize-plan" element={<PersonalizePlan />} />
       </Route>
 
       {/* Fallback */}
@@ -56,9 +62,13 @@ function AppRoutes() {
 function App() {
   return (
     <BrowserRouter>
-      <AuthProvider>
-        <AppRoutes />
-      </AuthProvider>
+      <ThemeProvider>
+        <AuthProvider>
+          <PageBackground>
+            <AppRoutes />
+          </PageBackground>
+        </AuthProvider>
+      </ThemeProvider>
     </BrowserRouter>
   );
 }

@@ -38,6 +38,8 @@ export const authAPI = {
     signup: (data) => api.post('/auth/signup', data),
     login: (data) => api.post('/auth/login', data),
     getMe: () => api.get('/auth/me'),
+    getMeWithToken: (token) =>
+        api.get('/auth/me', { headers: { Authorization: `Bearer ${token}` } }),
     updateProfile: (data) => api.put('/auth/profile', data),
 };
 
@@ -46,6 +48,7 @@ export const workoutsAPI = {
     add: (data) => api.post('/workouts', data),
     getAll: () => api.get('/workouts'),
     delete: (id) => api.delete(`/workouts/${id}`),
+    getMockWorkouts: () => api.get(`/workouts/mock?t=${Date.now()}`),
 };
 
 // ─── Foods ─────────────────────────────────────────────────────────────────
@@ -54,13 +57,25 @@ export const foodsAPI = {
     getByDate: (date) => api.get(`/foods?date=${date}`),
     delete: (id) => api.delete(`/foods/${id}`),
     search: (query) => api.get(`/foods/search?query=${query}`),
-    getMockFoods: () => api.get('/foods/mock'),
+    getMockFoods: () => api.get(`/foods/mock?t=${Date.now()}`),
 };
 
 // ─── Weights ───────────────────────────────────────────────────────────────
 export const weightsAPI = {
     add: (data) => api.post('/weights', data),
     getAll: () => api.get('/weights'),
+};
+
+// ─── AI ────────────────────────────────────────────────────────────────────
+export const aiAPI = {
+    getWorkoutPlan: (data) => api.post('/ai/workout-plan', data),
+    getDietPlan: (data) => api.post('/ai/diet-plan', data),
+    savePlan: (data) => api.post('/ai/save-plan', data),
+    getUserPlans: () => api.get('/ai/my-plans'),
+    deletePlan: (id) => api.delete(`/ai/plan/${id}`),
+    chatAboutPlan: (message, planData, history) => api.post('/ai/chat-about-plan', { message, planData, history }),
+    getDashboardInsights: () => api.get('/ai/dashboard-insights'),
+    chat: (message, history) => api.post('/ai/chat', { message, history }),
 };
 
 export default api;

@@ -1,7 +1,10 @@
 const express = require('express');
 const router = express.Router();
-const { addWorkout, getWorkouts, deleteWorkout } = require('../controllers/workoutController');
+const { addWorkout, getWorkouts, deleteWorkout, getMockWorkouts } = require('../controllers/workoutController');
 const { protect } = require('../middleware/authMiddleware');
+
+// @route GET /api/workouts/mock
+router.get('/mock', getMockWorkouts);
 
 // All routes are protected
 router.use(protect);

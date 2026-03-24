@@ -1,7 +1,7 @@
 import { NavLink, useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import {
-    LayoutDashboard, Dumbbell, Apple, Scale, User, LogOut, Zap, X
+    LayoutDashboard, Dumbbell, Apple, Scale, User, LogOut, Zap, X, Sparkles
 } from 'lucide-react';
 
 const navItems = [
@@ -9,6 +9,7 @@ const navItems = [
     { to: '/workouts', label: 'Workouts', icon: Dumbbell },
     { to: '/calories', label: 'Calories', icon: Apple },
     { to: '/weight', label: 'Weight', icon: Scale },
+    { to: '/personalize-plan', label: 'Personalize Plan', icon: Sparkles },
     { to: '/profile', label: 'Profile', icon: User },
 ];
 
@@ -24,39 +25,39 @@ const Sidebar = ({ isOpen, onClose }) => {
     return (
         <aside
             className={`
-        fixed inset-y-0 left-0 z-30 w-64 bg-dark-800 border-r border-slate-700/50
+        fixed inset-y-0 left-0 z-30 w-64 glass-panel border-r border-white/50 dark:border-white/10
         flex flex-col transform transition-transform duration-300 ease-in-out
         lg:static lg:translate-x-0 lg:z-auto
         ${isOpen ? 'translate-x-0' : '-translate-x-full'}
       `}
         >
             {/* Logo */}
-            <div className="flex items-center justify-between px-6 py-5 border-b border-slate-700/50">
-                <div className="flex items-center gap-2.5">
-                    <div className="w-8 h-8 rounded-lg bg-gradient-brand flex items-center justify-center">
-                        <Zap size={18} className="text-white" />
+            <div className="flex items-center justify-between px-6 py-6 border-b border-white/30 dark:border-white/10">
+                <div className="flex items-center gap-3">
+                    <div className="w-9 h-9 rounded-xl bg-gradient-brand shadow-lg shadow-accent-blue/20 flex items-center justify-center">
+                        <Zap size={20} className="text-white" />
                     </div>
-                    <span className="text-lg font-bold bg-gradient-to-r from-accent-blue to-accent-purple bg-clip-text text-transparent">
+                    <span className="text-xl font-bold bg-gradient-to-r from-accent-blue to-accent-purple bg-clip-text text-transparent">
                         FitTrack
                     </span>
                 </div>
-                <button onClick={onClose} className="lg:hidden text-slate-400 hover:text-white transition-colors">
-                    <X size={20} />
+                <button onClick={onClose} className="lg:hidden text-slate-500 dark:text-slate-400 hover:text-slate-800 dark:hover:text-white transition-colors">
+                    <X size={22} />
                 </button>
             </div>
 
             {/* Nav links */}
-            <nav className="flex-1 px-3 py-4 space-y-1 overflow-y-auto">
+            <nav className="flex-1 px-4 py-6 space-y-2 overflow-y-auto">
                 {navItems.map(({ to, label, icon: Icon }) => (
                     <NavLink
                         key={to}
                         to={to}
                         onClick={onClose}
                         className={({ isActive }) =>
-                            `flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-medium transition-all duration-200
+                            `flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-medium transition-all duration-200 border
               ${isActive
-                                ? 'bg-gradient-to-r from-accent-blue/20 to-accent-purple/20 text-white border border-accent-blue/30'
-                                : 'text-slate-400 hover:text-white hover:bg-slate-700/50'
+                                ? 'bg-white/60 dark:bg-slate-800/60 text-slate-900 dark:text-white border-white/60 dark:border-white/20 shadow-sm'
+                                : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white hover:bg-white/40 dark:hover:bg-slate-800/40 border-transparent'
                             }`
                         }
                     >
@@ -67,11 +68,11 @@ const Sidebar = ({ isOpen, onClose }) => {
             </nav>
 
             {/* Logout */}
-            <div className="p-3 border-t border-slate-700/50">
+            <div className="p-4 border-t border-white/30 dark:border-white/10">
                 <button
                     onClick={handleLogout}
                     className="flex items-center gap-3 w-full px-4 py-3 rounded-xl text-sm font-medium
-                     text-slate-400 hover:text-accent-red hover:bg-accent-red/10 transition-all duration-200"
+                     text-slate-600 dark:text-slate-400 hover:text-accent-red dark:hover:text-accent-red hover:bg-accent-red/10 dark:hover:bg-accent-red/20 hover:border-accent-red/20 border border-transparent transition-all duration-200"
                 >
                     <LogOut size={18} />
                     Logout

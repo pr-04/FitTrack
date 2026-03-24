@@ -3,11 +3,11 @@ const router = express.Router();
 const { addFood, getFoods, deleteFood, searchFood, getMockFoods } = require('../controllers/foodController');
 const { protect } = require('../middleware/authMiddleware');
 
+// @route GET /api/foods/mock (Public for testing)
+router.get('/mock', getMockFoods);
+
 // All routes are protected
 router.use(protect);
-
-// @route GET /api/foods/mock
-router.get('/mock', getMockFoods);
 
 // @route POST /api/foods
 router.post('/', addFood);

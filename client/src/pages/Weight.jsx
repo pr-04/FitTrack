@@ -13,9 +13,9 @@ const today = new Date().toISOString().split('T')[0];
 const CustomTooltip = ({ active, payload, label }) => {
     if (active && payload && payload.length) {
         return (
-            <div className="bg-dark-800 border border-slate-700 rounded-lg px-3 py-2 text-sm">
-                <p className="text-slate-400 mb-1">{label}</p>
-                <p className="text-white font-semibold">{payload[0].value} kg</p>
+            <div className="bg-white/80 dark:bg-slate-800/80 backdrop-blur-md border border-slate-200 dark:border-slate-700/50 shadow-lg rounded-lg px-3 py-2 text-sm">
+                <p className="text-slate-600 dark:text-slate-400 mb-1">{label}</p>
+                <p className="text-slate-900 dark:text-white font-semibold">{payload[0].value} kg</p>
             </div>
         );
     }
@@ -101,7 +101,7 @@ const Weight = () => {
             <Card>
                 <div className="flex items-center gap-2 mb-5">
                     <Plus size={20} className="text-accent-green" />
-                    <h2 className="text-lg font-semibold text-white">Log Weight</h2>
+                    <h2 className="text-lg font-semibold text-slate-900 dark:text-white">Log Weight</h2>
                 </div>
 
                 <Alert type="error" className="mb-4">{error || null}</Alert>
@@ -122,26 +122,26 @@ const Weight = () => {
             <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
                 <Card className="text-center">
                     <Scale size={24} className="mx-auto mb-2 text-accent-blue" />
-                    <p className="text-3xl font-bold text-white">{latest ?? '—'}</p>
-                    <p className="text-slate-400 text-sm mt-1">Current (kg)</p>
+                    <p className="text-3xl font-bold text-slate-900 dark:text-white">{latest ?? '—'}</p>
+                    <p className="text-slate-600 dark:text-slate-400 text-sm mt-1">Current (kg)</p>
                 </Card>
                 <Card className="text-center flex flex-col justify-center">
-                    <p className="text-slate-400 text-sm mb-1">Starting Weight</p>
-                    <p className="text-3xl font-bold text-white">{first ?? '—'}</p>
-                    <p className="text-slate-400 text-xs mt-1">kg</p>
+                    <p className="text-slate-600 dark:text-slate-400 text-sm mb-1">Starting Weight</p>
+                    <p className="text-3xl font-bold text-slate-900 dark:text-white">{first ?? '—'}</p>
+                    <p className="text-slate-600 dark:text-slate-400 text-xs mt-1">kg</p>
                 </Card>
                 <Card className="text-center flex flex-col justify-center">
                     {change !== null ? (
                         <>
                             {Number(change) < 0
-                                ? <TrendingDown size={24} className="mx-auto mb-2 text-emerald-400" />
+                                ? <TrendingDown size={24} className="mx-auto mb-2 text-emerald-500 dark:text-emerald-400" />
                                 : Number(change) > 0
-                                    ? <TrendingUp size={24} className="mx-auto mb-2 text-red-400" />
-                                    : <Minus size={24} className="mx-auto mb-2 text-slate-400" />}
-                            <p className={`text-3xl font-bold ${Number(change) < 0 ? 'text-emerald-400' : Number(change) > 0 ? 'text-red-400' : 'text-white'}`}>
+                                    ? <TrendingUp size={24} className="mx-auto mb-2 text-red-500 dark:text-red-400" />
+                                    : <Minus size={24} className="mx-auto mb-2 text-slate-500 dark:text-slate-400" />}
+                            <p className={`text-3xl font-bold ${Number(change) < 0 ? 'text-emerald-600 dark:text-emerald-400' : Number(change) > 0 ? 'text-red-600 dark:text-red-400' : 'text-slate-800 dark:text-white'}`}>
                                 {Number(change) > 0 ? '+' : ''}{change} kg
                             </p>
-                            <p className="text-slate-400 text-sm mt-1">Total change</p>
+                            <p className="text-slate-600 dark:text-slate-400 text-sm mt-1">Total change</p>
                         </>
                     ) : (
                         <p className="text-slate-500 text-sm italic">Add more entries to see progress</p>
@@ -163,7 +163,7 @@ const Weight = () => {
             </div>
 
             <Card>
-                <h3 className="text-base font-semibold text-white mb-5">Weight Progress</h3>
+                <h3 className="text-base font-semibold text-slate-900 dark:text-white mb-5">Weight Progress</h3>
                 {fetchLoading ? (
                     <div className="flex justify-center py-8">
                         <div className="w-8 h-8 border-4 border-accent-blue border-t-transparent rounded-full animate-spin" />
@@ -194,32 +194,32 @@ const Weight = () => {
 
             {weights.length > 0 && (
                 <Card>
-                    <h3 className="text-base font-semibold text-white mb-4">History</h3>
+                    <h3 className="text-base font-semibold text-slate-900 dark:text-white mb-4">History</h3>
                     <div className="overflow-x-auto">
                         <table className="w-full text-sm">
                             <thead>
-                                <tr className="text-left text-slate-400 border-b border-slate-700/50">
+                                <tr className="text-left text-slate-500 dark:text-slate-400 border-b border-slate-300 dark:border-slate-700/50">
                                     <th className="pb-3 font-medium">Date</th>
                                     <th className="pb-3 font-medium">Weight</th>
                                     <th className="pb-3 font-medium">Change</th>
                                 </tr>
                             </thead>
-                            <tbody className="divide-y divide-slate-700/30">
+                            <tbody className="divide-y divide-slate-300/50 dark:divide-slate-700/30">
                                 {[...weights].reverse().map((w, i, arr) => {
                                     const prev = arr[i + 1];
                                     const diff = prev ? (w.weight - prev.weight).toFixed(1) : null;
                                     return (
-                                        <tr key={w._id} className="text-slate-300">
+                                        <tr key={w._id} className="text-slate-700 dark:text-slate-300">
                                             <td className="py-3">
                                                 {new Date(w.date).toLocaleDateString('en', { weekday: 'short', month: 'short', day: 'numeric', year: 'numeric' })}
                                             </td>
-                                            <td className="py-3 text-white font-semibold">{w.weight} kg</td>
+                                            <td className="py-3 text-slate-900 dark:text-white font-semibold">{w.weight} kg</td>
                                             <td className="py-3">
                                                 {diff !== null ? (
-                                                    <span className={`font-medium ${Number(diff) < 0 ? 'text-emerald-400' : Number(diff) > 0 ? 'text-red-400' : 'text-slate-400'}`}>
+                                                    <span className={`font-medium ${Number(diff) < 0 ? 'text-emerald-600 dark:text-emerald-400' : Number(diff) > 0 ? 'text-red-600 dark:text-red-400' : 'text-slate-600 dark:text-slate-400'}`}>
                                                         {Number(diff) > 0 ? '+' : ''}{diff} kg
                                                     </span>
-                                                ) : <span className="text-slate-600">—</span>}
+                                                ) : <span className="text-slate-500 dark:text-slate-600">—</span>}
                                             </td>
                                         </tr>
                                     );
