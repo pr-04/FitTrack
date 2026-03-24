@@ -144,7 +144,7 @@ const savePlan = async (req, res) => {
         }
 
         const newPlan = await AIPlan.create({
-            userId: req.user._id,
+            userId: req.user._id, // FORCE current user ID
             type,
             data,
             instruction: instruction || '',
@@ -164,7 +164,8 @@ const savePlan = async (req, res) => {
  */
 const getUserPlans = async (req, res) => {
     try {
-        const plans = await AIPlan.find({ userId: req.user._id }).sort({ createdAt: -1 });
+        const userId = req.user._id;
+        const plans = await AIPlan.find({ userId }).sort({ createdAt: -1 });
         res.json(plans);
     } catch (error) {
         console.error('Get AI Plans Error:', error);

@@ -37,7 +37,7 @@ const PersonalizePlan = () => {
 
     const fetchPlans = async () => {
         try {
-            const res = await aiAPI.getUserPlans();
+            const res = await aiAPI.getUserPlans({ t: Date.now() });
             setPlans(res.data);
             if (res.data.length > 0 && !selectedPlan) {
                 // Optionally auto-select the latest plan? 
