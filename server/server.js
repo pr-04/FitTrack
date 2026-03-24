@@ -18,10 +18,29 @@ require('./config/passport');
 
 const app = express();
 
-// ─── Middleware ───────────────────────────────────────────────────────────────
+const allowedOrigins = [
+  process.env.CLIENT_URL,
+  'http://localhost:5173',
+  'https://fit-track-phi-virid.vercel.app',
+  'https://fit-track-priyanshu-ranjans-projects.vercel.app'
+];
+
 app.use(cors({
-    origin: process.env.CLIENT_URL || 'http://localhost:5173',
-    credentials: true,
+  origin: (origin, callback) => {
+    // Allow requests with no origin (like mobile apps/Postman)
+    if (!origin) return callback(null, true);
+    
+    // Check if origin is in our allowed list or matches a Vercel preview pattern
+    const isAllowed = allowedOrigins.includes(origin) || 
+                     (origin.startsWith('https://fit-track') && origin.endsWith('vercel.app'));
+    
+    if (isAllowed) {
+      callback(null, true);
+    } else {
+      callback(new Error('Not allowed by CORS'));
+    }
+  },
+  credentials: true,
 }));
 app.use(express.json());
 app.use(express.urlencoded({ extended: false }));
