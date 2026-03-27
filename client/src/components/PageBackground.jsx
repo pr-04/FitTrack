@@ -29,23 +29,15 @@ const PageBackground = ({ children }) => {
             <div className="fixed inset-0 pointer-events-none" style={{ zIndex: -1 }}>
                 {/* Base Background Image */}
                 <div
-                    className="absolute inset-0 bg-cover bg-center transition-all duration-1000 scale-105"
+                    className="absolute inset-0 bg-cover bg-center transition-all duration-1000"
                     style={{ 
                         backgroundImage: `url('${bgImage}')`,
-                        opacity: 1
+                        opacity: 0.15
                     }}
                 />
 
-                {/* Dynamic Animated Blobs */}
-                <div className="absolute inset-0 overflow-hidden">
-                    <div className="absolute top-0 -left-4 w-72 h-72 bg-blue-400/20 dark:bg-blue-600/10 rounded-full mix-blend-multiply filter blur-3xl animate-blob" />
-                    <div className="absolute top-0 -right-4 w-72 h-72 bg-purple-400/20 dark:bg-purple-600/10 rounded-full mix-blend-multiply filter blur-3xl animate-blob animation-delay-2000" />
-                    <div className="absolute -bottom-8 left-20 w-72 h-72 bg-emerald-400/20 dark:bg-emerald-600/10 rounded-full mix-blend-multiply filter blur-3xl animate-blob animation-delay-4000" />
-                    <div className="absolute inset-0 bg-gradient-to-t from-slate-50/50 via-transparent to-slate-50/50 dark:from-slate-950/50 dark:to-slate-950/50" />
-                </div>
-
-                {/* Translucent Overlay for Readability */}
-                <div className="absolute inset-0 bg-white/10 dark:bg-black/30 backdrop-blur-lg transition-colors duration-300" />
+                {/* Simple Overlay for Readability */}
+                <div className="absolute inset-0 bg-slate-50/80 dark:bg-slate-950/90 backdrop-blur-sm transition-colors duration-300" />
             </div>
 
             {/* Content area */}

@@ -2,7 +2,6 @@ import { useState } from 'react';
 import { Outlet } from 'react-router-dom';
 import Sidebar from './Sidebar';
 import Navbar from './Navbar';
-import AIChatbot from './AIChatbot';
 
 const Layout = () => {
     const [sidebarOpen, setSidebarOpen] = useState(false);
@@ -29,7 +28,6 @@ const Layout = () => {
                     <Outlet />
                 </main>
             </div>
-            <AIChatbot />
         </div>
     );
 };

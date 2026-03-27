@@ -230,7 +230,7 @@ const Workouts = () => {
                             <p className="text-xs text-slate-500 dark:text-slate-400">Total Selection</p>
                             <p className="text-lg font-bold text-accent-blue">{Object.keys(selectedWorkouts).length + (customActive ? 1 : 0)} Exercises</p>
                         </div>
-                        <Button onClick={handleLogWorkouts} loading={loading} disabled={Object.keys(selectedWorkouts).length === 0 && !customActive} className="w-full sm:w-auto shadow-lg shadow-accent-blue/20">
+                        <Button onClick={handleLogWorkouts} loading={loading} disabled={Object.keys(selectedWorkouts).length === 0 && !customActive} className="w-full sm:w-auto">
                             Log Workouts
                         </Button>
                     </div>
@@ -265,7 +265,7 @@ const Workouts = () => {
                                 </div>
                                 <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
                                     {items.map(w => (
-                                        <Card key={w._id} className="p-5 flex items-center justify-between group hover:scale-[1.02] transition-all duration-300 border-white/5 shadow-lg">
+                                        <Card key={w._id} className="p-5 flex items-center justify-between group border-slate-200 dark:border-white/5 shadow-sm hover:border-blue-500/30 transition-all duration-200">
                                             <div>
                                                 <p className="font-semibold text-slate-900 dark:text-white">{w.exercise}</p>
                                                 <p className="text-slate-600 dark:text-slate-400 text-sm mt-0.5">

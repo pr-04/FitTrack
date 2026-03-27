@@ -13,9 +13,9 @@ const today = new Date().toISOString().split('T')[0];
 const CustomTooltip = ({ active, payload, label }) => {
     if (active && payload && payload.length) {
         return (
-            <div className="bg-white/80 dark:bg-slate-800/80 backdrop-blur-md border border-slate-200 dark:border-slate-700/50 shadow-lg rounded-lg px-3 py-2 text-sm">
-                <p className="text-slate-600 dark:text-slate-400 mb-1">{label}</p>
-                <p className="text-slate-900 dark:text-white font-semibold">{payload[0].value} kg</p>
+            <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-white/5 shadow-md rounded-lg px-3 py-2 text-sm">
+                <p className="text-slate-500 dark:text-slate-400 mb-1">{label}</p>
+                <p className="text-slate-900 dark:text-white font-bold">{payload[0].value} kg</p>
             </div>
         );
     }
@@ -175,14 +175,8 @@ const Weight = () => {
                             <XAxis dataKey="date" tick={{ fill: '#94a3b8', fontSize: 12 }} axisLine={false} tickLine={false} />
                             <YAxis tick={{ fill: '#94a3b8', fontSize: 12 }} axisLine={false} tickLine={false} domain={['auto', 'auto']} />
                             <Tooltip content={<CustomTooltip />} />
-                            <defs>
-                                <linearGradient id="wGrad" x1="0" y1="0" x2="1" y2="0">
-                                    <stop offset="0%" stopColor="#10b981" />
-                                    <stop offset="100%" stopColor="#06b6d4" />
-                                </linearGradient>
-                            </defs>
-                            <Line type="monotone" dataKey="weight" stroke="url(#wGrad)" strokeWidth={3}
-                                dot={{ fill: '#10b981', r: 4 }} activeDot={{ r: 6, fill: '#06b6d4' }} />
+                            <Line type="monotone" dataKey="weight" stroke="#10b981" strokeWidth={2}
+                                dot={{ fill: '#10b981', r: 3 }} activeDot={{ r: 5, fill: '#06b6d4' }} />
                         </LineChart>
                     </ResponsiveContainer>
                 ) : (

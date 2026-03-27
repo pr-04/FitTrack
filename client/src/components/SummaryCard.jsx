@@ -1,34 +1,34 @@
 // Reusable summary/stat card for the dashboard
 const SummaryCard = ({ title, value, subtitle, icon: Icon, color = 'blue', trend, progress }) => {
     const colorMap = {
-        blue: 'from-blue-500/20 to-blue-600/10 border-blue-500/30 text-blue-400',
-        purple: 'from-purple-500/20 to-purple-600/10 border-purple-500/30 text-purple-400',
-        green: 'from-emerald-500/20 to-emerald-600/10 border-emerald-500/30 text-emerald-400',
-        orange: 'from-orange-500/20 to-orange-600/10 border-orange-500/30 text-orange-400',
-        cyan: 'from-cyan-500/20 to-cyan-600/10 border-cyan-500/30 text-cyan-400',
-        red: 'from-red-500/20 to-red-600/10 border-red-500/30 text-red-400',
+        blue: 'bg-slate-50 dark:bg-slate-800/50 border-slate-200 dark:border-white/5 text-blue-600 dark:text-blue-400',
+        purple: 'bg-slate-50 dark:bg-slate-800/50 border-slate-200 dark:border-white/5 text-purple-600 dark:text-purple-400',
+        green: 'bg-slate-50 dark:bg-slate-800/50 border-slate-200 dark:border-white/5 text-emerald-600 dark:text-emerald-400',
+        orange: 'bg-slate-50 dark:bg-slate-800/50 border-slate-200 dark:border-white/5 text-orange-600 dark:text-orange-400',
+        cyan: 'bg-slate-50 dark:bg-slate-800/50 border-slate-200 dark:border-white/5 text-cyan-600 dark:text-cyan-400',
+        red: 'bg-slate-50 dark:bg-slate-800/50 border-slate-200 dark:border-white/5 text-red-600 dark:text-red-400',
     };
 
     const iconBg = {
-        blue: 'bg-blue-500/20 text-blue-400',
-        purple: 'bg-purple-500/20 text-purple-400',
-        green: 'bg-emerald-500/20 text-emerald-400',
-        orange: 'bg-orange-500/20 text-orange-400',
-        cyan: 'bg-cyan-500/20 text-cyan-400',
-        red: 'bg-red-500/20 text-red-400',
+        blue: 'bg-blue-50 dark:bg-blue-500/10 text-blue-600 dark:text-blue-400',
+        purple: 'bg-purple-50 dark:bg-purple-500/10 text-purple-600 dark:text-purple-400',
+        green: 'bg-emerald-50 dark:bg-emerald-500/10 text-emerald-600 dark:text-emerald-400',
+        orange: 'bg-orange-50 dark:bg-orange-500/10 text-orange-600 dark:text-orange-400',
+        cyan: 'bg-cyan-50 dark:bg-cyan-500/10 text-cyan-600 dark:text-cyan-400',
+        red: 'bg-red-50 dark:bg-red-500/10 text-red-600 dark:text-red-400',
     };
 
     const progressBg = {
-        blue: 'bg-blue-400',
-        purple: 'bg-purple-400',
-        green: 'bg-emerald-400',
-        orange: 'bg-orange-400',
-        cyan: 'bg-cyan-400',
-        red: 'bg-red-400',
+        blue: 'bg-blue-500',
+        purple: 'bg-purple-500',
+        green: 'bg-emerald-500',
+        orange: 'bg-orange-500',
+        cyan: 'bg-cyan-500',
+        red: 'bg-red-500',
     };
 
     return (
-        <div className={`glass-card rounded-[32px] p-6 transition-all duration-500 hover:scale-[1.03] group ${colorMap[color]}`}>
+        <div className={`rounded-xl p-6 border transition-all duration-200 ${colorMap[color]}`}>
             <div className="flex items-start justify-between mb-4">
                 <div>
                     <p className="text-slate-600 dark:text-slate-400 text-sm font-medium">{title}</p>
@@ -44,7 +44,7 @@ const SummaryCard = ({ title, value, subtitle, icon: Icon, color = 'blue', trend
                 {subtitle && <p className="text-slate-500 dark:text-slate-400 text-xs mt-1">{subtitle}</p>}
 
                 {progress !== undefined && (
-                    <div className="w-full bg-slate-200 dark:bg-dark-900 rounded-full h-1.5 mt-4 overflow-hidden shadow-inner">
+                    <div className="w-full bg-slate-100 dark:bg-slate-800 rounded-full h-1.5 mt-4 overflow-hidden">
                         <div
                             className={`h-full rounded-full transition-all duration-500 ${progress >= 100 && color === 'orange' ? 'bg-red-500' : progressBg[color]}`}
                             style={{ width: `${Math.min(progress, 100)}%` }}

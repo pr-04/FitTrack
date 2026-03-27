@@ -97,11 +97,12 @@ const generateWorkoutPlan = async (req, res) => {
     } catch (error) {
         console.error('AI Workout Plan Error:', error);
         
+        const statusCode = error.status || error.response?.status;
         // Graceful Fallback if AI fails (e.g. no credits)
-        if (error.status === 403 || error.status === 401) {
+        if (statusCode === 403 || statusCode === 401) {
             return res.json({
                 title: "Classic Strength Starter",
-                overview: "Your AI Coach is currently on break, but here's a standard effective plan to keep you moving!",
+                overview: "Your AI Coach credits are currently exhausted. Here is a standard effective plan to keep you moving! (Check console.x.ai for credits)",
                 days: [
                     { 
                         day: "Day 1", 
@@ -198,14 +199,20 @@ const generateDietPlan = async (req, res) => {
             Include:
             1. Daily calorie target.
             2. Macros breakdown (Protein, Carbs, Fats).
-            3. Meal suggestions (Breakfast, Lunch, Dinner, Snacks).
-            4. Hydration advice.
+            3. Detailed Meal suggestions (Breakfast, Lunch, Dinner, Snacks).
+            4. Provide at least 4-5 diverse, high-quality food options for EACH meal category.
+            5. Hydration advice.
 
             Format as a clean JSON object:
             {
                 "dailyCalories": "...",
                 "macros": { "protein": "...", "carbs": "...", "fats": "..." },
-                "meals": { "breakfast": ["..."], "lunch": ["..."], "dinner": ["..."], "snacks": ["..."] },
+                "meals": { 
+                    "breakfast": ["Option 1 with details", "Option 2 with details", "..."], 
+                    "lunch": ["Option 1 with details", "Option 2 with details", "..."], 
+                    "dinner": ["Option 1 with details", "Option 2 with details", "..."], 
+                    "snacks": ["Option 1 with details", "Option 2 with details", "..."] 
+                },
                 "hydrationAdvice": "..."
             }
             MUST return ONLY the JSON object.
@@ -232,18 +239,39 @@ const generateDietPlan = async (req, res) => {
     } catch (error) {
         console.error('AI Diet Plan Error:', error);
 
+        const statusCode = error.status || error.response?.status;
         // Graceful Fallback
-        if (error.status === 403 || error.status === 401) {
+        if (statusCode === 403 || statusCode === 401) {
             return res.json({
                 dailyCalories: "2000-2200",
                 macros: { protein: "150g", carbs: "200g", fats: "70g" },
                 meals: { 
-                    breakfast: ["Oatmeal with berries and nuts"], 
-                    lunch: ["Grilled chicken salad with quinoa"], 
-                    dinner: ["Baked salmon with steamed vegetables"], 
-                    snacks: ["Greek yogurt", "A handful of almonds"] 
+                    breakfast: [
+                        "Oatmeal with blueberries, chia seeds, and walnuts",
+                        "Greek yogurt with honey and sliced almonds",
+                        "Scrambled eggs with spinach and whole-grain toast",
+                        "Banana protein pancakes with sugar-free syrup"
+                    ], 
+                    lunch: [
+                        "Grilled chicken breast with quinoa and roasted broccoli",
+                        "Tuna salad wrap with avocado and mixed greens",
+                        "Lentil soup with a side of kale salad",
+                        "Turkey and cheese whole-wheat sandwich with apple slices"
+                    ], 
+                    dinner: [
+                        "Baked salmon fillet with sweet potato and steamed asparagus",
+                        "Lean ground beef stir-fry with peppers and brown rice",
+                        "Chickpea curry with coconut milk and cauliflower rice",
+                        "Lemon herb grilled tilapia with a small side of pasta"
+                    ], 
+                    snacks: [
+                        "Cottage cheese with pineapple chunks",
+                        "A handful of raw almonds and a small orange",
+                        "Carrot sticks with 2 tbsp of hummus",
+                        "One hard-boiled egg and a few whole-grain crackers"
+                    ] 
                 },
-                hydrationAdvice: "Aim for at least 3-4 liters of water daily."
+                hydrationAdvice: "Your AI Coach credits are currently exhausted, so here is a healthy alternative! (Check console.x.ai)"
             });
         }
 
@@ -349,12 +377,13 @@ const getDashboardInsights = async (req, res) => {
     } catch (error) {
         console.error('AI Insights Error:', error);
 
+        const statusCode = error.status || error.response?.status;
         // Graceful Fallback for Dashboard
-        if (error.status === 403 || error.status === 401) {
+        if (statusCode === 403 || statusCode === 401) {
             return res.json({
                 dailyReminder: "Focus on the process, and the results will follow. You've got this!",
-                healthWarning: "AI Analysis is currently paused. Please check your account credits at console.x.ai.",
-                progressAnalysis: "Analyzing your data requires active AI credits. However, keep logging your data to track it manually!"
+                healthWarning: "AI Analysis is currently paused due to exhausted credits. (Check console.x.ai)",
+                progressAnalysis: "Analyzing your data requires active AI credits. Log in to x.ai to top up!"
             });
         }
 
@@ -362,32 +391,6 @@ const getDashboardInsights = async (req, res) => {
     }
 };
 
-/**
- * @desc    Chat with AI Fitness Coach
- * @route   POST /api/ai/chat
- * @access  Private
- */
-const chatWithCoach = async (req, res) => {
-    const { message, history } = req.body;
-    try {
-        const messages = [
-            { role: "system", content: "You are a professional AI Fitness Coach. Provide helpful, concise fitness and nutrition advice." },
-            ...convertHistory(history),
-            { role: "user", content: message }
-        ];
-
-        const completion = await getCompletion({
-            model: "grok-4",
-            messages,
-            max_tokens: 500,
-        });
-
-        res.json({ message: completion.choices[0].message.content });
-    } catch (error) {
-        console.error('AI Chat Error:', error);
-        res.status(500).json({ message: 'AI coach is currently unavailable' });
-    }
-};
 
 /**
  * @desc    Chat about a specific plan
@@ -413,6 +416,15 @@ const chatAboutPlan = async (req, res) => {
         res.json({ message: completion.choices[0].message.content });
     } catch (error) {
         console.error('AI Plan Chat Error:', error);
+        
+        const statusCode = error.status || error.response?.status;
+        // Graceful Fallback for Plan Chat (e.g. no credits)
+        if (statusCode === 403 || statusCode === 401) {
+            return res.json({ 
+                message: "I'm sorry, my AI processing credits are currently exhausted. However, looking at your plan, everything seems well-structured! To get a more detailed AI analysis, please check your console.x.ai account for active credits." 
+            });
+        }
+        
         res.status(500).json({ message: 'Failed to get AI response for the plan' });
     }
 };
@@ -478,6 +490,5 @@ module.exports = {
     deletePlan,
     updatePlan,
     chatAboutPlan,
-    getDashboardInsights,
-    chatWithCoach
+    getDashboardInsights
 };

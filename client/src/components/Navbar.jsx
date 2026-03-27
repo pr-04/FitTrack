@@ -2,13 +2,16 @@ import { useLocation, Link } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { useTheme } from '../context/ThemeContext';
 import { Menu, Bell, Sun, Moon } from 'lucide-react';
+import Button from './ui/Button';
 
 const pageTitles = {
-    '/dashboard': { title: 'Home', subtitle: 'Welcome back! Here\'s your fitness overview.' },
-    '/workouts': { title: 'Workouts', subtitle: 'Log and manage your training sessions.' },
-    '/calories': { title: 'Calories', subtitle: 'Track your daily nutrition intake.' },
-    '/weight': { title: 'Weight', subtitle: 'Monitor your weight progress over time.' },
-    '/profile': { title: 'Profile', subtitle: 'Manage your personal information.' },
+    '/': { title: 'FitTrack', subtitle: 'Start your fitness journey today.' },
+    '/app/dashboard': { title: 'Home', subtitle: 'Welcome back! Here\'s your fitness overview.' },
+    '/app/workouts': { title: 'Workouts', subtitle: 'Log and manage your training sessions.' },
+    '/app/calories': { title: 'Calories', subtitle: 'Track your daily nutrition intake.' },
+    '/app/weight': { title: 'Weight', subtitle: 'Monitor your weight progress over time.' },
+    '/app/profile': { title: 'Profile', subtitle: 'Manage your personal information.' },
+    '/app/personalize-plan': { title: 'Personalize Plan', subtitle: 'AI-tailored fitness and nutrition.' }
 };
 
 const Navbar = ({ onMenuClick }) => {
@@ -22,7 +25,7 @@ const Navbar = ({ onMenuClick }) => {
         : 'U';
 
     return (
-        <header className="glass-panel px-4 md:px-6 py-4 flex items-center justify-between rounded-[28px] mb-8 z-50 sticky top-4 mx-1">
+        <header className="px-4 md:px-6 py-4 flex items-center justify-between border border-slate-200 dark:border-white/5 bg-white/80 dark:bg-slate-900/80 backdrop-blur-md rounded-2xl mb-8 z-50 sticky top-4 mx-1 shadow-sm">
             {/* Left: hamburger + page title */}
             <div className="flex items-center gap-4">
                 <button
@@ -41,25 +44,36 @@ const Navbar = ({ onMenuClick }) => {
             <div className="flex items-center gap-3">
                 <button
                     onClick={toggleTheme}
-                    className="p-3 rounded-2xl bg-white/50 dark:bg-slate-800/10 hover:bg-white dark:hover:bg-slate-800 border border-white/60 dark:border-white/5 transition-all duration-300 text-slate-600 dark:text-slate-300 shadow-sm hover:shadow-lg active:scale-90"
+                    className="p-2.5 rounded-xl bg-slate-50 dark:bg-slate-800/40 hover:bg-slate-100 dark:hover:bg-slate-800 border border-slate-200 dark:border-white/5 transition-all text-slate-600 dark:text-slate-300 shadow-sm"
                     aria-label="Toggle theme"
                 >
                     {isDarkMode ? <Sun size={18} className="text-yellow-500" /> : <Moon size={18} className="text-blue-500" />}
                 </button>
 
-                <Link to="/profile" className="flex items-center gap-3 group transition-transform active:scale-95">
-                    <div className="hidden sm:flex items-center gap-2 bg-white/40 dark:bg-slate-800/40 rounded-xl px-3 py-2 border border-white/60 dark:border-white/10 shadow-sm group-hover:bg-white/80 dark:group-hover:bg-slate-700 transition-all">
-                        <div className="w-8 h-8 rounded-lg bg-gradient-brand flex items-center justify-center text-xs font-bold text-white shadow-lg shadow-accent-blue/20">
+                {user ? (
+                    <Link to="/app/profile" className="flex items-center gap-3 group transition-all">
+                        <div className="hidden sm:flex items-center gap-2 bg-slate-50 dark:bg-slate-800/40 rounded-xl px-3 py-2 border border-slate-200 dark:border-white/10 shadow-sm group-hover:bg-slate-100 dark:group-hover:bg-slate-800 transition-all">
+                            <div className="w-8 h-8 rounded-lg bg-blue-600 dark:bg-blue-500 flex items-center justify-center text-xs font-bold text-white shadow-sm">
+                                {initials}
+                            </div>
+                            <span className="text-sm font-medium text-slate-600 dark:text-slate-200 group-hover:text-slate-900 dark:group-hover:text-white transition-colors">
+                                {user?.name || 'User'}
+                            </span>
+                        </div>
+                        <div className="w-9 h-9 rounded-lg bg-blue-600 dark:bg-blue-500 flex items-center justify-center text-sm font-bold text-white shadow-sm sm:hidden">
                             {initials}
                         </div>
-                        <span className="text-sm font-medium text-slate-700 dark:text-slate-200 group-hover:text-slate-900 dark:group-hover:text-white transition-colors">
-                            {user?.name || 'User'}
-                        </span>
+                    </Link>
+                ) : (
+                    <div className="flex items-center gap-2">
+                        <Link to="/login">
+                            <Button variant="outline" size="sm" className="hidden sm:block rounded-lg px-4 border-slate-200 dark:border-slate-800">Sign In</Button>
+                        </Link>
+                        <Link to="/signup">
+                            <Button size="sm" className="rounded-lg px-4">Get Started</Button>
+                        </Link>
                     </div>
-                    <div className="w-9 h-9 rounded-lg bg-gradient-brand flex items-center justify-center text-sm font-bold text-white shadow-lg shadow-accent-blue/20 sm:hidden">
-                        {initials}
-                    </div>
-                </Link>
+                )}
             </div>
         </header>
     );

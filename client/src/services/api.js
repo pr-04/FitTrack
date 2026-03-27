@@ -76,7 +76,6 @@ export const aiAPI = {
     deletePlan: (id) => api.delete(`/ai/plan/${id}`),
     chatAboutPlan: (message, planData, history) => api.post('/ai/chat-about-plan', { message, planData, history }),
     getDashboardInsights: () => api.get('/ai/dashboard-insights'),
-    chat: (message, history) => api.post('/ai/chat', { message, history }),
 };
 
 export default api;

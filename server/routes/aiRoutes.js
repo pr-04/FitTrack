@@ -9,7 +9,6 @@ const {
     updatePlan,
     chatAboutPlan,
     getDashboardInsights, 
-    chatWithCoach 
 } = require('../controllers/aiController');
 const { protect } = require('../middleware/authMiddleware');
 
@@ -23,6 +22,5 @@ router.put('/plan/:id', updatePlan);
 router.delete('/plan/:id', deletePlan);
 router.post('/chat-about-plan', chatAboutPlan);
 router.get('/dashboard-insights', getDashboardInsights);
-router.post('/chat', chatWithCoach);
 
 module.exports = router;

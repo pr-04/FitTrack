@@ -11,10 +11,10 @@ import Alert from '../components/ui/Alert';
 const today = new Date().toISOString().split('T')[0];
 
 const mealConfig = {
-    breakfast: { label: 'Breakfast', icon: Coffee, color: 'text-orange-400', bg: 'bg-orange-500/10 border-orange-500/20' },
-    lunch: { label: 'Lunch', icon: Sun, color: 'text-yellow-400', bg: 'bg-yellow-500/10 border-yellow-500/20' },
-    dinner: { label: 'Dinner', icon: Moon, color: 'text-purple-400', bg: 'bg-purple-500/10 border-purple-500/20' },
-    snack: { label: 'Snack', icon: Cookie, color: 'text-green-400', bg: 'bg-green-500/10 border-green-500/20' },
+    breakfast: { label: 'Breakfast', icon: Coffee, color: 'text-orange-600 dark:text-orange-400', bg: 'bg-slate-50 dark:bg-orange-500/5 border-slate-200 dark:border-white/5' },
+    lunch: { label: 'Lunch', icon: Sun, color: 'text-yellow-600 dark:text-yellow-400', bg: 'bg-slate-50 dark:bg-yellow-500/5 border-slate-200 dark:border-white/5' },
+    dinner: { label: 'Dinner', icon: Moon, color: 'text-purple-600 dark:text-purple-400', bg: 'bg-slate-50 dark:bg-purple-500/5 border-slate-200 dark:border-white/5' },
+    snack: { label: 'Snack', icon: Cookie, color: 'text-green-600 dark:text-green-400', bg: 'bg-slate-50 dark:bg-green-500/5 border-slate-200 dark:border-white/5' },
 };
 
 const Calories = () => {
@@ -153,7 +153,7 @@ const Calories = () => {
                     {mockFoods.map(food => {
                         const qty = selectedQuantities[food.name] || 0;
                         return (
-                            <div key={food.name} className="glass-card bg-white/50 dark:bg-slate-800/50 rounded-2xl overflow-hidden border border-slate-200 dark:border-slate-700/50 flex flex-col hover:border-accent-orange/40 transition-colors shadow-sm">
+                            <div key={food.name} className="glass-card bg-white dark:bg-slate-800/40 rounded-xl overflow-hidden border border-slate-200 dark:border-white/5 flex flex-col transition-colors shadow-sm">
                                 {food.image ? (
                                     <div className="h-24 sm:h-32 w-full overflow-hidden shrink-0">
                                         <img src={food.image} alt={food.name} className="w-full h-full object-cover" />
@@ -207,7 +207,7 @@ const Calories = () => {
                             <p className="text-xs text-slate-500 dark:text-slate-400">Total Selection</p>
                             <p className="text-lg font-bold text-accent-orange">+{pendingCalories} kcal</p>
                         </div>
-                        <Button onClick={handleLogFoods} loading={loading} disabled={pendingCalories === 0} className="w-full sm:w-auto shadow-lg shadow-accent-orange/20">
+                        <Button onClick={handleLogFoods} loading={loading} disabled={pendingCalories === 0} className="w-full sm:w-auto">
                             Log {Object.keys(selectedQuantities).length} Items
                         </Button>
                     </div>
@@ -220,9 +220,9 @@ const Calories = () => {
                     <p className="text-4xl font-bold text-slate-900 dark:text-white">{totalCalories}</p>
                     <p className="text-slate-600 dark:text-slate-400 text-sm mt-1">kcal consumed</p>
                     <p className="text-slate-600 dark:text-slate-500 text-xs mt-0.5">Goal: {calorieGoal} kcal</p>
-                    <div className="w-full bg-slate-200 dark:bg-dark-900 shadow-inner rounded-full h-2 mt-4 overflow-hidden">
+                    <div className="w-full bg-slate-100 dark:bg-slate-800 rounded-full h-2 mt-4 overflow-hidden">
                         <div
-                            className={`h-2 rounded-full transition-all duration-500 ${progress >= 100 ? 'bg-accent-red' : 'bg-gradient-brand'}`}
+                            className={`h-2 rounded-full transition-all duration-500 ${progress >= 100 ? 'bg-red-500' : 'bg-blue-600 dark:bg-blue-500'}`}
                             style={{ width: `${progress}%` }}
                         />
                     </div>

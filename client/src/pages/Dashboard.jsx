@@ -128,43 +128,40 @@ const Dashboard = () => {
     }
 
     return (
-        <div className="space-y-8 animate-premium-in">
+        <div className="space-y-6 animate-premium-in">
             <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
                 <div>
-                    <h2 className="text-3xl font-black text-slate-900 dark:text-white tracking-tight">
+                    <h2 className="text-3xl font-bold text-slate-900 dark:text-white tracking-tight">
                         Good {new Date().getHours() < 12 ? 'morning' : new Date().getHours() < 17 ? 'afternoon' : 'evening'},{' '}
-                        <span className="gradient-text">
+                        <span>
                             {user?.name?.split(' ')[0]}
                         </span>! 👋
                     </h2>
-                    <p className="text-slate-500 dark:text-slate-400 mt-1 font-medium italic">Here's your fitness summary for today.</p>
+                    <p className="text-slate-500 dark:text-slate-400 mt-1 font-medium">Here's your fitness summary for today.</p>
                 </div>
             </div>
 
             {/* AI Insights Section */}
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-                <div className="lg:col-span-2 glass-panel border-blue-500/20 rounded-[32px] p-6 relative overflow-hidden group hover:scale-[1.01] transition-transform duration-500">
-                    <div className="absolute top-0 right-0 p-6 opacity-5 group-hover:opacity-10 transition-opacity duration-700">
-                        <Sparkles size={120} className="text-blue-500" />
-                    </div>
+                <div className="lg:col-span-2 glass-panel border-slate-200 dark:border-white/5 rounded-2xl p-6 relative group">
                     <div className="relative z-10 flex flex-col md:flex-row items-start gap-6">
-                        <div className="w-14 h-14 rounded-2xl bg-gradient-brand flex items-center justify-center flex-shrink-0 shadow-2xl shadow-blue-500/40 animate-pulse">
-                            <Sparkles className="text-white" size={28} />
+                        <div className="w-12 h-12 rounded-xl bg-blue-600 dark:bg-blue-500 flex items-center justify-center flex-shrink-0 shadow-sm">
+                            <Sparkles className="text-white" size={24} />
                         </div>
                         <div className="flex-1">
                             <div className="flex items-center gap-3 mb-2">
-                                <h3 className="font-black text-slate-900 dark:text-white text-lg tracking-tight">
+                                <h3 className="font-bold text-slate-900 dark:text-white text-lg tracking-tight">
                                     AI Fitness Coach
                                 </h3>
-                                <span className="text-[9px] bg-blue-500 text-white font-black px-2 py-0.5 rounded-full uppercase tracking-widest flex items-center gap-1">
-                                    <div className="w-1 h-1 bg-white rounded-full animate-ping" /> Live Insight
+                                <span className="text-[10px] bg-blue-600 dark:bg-blue-500 text-white font-bold px-2 py-0.5 rounded-lg uppercase tracking-wider">
+                                    Live Insight
                                 </span>
                             </div>
-                            <p className="text-slate-600 dark:text-slate-300 text-sm leading-relaxed font-medium italic">
+                            <p className="text-slate-600 dark:text-slate-300 text-sm leading-relaxed font-medium">
                                 "{aiInsights?.dailyReminder || "Analyzing your data to provide personalized motivation..."}"
                             </p>
-                            <div className="mt-4 pt-4 border-t border-slate-200 dark:border-white/5 flex flex-wrap items-center gap-3">
-                                <div className="flex items-center gap-2 text-[10px] font-black uppercase tracking-widest text-blue-600 dark:text-blue-400 bg-blue-500/10 px-3 py-1.5 rounded-xl">
+                            <div className="mt-4 pt-4 border-t border-slate-100 dark:border-white/5 flex flex-wrap items-center gap-3">
+                                <div className="flex items-center gap-2 text-[10px] font-bold uppercase tracking-wider text-blue-600 dark:text-blue-400 bg-blue-50 dark:bg-blue-500/10 px-3 py-1.5 rounded-xl">
                                     <TrendingUp size={14} />
                                     <span>{aiInsights?.progressAnalysis || "Progress Analysis Pending"}</span>
                                 </div>
@@ -173,17 +170,17 @@ const Dashboard = () => {
                     </div>
                 </div>
 
-                <div className={`glass-panel rounded-[32px] p-6 flex flex-col justify-between group hover:scale-[1.01] transition-transform duration-500 ${aiInsights?.healthWarning?.toLowerCase().includes('warning') || aiInsights?.healthWarning?.toLowerCase().includes('risk') ? 'border-red-500/20' : 'border-green-500/20'}`}>
+                <div className={`glass-panel border-slate-200 dark:border-white/5 rounded-2xl p-6 flex flex-col justify-between group ${aiInsights?.healthWarning?.toLowerCase().includes('warning') || aiInsights?.healthWarning?.toLowerCase().includes('risk') ? 'bg-red-50/50 dark:bg-red-500/5' : 'bg-slate-50/50 dark:bg-slate-800/10'}`}>
                     <div className="flex items-start gap-4">
-                        <div className={`${aiInsights?.healthWarning?.toLowerCase().includes('warning') || aiInsights?.healthWarning?.toLowerCase().includes('risk') ? 'bg-red-500 shadow-red-500/30' : 'bg-green-500 shadow-green-500/30'} w-12 h-12 rounded-2xl flex items-center justify-center flex-shrink-0 shadow-xl transition-transform group-hover:rotate-12`}>
-                            <AlertCircle className="text-white" size={24} />
+                        <div className={`${aiInsights?.healthWarning?.toLowerCase().includes('warning') || aiInsights?.healthWarning?.toLowerCase().includes('risk') ? 'bg-red-500' : 'bg-emerald-500'} w-10 h-10 rounded-xl flex items-center justify-center flex-shrink-0 shadow-sm`}>
+                            <AlertCircle className="text-white" size={20} />
                         </div>
                         <div>
-                            <h4 className="font-black text-slate-900 dark:text-white text-sm tracking-tight uppercase opacity-50">Health Warning</h4>
-                            <p className="text-[10px] font-bold text-slate-500 dark:text-slate-400 mt-0.5">Automated Analysis</p>
+                            <h4 className="font-bold text-slate-900 dark:text-white text-xs tracking-tight uppercase opacity-60">Health Warning</h4>
+                            <p className="text-[10px] font-bold text-slate-400 mt-0.5">Automated</p>
                         </div>
                     </div>
-                    <p className="text-sm font-bold text-slate-800 dark:text-slate-200 mt-6 leading-relaxed italic">
+                    <p className="text-sm font-semibold text-slate-700 dark:text-slate-300 mt-6 leading-relaxed">
                         {aiInsights?.healthWarning || "Everything looks good! Keep following your routine."}
                     </p>
                 </div>
@@ -197,11 +194,10 @@ const Dashboard = () => {
                     icon={Flame}
                     color="orange"
                     progress={calProgress}
-                    className="hover:scale-105 transition-transform duration-500"
                 />
-                <SummaryCard title="Workouts Today" value={todayWorkouts} subtitle="exercises logged" icon={Dumbbell} color="blue" className="hover:scale-105 transition-transform duration-500" />
-                <SummaryCard title="Current Weight" value={latestWeight ? `${latestWeight} kg` : '—'} subtitle="latest entry" icon={Scale} color="green" className="hover:scale-105 transition-transform duration-500" />
-                <SummaryCard title="Fitness Goal" value={goalLabels[user?.goal] || '—'} subtitle="current target" icon={Target} color="purple" className="hover:scale-105 transition-transform duration-500" />
+                <SummaryCard title="Workouts Today" value={todayWorkouts} subtitle="exercises logged" icon={Dumbbell} color="blue" />
+                <SummaryCard title="Current Weight" value={latestWeight ? `${latestWeight} kg` : '—'} subtitle="latest entry" icon={Scale} color="green" />
+                <SummaryCard title="Fitness Goal" value={goalLabels[user?.goal] || '—'} subtitle="current target" icon={Target} color="purple" />
             </div>
 
             <div className="grid grid-cols-1 xl:grid-cols-2 gap-6">
@@ -213,13 +209,7 @@ const Dashboard = () => {
                             <XAxis dataKey="date" tick={{ fill: '#94a3b8', fontSize: 12 }} axisLine={false} tickLine={false} />
                             <YAxis tick={{ fill: '#94a3b8', fontSize: 12 }} axisLine={false} tickLine={false} />
                             <Tooltip content={<CustomTooltip />} />
-                            <Bar dataKey="calories" name="Calories" fill="url(#calGrad)" radius={[6, 6, 0, 0]} />
-                            <defs>
-                                <linearGradient id="calGrad" x1="0" y1="0" x2="0" y2="1">
-                                    <stop offset="0%" stopColor="#f97316" stopOpacity={0.9} />
-                                    <stop offset="100%" stopColor="#f97316" stopOpacity={0.3} />
-                                </linearGradient>
-                            </defs>
+                            <Bar dataKey="calories" name="Calories" fill="#f97316" radius={[4, 4, 0, 0]} />
                         </BarChart>
                     </ResponsiveContainer>
                 </Card>
@@ -233,13 +223,7 @@ const Dashboard = () => {
                                 <XAxis dataKey="date" tick={{ fill: '#94a3b8', fontSize: 12 }} axisLine={false} tickLine={false} />
                                 <YAxis tick={{ fill: '#94a3b8', fontSize: 12 }} axisLine={false} tickLine={false} domain={['auto', 'auto']} />
                                 <Tooltip content={<CustomTooltip />} />
-                                <defs>
-                                    <linearGradient id="weightGrad" x1="0" y1="0" x2="1" y2="0">
-                                        <stop offset="0%" stopColor="#3b82f6" />
-                                        <stop offset="100%" stopColor="#8b5cf6" />
-                                    </linearGradient>
-                                </defs>
-                                <Line type="monotone" dataKey="weight" name="Weight (kg)" stroke="url(#weightGrad)" strokeWidth={3} dot={{ fill: '#3b82f6', r: 4 }} activeDot={{ r: 6, fill: '#8b5cf6' }} />
+                                <Line type="monotone" dataKey="weight" name="Weight (kg)" stroke="#3b82f6" strokeWidth={2} dot={{ fill: '#3b82f6', r: 3 }} activeDot={{ r: 5, fill: '#8b5cf6' }} />
                             </LineChart>
                         </ResponsiveContainer>
                     ) : (

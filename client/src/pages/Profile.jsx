@@ -64,7 +64,7 @@ const Profile = () => {
         <div className="max-w-2xl space-y-6 mx-auto">
             <Card>
                 <div className="flex items-center gap-4 mb-6">
-                    <div className="w-16 h-16 rounded-2xl bg-gradient-brand flex items-center justify-center text-xl font-bold text-white shadow-lg shadow-accent-blue/30">
+                    <div className="w-16 h-16 rounded-xl bg-blue-600 dark:bg-blue-500 flex items-center justify-center text-xl font-bold text-white shadow-sm">
                         {initials}
                     </div>
                     <div>
@@ -73,7 +73,7 @@ const Profile = () => {
                     </div>
                 </div>
 
-                <div className="grid grid-cols-2 gap-4 mb-6 p-4 bg-white/40 dark:bg-dark-900/50 rounded-xl border border-slate-300/50 dark:border-slate-700/50 shadow-inner">
+                <div className="grid grid-cols-2 gap-4 mb-6 p-4 bg-slate-50 dark:bg-slate-800/50 rounded-xl border border-slate-200 dark:border-white/5">
                     <div className="text-center">
                         <p className="text-2xl font-bold text-slate-900 dark:text-white">{user?.height ? `${user.height} cm` : '—'}</p>
                         <p className="text-slate-500 dark:text-slate-400 text-xs mt-0.5 uppercase">Height</p>

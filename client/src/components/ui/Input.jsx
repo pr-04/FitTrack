@@ -7,13 +7,13 @@ const Input = ({ label, error, className = '', containerClassName = '', leftElem
             <div className="relative group/input">
                 <input
                     className={`
-            w-full bg-white/50 dark:bg-slate-900/50 backdrop-blur-md border border-slate-300 dark:border-slate-700/50 rounded-xl px-4 py-3 
+            w-full bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-800 rounded-xl px-4 py-3 
             text-slate-800 dark:text-slate-100 placeholder-slate-400 dark:placeholder-slate-500 focus:outline-none 
-            focus:border-accent-blue focus:ring-1 focus:ring-accent-blue 
+            focus:border-blue-600 focus:ring-1 focus:ring-blue-600/30
             transition-all duration-200 shadow-sm
             ${leftElement ? 'pl-11' : ''}
             ${rightElement ? 'pr-11' : ''}
-            ${error ? 'border-accent-red focus:border-accent-red focus:ring-accent-red' : ''}
+            ${error ? 'border-red-500 focus:border-red-500 focus:ring-red-500/30' : ''}
             ${className}
           `}
                     {...props}

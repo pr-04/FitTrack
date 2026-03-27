@@ -177,29 +177,29 @@ const PersonalizePlan = () => {
                     </button>
                 </div>
 
-                <Card className="bg-gray-800 border-gray-700 shadow-2xl relative overflow-hidden">
-                    <div className="absolute top-0 right-0 p-4 opacity-10 pointer-events-none">
-                         {planObj.type === 'workout' ? <Dumbbell size={120} /> : <Utensils size={120} />}
+                <Card className="bg-slate-50 dark:bg-slate-900/50 border-slate-200 dark:border-white/5 shadow-sm relative overflow-hidden">
+                    <div className="absolute top-0 right-0 p-4 opacity-5 pointer-events-none text-blue-500 dark:text-blue-400">
+                         {planObj.type === 'workout' ? <Dumbbell size={80} /> : <Utensils size={80} />}
                     </div>
                     
                     <div className="flex items-center gap-4 mb-6">
-                        <div className={`p-3 rounded-2xl ${planObj.type === 'workout' ? 'bg-blue-500/20 text-blue-400' : 'bg-green-500/20 text-green-400'}`}>
-                            {planObj.type === 'workout' ? <Dumbbell size={28} /> : <Utensils size={28} />}
+                        <div className={`p-2.5 rounded-xl ${planObj.type === 'workout' ? 'bg-blue-100 dark:bg-blue-500/10 text-blue-600 dark:text-blue-400' : 'bg-emerald-100 dark:bg-emerald-500/10 text-emerald-600 dark:text-emerald-400'}`}>
+                            {planObj.type === 'workout' ? <Dumbbell size={24} /> : <Utensils size={24} />}
                         </div>
                         <div>
-                            <h2 className="text-2xl font-bold text-white tracking-tight">
+                            <h2 className="text-2xl font-bold text-slate-900 dark:text-white tracking-tight">
                                 {planObj.type === 'workout' ? plan.title : 'Personalized Nutrition Guide'}
                             </h2>
-                            <p className="text-slate-400 text-sm flex items-center gap-2">
+                            <p className="text-slate-500 dark:text-slate-400 text-xs flex items-center gap-2">
                                 <Calendar size={14} /> Created on {new Date(planObj.createdAt).toLocaleDateString()}
                             </p>
                         </div>
                     </div>
 
                     {planObj.instruction && (
-                        <div className="mb-8 p-4 bg-blue-500/5 rounded-2xl border border-blue-500/10 flex items-start gap-3">
-                            <Info size={18} className="text-blue-400 mt-0.5 flex-shrink-0" />
-                            <p className="text-slate-300 text-sm italic">" {planObj.instruction} "</p>
+                        <div className="mb-8 p-4 bg-slate-100 dark:bg-slate-800/50 rounded-xl border border-slate-200 dark:border-white/5 flex items-start gap-3">
+                            <Info size={18} className="text-blue-500 dark:text-blue-400 mt-0.5 flex-shrink-0" />
+                            <p className="text-slate-600 dark:text-slate-300 text-sm italic">" {planObj.instruction} "</p>
                         </div>
                     )}
 
@@ -208,10 +208,10 @@ const PersonalizePlan = () => {
                             <p className="text-slate-300 leading-relaxed text-lg">{plan.overview}</p>
                             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
                                 {plan.days.map((day, idx) => (
-                                    <div key={idx} className={`bg-gray-900/40 border border-gray-700/50 rounded-2xl overflow-hidden hover:border-blue-500/30 transition group flex flex-col ${day.type.toLowerCase().includes('rest') ? 'opacity-60' : ''}`}>
-                                        <div className="bg-gray-800/80 px-5 py-3 border-b border-gray-700 flex justify-between items-center group-hover:bg-blue-500/10 transition">
-                                            <span className="font-bold text-blue-400">{day.day}</span>
-                                            <span className="text-[10px] uppercase tracking-widest text-slate-500 font-bold max-w-[150px] truncate">
+                                    <div key={idx} className={`bg-white dark:bg-slate-800/40 border border-slate-200 dark:border-white/5 rounded-2xl overflow-hidden hover:border-blue-500/30 transition shadow-sm flex flex-col ${day.type.toLowerCase().includes('rest') ? 'opacity-60' : ''}`}>
+                                        <div className="bg-slate-50 dark:bg-slate-800/80 px-5 py-3 border-b border-slate-200 dark:border-white/5 flex justify-between items-center group-hover:bg-blue-50 dark:group-hover:bg-blue-500/5 transition">
+                                            <span className="font-bold text-blue-600 dark:text-blue-400">{day.day}</span>
+                                            <span className="text-[10px] uppercase tracking-wider text-slate-500 font-bold max-w-[150px] truncate">
                                                 {day.type.replace(/\(.*\)/g, '').trim()}
                                             </span>
                                         </div>
@@ -296,10 +296,10 @@ const PersonalizePlan = () => {
 
                 {/* Plan Chat Logic */}
                 <div className="mt-12 space-y-4">
-                    <h3 className="text-xl font-bold text-white flex items-center gap-2 px-1">
-                        <MessageSquare className="text-accent-blue" /> Ask AI about this plan
+                    <h3 className="text-xl font-bold text-slate-900 dark:text-white flex items-center gap-2 px-1">
+                        <MessageSquare className="text-blue-600 dark:text-blue-400" /> Ask AI about this plan
                     </h3>
-                    <div className="bg-gray-900/50 border border-gray-700 rounded-3xl overflow-hidden flex flex-col h-[400px]">
+                    <div className="bg-white dark:bg-slate-900/50 border border-slate-200 dark:border-slate-800 rounded-2xl overflow-hidden flex flex-col h-[400px] shadow-sm">
                         <div className="flex-1 overflow-y-auto p-6 space-y-4 scrollbar-hide">
                             {chatHistory.length === 0 && (
                                 <div className="h-full flex flex-col items-center justify-center text-center opacity-40">
@@ -309,10 +309,10 @@ const PersonalizePlan = () => {
                             )}
                             {chatHistory.map((item, idx) => (
                                 <div key={idx} className={`flex ${item.role === 'user' ? 'justify-end' : 'justify-start'}`}>
-                                    <div className={`max-w-[85%] p-4 rounded-2xl text-sm leading-relaxed ${
+                                    <div className={`max-w-[85%] p-4 rounded-xl text-sm leading-relaxed ${
                                         item.role === 'user' 
-                                            ? 'bg-blue-600 text-white rounded-tr-none shadow-lg' 
-                                            : 'bg-gray-800 text-slate-200 border border-gray-700 rounded-tl-none'
+                                            ? 'bg-blue-600 text-white rounded-tr-none' 
+                                            : 'bg-slate-100 dark:bg-slate-800 text-slate-800 dark:text-slate-200 border border-slate-200 dark:border-white/5 rounded-tl-none'
                                     }`}>
                                         {item.parts[0].text}
                                     </div>
@@ -328,18 +328,18 @@ const PersonalizePlan = () => {
                             )}
                             <div ref={chatEndRef} />
                         </div>
-                        <form onSubmit={handleChat} className="p-4 bg-gray-800/80 border-t border-gray-700 flex gap-2">
+                        <form onSubmit={handleChat} className="p-4 bg-slate-50 dark:bg-slate-800/80 border-t border-slate-200 dark:border-slate-800 flex gap-2">
                             <input 
                                 type="text"
                                 value={chatMessage}
                                 onChange={(e) => setChatMessage(e.target.value)}
                                 placeholder="Type your question..."
-                                className="flex-1 bg-gray-900 border border-gray-700 rounded-2xl px-5 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 text-white"
+                                className="flex-1 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl px-5 py-3 text-sm focus:outline-none focus:ring-1 focus:ring-blue-500 text-slate-900 dark:text-white transition-all shadow-sm"
                             />
                             <button 
                                 type="submit"
                                 disabled={!chatMessage.trim() || chatLoading}
-                                className="w-12 h-12 rounded-2xl bg-blue-600 hover:bg-blue-500 text-white flex items-center justify-center transition disabled:opacity-50 disabled:hover:bg-blue-600"
+                                className="w-12 h-12 rounded-xl bg-blue-600 hover:bg-blue-700 text-white flex items-center justify-center transition-all disabled:opacity-50"
                             >
                                 <Send size={20} />
                             </button>
@@ -358,10 +358,10 @@ const PersonalizePlan = () => {
                 <>
                     <header className="flex flex-col md:flex-row md:items-center justify-between gap-6 px-1">
                         <div>
-                            <h1 className="text-4xl font-black text-white tracking-tight flex items-center gap-3">
-                                <Sparkles className="text-yellow-400" /> Personalize Plan
+                            <h1 className="text-3xl font-bold text-slate-900 dark:text-white tracking-tight flex items-center gap-3">
+                                <Sparkles className="text-blue-600 dark:text-blue-400" /> Personalize Plan
                             </h1>
-                            <p className="text-slate-400 text-lg mt-2">AI-powered fitness and nutrition, built just for you.</p>
+                            <p className="text-slate-500 dark:text-slate-400 text-lg mt-2 font-medium">AI-powered fitness and nutrition, tailored to you.</p>
                         </div>
                     </header>
 
@@ -446,7 +446,7 @@ const PersonalizePlan = () => {
                                         onClick={() => handleGenerate('workout')}
                                         loading={generatingWorkout}
                                         disabled={generatingDiet}
-                                        className="h-16 rounded-2xl bg-gradient-brand hover:shadow-2xl hover:shadow-blue-500/20 text-lg font-black tracking-tight btn-premium"
+                                        className="h-16 rounded-xl bg-blue-600 hover:bg-blue-700 text-lg font-bold tracking-tight"
                                     >
                                         <Dumbbell className="mr-2" size={24} /> Create Workout
                                     </Button>
@@ -454,7 +454,7 @@ const PersonalizePlan = () => {
                                         onClick={() => handleGenerate('diet')}
                                         loading={generatingDiet}
                                         disabled={generatingWorkout}
-                                        className="h-16 rounded-2xl bg-emerald-600 hover:bg-emerald-500 hover:shadow-2xl hover:shadow-emerald-500/20 text-lg font-black tracking-tight border-none btn-premium"
+                                        className="h-16 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-lg font-bold tracking-tight border-none"
                                     >
                                         <Utensils className="mr-2" size={24} /> Create Diet
                                     </Button>
@@ -499,7 +499,7 @@ const PersonalizePlan = () => {
                                             </div>
                                         </div>
                                         
-                                        <h3 className="text-xl font-black text-white mb-2 line-clamp-1 relative z-10 transition group-hover:text-accent-blue">
+                                        <h3 className="text-xl font-bold text-slate-900 dark:text-white mb-2 line-clamp-1 relative z-10 transition group-hover:text-blue-600 dark:group-hover:text-blue-400">
                                             {plan.type === 'workout' ? plan.data.title : 'Personal Diet'}
                                         </h3>
                                         

@@ -11,15 +11,16 @@ import Weight from './pages/Weight';
 import Profile from './pages/Profile';
 import PersonalizePlan from './pages/PersonalizePlan';
 import OAuthCallback from './pages/OAuthCallback';
+import Home from './pages/Home';
 import PageBackground from './components/PageBackground';
 
 // Protected Route — redirects to /login if not authenticated
 const ProtectedRoute = ({ children }) => {
   const { user, loading } = useAuth();
   if (loading) return (
-    <div className="min-h-screen bg-dark-900 flex items-center justify-center">
+    <div className="min-h-screen bg-transparent flex items-center justify-center">
       <div className="flex flex-col items-center gap-4">
-        <div className="w-12 h-12 border-4 border-accent-blue border-t-transparent rounded-full animate-spin" />
+        <div className="w-12 h-12 border-4 border-blue-600 border-t-transparent rounded-full animate-spin" />
         <p className="text-slate-400">Loading...</p>
       </div>
     </div>
@@ -27,7 +28,7 @@ const ProtectedRoute = ({ children }) => {
   return user ? children : <Navigate to="/login" replace />;
 };
 
-// Auth Route — redirects to /dashboard if already authenticated
+// Auth Route — redirects to /dashboard if already authenticated (for login/signup pages)
 const AuthRoute = ({ children }) => {
   const { user, loading } = useAuth();
   if (loading) return null;
@@ -37,13 +38,14 @@ const AuthRoute = ({ children }) => {
 function AppRoutes() {
   return (
     <Routes>
-      {/* Public Auth Routes */}
+      {/* Public Routes */}
+      <Route path="/" element={<Home />} />
       <Route path="/login" element={<AuthRoute><Login /></AuthRoute>} />
       <Route path="/signup" element={<AuthRoute><Signup /></AuthRoute>} />
       <Route path="/oauth-callback" element={<OAuthCallback />} />
 
       {/* Protected App Routes */}
-      <Route path="/" element={<ProtectedRoute><Layout /></ProtectedRoute>}>
+      <Route path="/app" element={<ProtectedRoute><Layout /></ProtectedRoute>}>
         <Route index element={<Navigate to="/dashboard" replace />} />
         <Route path="dashboard" element={<Dashboard />} />
         <Route path="workouts" element={<Workouts />} />
@@ -53,8 +55,16 @@ function AppRoutes() {
         <Route path="personalize-plan" element={<PersonalizePlan />} />
       </Route>
 
+      {/* Legacy Redirects or Fallback */}
+      <Route path="/dashboard" element={<Navigate to="/app/dashboard" replace />} />
+      <Route path="/workouts" element={<Navigate to="/app/workouts" replace />} />
+      <Route path="/calories" element={<Navigate to="/app/calories" replace />} />
+      <Route path="/weight" element={<Navigate to="/app/weight" replace />} />
+      <Route path="/profile" element={<Navigate to="/app/profile" replace />} />
+      <Route path="/personalize-plan" element={<Navigate to="/app/personalize-plan" replace />} />
+
       {/* Fallback */}
-      <Route path="*" element={<Navigate to="/dashboard" replace />} />
+      <Route path="*" element={<Navigate to="/" replace />} />
     </Routes>
   );
 }

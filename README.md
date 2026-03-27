@@ -1,6 +1,6 @@
 # 🏋️‍♂️ FitTrack - AI-Powered Fitness & Nutrition Ecosystem
 
-FitTrack is a modern, full-stack MERN application that leverages **Google Gemini AI** to provide a deeply personalized fitness experience. Beyond traditional tracking, FitTrack serves as an intelligent coach that generates custom plans, analyzes progress, and provides real-time guidance.
+FitTrack is a modern, full-stack MERN application that leverages **Grok AI (xAI)** to provide a deeply personalized fitness experience. Beyond traditional tracking, FitTrack serves as an intelligent coach that generates custom plans, analyzes progress, and provides real-time guidance.
 
 **Live Demo:** [https://fit-track-phi-virid.vercel.app/](https://fit-track-phi-virid.vercel.app/)
 
@@ -15,11 +15,11 @@ FitTrack is a modern, full-stack MERN application that leverages **Google Gemini
 │   │   ├── components/    # Reusable UI components (AI Chat, Cards, Buttons)
 │   │   ├── pages/         # Core views (AI Plan Hub, Dashboard, Workouts)
 │   │   ├── context/       # Auth & Theme state management
-│   │   ├── services/      # Gemini & Backend API integrations
+│   │   ├── services/      # AI & Backend API integrations
 │   │   └── App.jsx        # Root component & Protected Routing
 │   └── public/            # Static assets
 ├── server/                # Node.js + Express Backend
-│   ├── config/            # Gemini AI & MongoDB configurations
+│   ├── config/            # Grok AI & MongoDB configurations
 │   ├── controllers/       # Business logic (AI Generation, Auth, Tracking)
 │   ├── models/            # Mongoose schemas (AIPlan, User, Workout)
 │   ├── routes/            # API endpoints & Middleware protection
@@ -32,7 +32,7 @@ FitTrack is a modern, full-stack MERN application that leverages **Google Gemini
 ## 🚀 Key Features
 
 ### 🤖 AI-Driven Intelligence
-- **Personalize Plan Hub**: A central hub to generate 7-day custom workout and diet routines powered by Gemini AI, tailored to your specific goals and physical profile.
+- **Personalize Plan Hub**: A central hub to generate 7-day custom workout and diet routines powered by Grok AI, tailored to your specific goals and physical profile.
 - **AI Plan Coach**: Context-aware chat sidebar that lets you ask specific questions about your generated plans (e.g., "Can I swap the lunch for a vegetarian option?").
 - **Smart Dashboard**: Receive daily AI reminders, motivational advice, and health warnings based on your BMI and recent weight history.
 - **AI Fitness Coach**: A floating chatbot accessible from any page for real-time fitness guidance and support.
@@ -58,7 +58,7 @@ FitTrack is a modern, full-stack MERN application that leverages **Google Gemini
 
 **Backend:**
 - **Node.js & Express**
-- **Google Gemini API** (Generative AI)
+- **Grok AI (xAI) API** (Generative AI)
 - **MongoDB Atlas** (Cloud Database)
 - **Passport.js** (Google OAuth Strategy)
 - **JWT & Bcryptjs** (Secure Authentication)
@@ -71,7 +71,7 @@ FitTrack is a modern, full-stack MERN application that leverages **Google Gemini
 - Node.js (v18+)
 - MongoDB Atlas account
 - Google Cloud Console Project (for OAuth)
-- Google AI Studio API Key (for Gemini)
+- xAI Console API Key (for Grok)
 
 ### Installation
 

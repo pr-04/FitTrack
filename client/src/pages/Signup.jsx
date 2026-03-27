@@ -43,14 +43,11 @@ const Signup = () => {
     };
 
     return (
-        <div className="min-h-screen relative overflow-hidden flex items-center justify-center p-4">
-            <div className="absolute top-0 right-0 w-96 h-96 bg-accent-purple/10 rounded-full blur-3xl translate-x-1/2 -translate-y-1/2 pointer-events-none" />
-            <div className="absolute bottom-0 left-0 w-96 h-96 bg-accent-blue/10 rounded-full blur-3xl -translate-x-1/2 translate-y-1/2 pointer-events-none" />
-
+        <div className="min-h-screen flex items-center justify-center p-4">
             <div className="relative w-full max-w-md">
                 <div className="text-center mb-8">
-                    <div className="inline-flex items-center justify-center w-14 h-14 rounded-2xl bg-gradient-brand mb-4 shadow-lg shadow-accent-blue/30">
-                        <Zap size={28} className="text-white" />
+                    <div className="inline-flex items-center justify-center w-12 h-12 rounded-xl bg-blue-600 dark:bg-blue-500 mb-4 shadow-sm">
+                        <Zap size={24} className="text-white" />
                     </div>
                     <h1 className="text-3xl font-bold text-slate-900 dark:text-white">Create account</h1>
                     <p className="text-slate-600 dark:text-slate-400 mt-1">Start tracking your fitness journey</p>
@@ -117,7 +114,7 @@ const Signup = () => {
                     {/* Google OAuth Button */}
                     <a
                         href={GOOGLE_AUTH_URL}
-                        className="flex items-center justify-center gap-3 w-full px-4 py-2.5 rounded-xl border border-slate-700 bg-dark-800 hover:bg-dark-700 text-slate-200 font-medium transition-all duration-200 hover:border-slate-500 hover:shadow-md"
+                        className="flex items-center justify-center gap-3 w-full px-4 py-2.5 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800/50 hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-700 dark:text-slate-200 font-medium transition-all duration-200"
                     >
                         <svg width="18" height="18" viewBox="0 0 48 48" xmlns="http://www.w3.org/2000/svg">
                             <path fill="#EA4335" d="M24 9.5c3.54 0 6.71 1.22 9.21 3.6l6.85-6.85C35.9 2.38 30.47 0 24 0 14.62 0 6.51 5.38 2.56 13.22l7.98 6.19C12.43 13.72 17.74 9.5 24 9.5z"/>

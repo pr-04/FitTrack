@@ -5,12 +5,12 @@ import {
 } from 'lucide-react';
 
 const navItems = [
-    { to: '/dashboard', label: 'Home', icon: LayoutDashboard },
-    { to: '/workouts', label: 'Workouts', icon: Dumbbell },
-    { to: '/calories', label: 'Calories', icon: Apple },
-    { to: '/weight', label: 'Weight', icon: Scale },
-    { to: '/personalize-plan', label: 'Personalize Plan', icon: Sparkles },
-    { to: '/profile', label: 'Profile', icon: User },
+    { to: '/app/dashboard', label: 'Home', icon: LayoutDashboard },
+    { to: '/app/workouts', label: 'Workouts', icon: Dumbbell },
+    { to: '/app/calories', label: 'Calories', icon: Apple },
+    { to: '/app/weight', label: 'Weight', icon: Scale },
+    { to: '/app/personalize-plan', label: 'Personalize Plan', icon: Sparkles },
+    { to: '/app/profile', label: 'Profile', icon: User },
 ];
 
 const Sidebar = ({ isOpen, onClose }) => {
@@ -25,19 +25,19 @@ const Sidebar = ({ isOpen, onClose }) => {
     return (
         <aside
             className={`
-        fixed inset-y-0 left-0 z-50 w-64 glass-panel border-white/5 shadow-2xl
-        flex flex-col transform transition-all duration-500 ease-in-out
-        lg:static lg:translate-x-0 lg:m-4 lg:rounded-[32px]
+        fixed inset-y-0 left-0 z-50 w-64 glass-panel border-slate-200/50 dark:border-white/5 shadow-md
+        flex flex-col transform transition-all duration-300 ease-in-out
+        lg:static lg:translate-x-0 lg:m-4 lg:rounded-2xl
         ${isOpen ? 'translate-x-0' : '-translate-x-full lg:translate-x-0'}
       `}
         >
             {/* Logo */}
-            <div className="flex items-center justify-between px-6 py-6 border-b border-white/30 dark:border-white/10">
+            <div className="flex items-center justify-between px-6 py-6 border-b border-slate-200 dark:border-white/5">
                 <div className="flex items-center gap-3">
-                    <div className="w-9 h-9 rounded-xl bg-gradient-brand shadow-lg shadow-accent-blue/20 flex items-center justify-center">
-                        <Zap size={20} className="text-white" />
+                    <div className="w-8 h-8 rounded-lg bg-blue-600 dark:bg-blue-500 flex items-center justify-center">
+                        <Zap size={18} className="text-white" />
                     </div>
-                    <span className="text-xl font-bold bg-gradient-to-r from-accent-blue to-accent-purple bg-clip-text text-transparent">
+                    <span className="text-xl font-bold text-slate-900 dark:text-white">
                         FitTrack
                     </span>
                 </div>
@@ -47,17 +47,17 @@ const Sidebar = ({ isOpen, onClose }) => {
             </div>
 
             {/* Nav links */}
-            <nav className="flex-1 px-4 py-6 space-y-2 overflow-y-auto">
+            <nav className="flex-1 px-4 py-6 space-y-1 overflow-y-auto">
                 {navItems.map(({ to, label, icon: Icon }) => (
                     <NavLink
                         key={to}
                         to={to}
                         onClick={onClose}
                         className={({ isActive }) =>
-                            `flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-medium transition-all duration-200 border
+                            `flex items-center gap-3 px-4 py-2.5 rounded-xl text-sm font-semibold transition-all duration-200
               ${isActive
-                                ? 'bg-white/60 dark:bg-slate-800/60 text-slate-900 dark:text-white border-white/60 dark:border-white/20 shadow-sm'
-                                : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white hover:bg-white/40 dark:hover:bg-slate-800/40 border-transparent'
+                                ? 'bg-slate-100 dark:bg-slate-800 text-blue-600 dark:text-blue-400'
+                                : 'text-slate-600 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-800/50 hover:text-slate-900 dark:hover:text-white'
                             }`
                         }
                     >

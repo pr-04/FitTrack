@@ -4,19 +4,19 @@ import { ChevronDown } from 'lucide-react';
 const Select = ({ label, options = [], className = '', ...props }) => {
     return (
         <div className={`w-full group ${className}`}>
-            {label && <label className="block text-xs font-black text-slate-400 uppercase tracking-widest mb-3 px-1 group-focus-within:text-accent-blue transition-colors">
+            {label && <label className="block text-sm font-semibold text-slate-600 dark:text-slate-400 mb-1.5 ml-1 transition-colors">
                 {label}
             </label>}
             <div className="relative">
                 <select
-                    className="w-full bg-slate-900/40 backdrop-blur-xl border border-slate-700/50 rounded-2xl px-5 h-14 
-                    text-white focus:outline-none focus:border-accent-blue/50 focus:ring-2 
-                    focus:ring-accent-blue/20 transition-all duration-300 shadow-xl appearance-none cursor-pointer 
-                    hover:bg-slate-800/60 hover:border-slate-600 font-medium"
+                    className="w-full bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-800 rounded-xl px-4 h-12 
+                    text-slate-800 dark:text-slate-100 focus:outline-none focus:border-blue-600 focus:ring-1 
+                    focus:ring-blue-600/30 transition-all duration-200 shadow-sm appearance-none cursor-pointer 
+                    hover:border-slate-400 dark:hover:border-slate-600 font-medium"
                     {...props}
                 >
                     {options.map(opt => (
-                        <option key={opt.value} value={opt.value} className="bg-slate-900 text-white py-4">
+                        <option key={opt.value} value={opt.value} className="bg-white dark:bg-slate-900 text-slate-800 dark:text-slate-100 py-2">
                             {opt.label}
                         </option>
                     ))}
