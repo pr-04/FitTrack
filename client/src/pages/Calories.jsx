@@ -139,7 +139,7 @@ const Calories = () => {
     const progress = Math.min((totalCalories / calorieGoal) * 100, 100);
 
     return (
-        <div className="space-y-6">
+        <div className="space-y-8 animate-premium-in pb-10">
             <Card>
                 <div className="flex items-center gap-2 mb-5">
                     <Plus size={20} className="text-accent-orange" />

@@ -72,6 +72,7 @@ export const aiAPI = {
     getDietPlan: (data) => api.post('/ai/diet-plan', data),
     savePlan: (data) => api.post('/ai/save-plan', data),
     getUserPlans: (params) => api.get('/ai/my-plans', { params }),
+    updatePlan: (id, data) => api.put(`/ai/plan/${id}`, { data }),
     deletePlan: (id) => api.delete(`/ai/plan/${id}`),
     chatAboutPlan: (message, planData, history) => api.post('/ai/chat-about-plan', { message, planData, history }),
     getDashboardInsights: () => api.get('/ai/dashboard-insights'),

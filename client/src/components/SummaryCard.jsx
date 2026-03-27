@@ -28,7 +28,7 @@ const SummaryCard = ({ title, value, subtitle, icon: Icon, color = 'blue', trend
     };
 
     return (
-        <div className={`glass-card rounded-3xl bg-gradient-to-br ${colorMap[color]} p-5 transition-transform duration-200 hover:-translate-y-2`}>
+        <div className={`glass-card rounded-[32px] p-6 transition-all duration-500 hover:scale-[1.03] group ${colorMap[color]}`}>
             <div className="flex items-start justify-between mb-4">
                 <div>
                     <p className="text-slate-600 dark:text-slate-400 text-sm font-medium">{title}</p>

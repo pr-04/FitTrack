@@ -21,6 +21,8 @@ const PersonalizePlan = () => {
     // Generation states
     const [goal, setGoal] = useState(user?.goal || 'maintain');
     const [instruction, setInstruction] = useState('');
+    const [workoutType, setWorkoutType] = useState('gym');
+    const [numExercises, setNumExercises] = useState(5);
     
     // Chat states
     const [chatMessage, setChatMessage] = useState('');
@@ -64,7 +66,12 @@ const PersonalizePlan = () => {
         setError('');
         try {
             const endpoint = type === 'workout' ? aiAPI.getWorkoutPlan : aiAPI.getDietPlan;
-            const res = await endpoint({ instruction, goal });
+            const res = await endpoint({ 
+                instruction, 
+                goal,
+                workoutType: type === 'workout' ? workoutType : undefined,
+                numExercises: type === 'workout' ? numExercises : undefined
+            });
             const generatedData = res.data;
 
             // Auto-save the plan
@@ -116,6 +123,28 @@ const PersonalizePlan = () => {
             setChatHistory(prev => [...prev, { role: 'model', parts: [{ text: 'Sorry, I had trouble processing that. Please try again.' }] }]);
         } finally {
             setChatLoading(false);
+        }
+    };
+
+    const toggleExerciseCompletion = async (dayIdx, exIdx) => {
+        if (!selectedPlan || selectedPlan.type !== 'workout') return;
+
+        // deep clone to avoid mutation issues
+        const updatedPlan = JSON.parse(JSON.stringify(selectedPlan));
+        const day = updatedPlan.data.days[dayIdx];
+        if (!day || !day.exercises[exIdx]) return;
+        
+        day.exercises[exIdx].completed = !day.exercises[exIdx].completed;
+
+        // Update local state first for instant feedback
+        setSelectedPlan(updatedPlan);
+        setPlans(plans.map(p => p._id === updatedPlan._id ? updatedPlan : p));
+
+        try {
+            await aiAPI.updatePlan(selectedPlan._id, updatedPlan.data);
+        } catch (error) {
+            console.error('Failed to update exercise completion:', error);
+            // Optional: Show error toast or rollback
         }
     };
 
@@ -177,24 +206,44 @@ const PersonalizePlan = () => {
                     {planObj.type === 'workout' ? (
                         <div className="space-y-6">
                             <p className="text-slate-300 leading-relaxed text-lg">{plan.overview}</p>
-                            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
                                 {plan.days.map((day, idx) => (
-                                    <div key={idx} className="bg-gray-900/40 border border-gray-700/50 rounded-2xl overflow-hidden hover:border-blue-500/30 transition group">
+                                    <div key={idx} className={`bg-gray-900/40 border border-gray-700/50 rounded-2xl overflow-hidden hover:border-blue-500/30 transition group flex flex-col ${day.type.toLowerCase().includes('rest') ? 'opacity-60' : ''}`}>
                                         <div className="bg-gray-800/80 px-5 py-3 border-b border-gray-700 flex justify-between items-center group-hover:bg-blue-500/10 transition">
                                             <span className="font-bold text-blue-400">{day.day}</span>
-                                            <span className="text-[10px] uppercase tracking-widest text-slate-500 font-bold">{day.type}</span>
+                                            <span className="text-[10px] uppercase tracking-widest text-slate-500 font-bold max-w-[150px] truncate">
+                                                {day.type.replace(/\(.*\)/g, '').trim()}
+                                            </span>
                                         </div>
-                                        <div className="p-5 space-y-4">
+                                        <div className="p-5 space-y-4 flex-1">
                                             {day.exercises.map((ex, i) => (
-                                                <div key={i} className="border-l-2 border-slate-700 pl-4 py-0.5">
-                                                    <p className="font-bold text-white text-md">{ex.name}</p>
-                                                    <p className="text-slate-400 text-xs mt-1">
-                                                        {ex.sets} sets × {ex.reps} reps {ex.weight ? `• ${ex.weight}` : ''}
-                                                    </p>
+                                                <div 
+                                                    key={i} 
+                                                    onClick={() => toggleExerciseCompletion(idx, i)}
+                                                    className="flex items-start gap-3 cursor-pointer group/item"
+                                                >
+                                                    <div className={`mt-1 flex-shrink-0 w-5 h-5 rounded-md border-2 flex items-center justify-center transition-all ${
+                                                        ex.completed 
+                                                            ? 'bg-blue-500 border-blue-500 text-white' 
+                                                            : 'border-slate-600 group-hover/item:border-blue-400'
+                                                    }`}>
+                                                        {ex.completed && <CheckCircle size={14} fill="currentColor" className="text-blue-500 filter brightness-150" />}
+                                                    </div>
+                                                    <div className="border-l-2 border-slate-700/50 pl-3 py-0.5 flex-1">
+                                                        <p className={`font-bold text-md transition-all ${ex.completed ? 'text-slate-500 line-through' : 'text-white'}`}>
+                                                            {ex.name}
+                                                        </p>
+                                                        <p className={`text-xs mt-1 transition-all ${ex.completed ? 'text-slate-600' : 'text-slate-400'}`}>
+                                                            {ex.sets} sets × {ex.reps} reps {ex.weight ? `• ${ex.weight}` : ''}
+                                                        </p>
+                                                    </div>
                                                 </div>
                                             ))}
                                             {day.exercises.length === 0 && (
-                                                <p className="text-center text-slate-500 py-4 italic text-sm">Recovery Day</p>
+                                                <div className="h-full flex flex-col items-center justify-center py-6">
+                                                    <Zap size={24} className="text-slate-700 mb-2" />
+                                                    <p className="text-center text-slate-500 italic text-sm">Recovery Day</p>
+                                                </div>
                                             )}
                                         </div>
                                     </div>
@@ -302,7 +351,7 @@ const PersonalizePlan = () => {
     };
 
     return (
-        <div className="space-y-8 animate-in fade-in duration-700 max-w-6xl mx-auto pb-10">
+        <div className="space-y-10 animate-premium-in max-w-6xl mx-auto pb-10">
             {selectedPlan ? (
                 renderPlanDetail(selectedPlan)
             ) : (
@@ -322,50 +371,82 @@ const PersonalizePlan = () => {
                         </div>
                     )}
 
-                    <Card className="bg-gradient-to-br from-gray-800 to-gray-900 border-white/5 shadow-2xl p-8 relative overflow-hidden group">
+                    <div className="glass-panel border-white/5 shadow-2xl p-8 relative overflow-hidden group rounded-[40px]">
                         <div className="absolute top-[-20%] right-[-10%] w-64 h-64 bg-accent-blue/10 rounded-full blur-3xl group-hover:bg-accent-blue/20 transition-all duration-1000" />
                         
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-8 relative z-10">
                             <div className="space-y-6">
                                 <div>
-                                    <label className="block text-sm font-bold text-slate-400 uppercase tracking-widest mb-3">Your Fitness Goal</label>
+                                    <label className="block text-sm font-black text-slate-400 uppercase tracking-widest mb-3 px-1">Your Fitness Goal</label>
                                     <Select 
                                         name="goal" 
                                         value={goal} 
                                         onChange={(e) => setGoal(e.target.value)} 
                                         options={goalOptions}
-                                        className="bg-gray-900/50 border-gray-700 rounded-2xl h-14"
+                                        className="bg-slate-900/50 border-slate-700 rounded-2xl h-14 focus:ring-accent-blue"
                                     />
+                                </div>
+                                <div className="grid grid-cols-2 gap-4">
+                                    <div>
+                                        <label className="block text-sm font-black text-slate-400 uppercase tracking-widest mb-3 px-1">Workout Environment</label>
+                                        <Select 
+                                            value={workoutType} 
+                                            onChange={(e) => setWorkoutType(e.target.value)} 
+                                            options={[
+                                                { value: 'gym', label: '💪 Gym Workout' },
+                                                { value: 'home', label: '🏠 Home Workout' }
+                                            ]}
+                                            className="bg-slate-900/50 border-slate-700 rounded-2xl h-14 focus:ring-accent-blue"
+                                        />
+                                    </div>
+                                    <div>
+                                        <label className="block text-sm font-black text-slate-400 uppercase tracking-widest mb-3 px-1">Exercises/Day</label>
+                                        <div className="flex gap-2 h-14 bg-slate-900/50 border border-slate-700 rounded-2xl px-2 items-center">
+                                            {[3, 4, 5, 6].map((num) => (
+                                                <button
+                                                    key={num}
+                                                    onClick={() => setNumExercises(num)}
+                                                    className={`flex-1 h-10 rounded-xl font-bold transition-all ${
+                                                        numExercises === num 
+                                                            ? 'bg-accent-blue text-white shadow-lg' 
+                                                            : 'text-slate-500 hover:bg-slate-800'
+                                                    }`}
+                                                >
+                                                    {num}
+                                                </button>
+                                            ))}
+                                        </div>
+                                    </div>
                                 </div>
                                 <div className="space-y-3">
                                     <div className="flex justify-between items-center">
-                                        <label className="block text-sm font-bold text-slate-400 uppercase tracking-widest px-1">Special Adjustments <span className="text-xs font-normal opacity-50">(Optional)</span></label>
+                                        <label className="block text-sm font-black text-slate-400 uppercase tracking-widest px-1">Special Adjustments <span className="text-[10px] font-normal opacity-50 lowercase">(Optional)</span></label>
                                         <Zap size={14} className="text-accent-blue" />
                                     </div>
                                     <textarea 
                                         value={instruction}
                                         onChange={(e) => setInstruction(e.target.value)}
                                         placeholder="e.g. 'No eggs in diet', 'Knee injury - no jumping', 'I only have dumbbells'"
-                                        className="w-full bg-gray-900/50 border border-gray-700 rounded-2xl p-4 text-white text-sm focus:ring-2 focus:ring-blue-500 outline-none resize-none h-32"
+                                        className="w-full bg-slate-900/50 border border-slate-700 rounded-3xl p-5 text-white text-sm focus:ring-2 focus:ring-accent-blue outline-none resize-none h-32 transition-all"
                                     />
                                 </div>
                             </div>
 
                             <div className="flex flex-col justify-end space-y-4">
-                                <div className="p-5 bg-blue-500/5 rounded-3xl border border-blue-500/10 mb-2">
-                                    <h4 className="text-blue-400 font-bold flex items-center gap-2 mb-2">
+                                <div className="p-6 bg-blue-500/5 rounded-[32px] border border-blue-500/10 mb-2">
+                                    <h4 className="text-blue-400 font-black flex items-center gap-2 mb-2 uppercase text-xs tracking-widest">
                                         <Sparkles size={16} /> Powerful AI Generation
                                     </h4>
-                                    <p className="text-xs text-slate-400 leading-relaxed">
+                                    <p className="text-xs text-slate-400 leading-relaxed font-medium">
                                         Our AI will analyze your physical profile, current weight history, and your specific goal to create a 7-day optimized routine.
                                     </p>
                                 </div>
-                                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                                     <Button 
                                         onClick={() => handleGenerate('workout')}
                                         loading={generatingWorkout}
                                         disabled={generatingDiet}
-                                        className="h-16 rounded-2xl bg-blue-600 hover:bg-blue-500 text-lg font-black tracking-tight"
+                                        className="h-16 rounded-2xl bg-gradient-brand hover:shadow-2xl hover:shadow-blue-500/20 text-lg font-black tracking-tight btn-premium"
                                     >
                                         <Dumbbell className="mr-2" size={24} /> Create Workout
                                     </Button>
@@ -373,14 +454,14 @@ const PersonalizePlan = () => {
                                         onClick={() => handleGenerate('diet')}
                                         loading={generatingDiet}
                                         disabled={generatingWorkout}
-                                        className="h-16 rounded-2xl bg-green-600 hover:bg-green-500 text-lg font-black tracking-tight border-none"
+                                        className="h-16 rounded-2xl bg-emerald-600 hover:bg-emerald-500 hover:shadow-2xl hover:shadow-emerald-500/20 text-lg font-black tracking-tight border-none btn-premium"
                                     >
                                         <Utensils className="mr-2" size={24} /> Create Diet
                                     </Button>
                                 </div>
                             </div>
                         </div>
-                    </Card>
+                    </div>
 
                     <div className="pt-6 space-y-6">
                         <div className="flex items-center justify-between px-1">

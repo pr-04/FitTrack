@@ -128,60 +128,68 @@ const Dashboard = () => {
     }
 
     return (
-        <div className="space-y-6">
-            <div>
-                <h2 className="text-2xl font-bold text-slate-900 dark:text-white">
-                    Good {new Date().getHours() < 12 ? 'morning' : new Date().getHours() < 17 ? 'afternoon' : 'evening'},{' '}
-                    <span className="bg-gradient-to-r from-accent-blue to-accent-purple bg-clip-text text-transparent drop-shadow-sm">
-                        {user?.name?.split(' ')[0]}
-                    </span>! 👋
-                </h2>
-                <p className="text-slate-600 dark:text-slate-400 mt-1">Here's your fitness summary for today.</p>
+        <div className="space-y-8 animate-premium-in">
+            <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+                <div>
+                    <h2 className="text-3xl font-black text-slate-900 dark:text-white tracking-tight">
+                        Good {new Date().getHours() < 12 ? 'morning' : new Date().getHours() < 17 ? 'afternoon' : 'evening'},{' '}
+                        <span className="gradient-text">
+                            {user?.name?.split(' ')[0]}
+                        </span>! 👋
+                    </h2>
+                    <p className="text-slate-500 dark:text-slate-400 mt-1 font-medium italic">Here's your fitness summary for today.</p>
+                </div>
             </div>
 
             {/* AI Insights Section */}
-            <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
-                <div className="lg:col-span-2 bg-gradient-to-br from-blue-600/10 to-purple-600/10 border border-blue-500/20 rounded-2xl p-5 relative overflow-hidden group">
-                    <div className="absolute top-0 right-0 p-4 opacity-10 group-hover:opacity-20 transition-opacity">
-                        <Sparkles size={80} className="text-blue-500" />
+            <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                <div className="lg:col-span-2 glass-panel border-blue-500/20 rounded-[32px] p-6 relative overflow-hidden group hover:scale-[1.01] transition-transform duration-500">
+                    <div className="absolute top-0 right-0 p-6 opacity-5 group-hover:opacity-10 transition-opacity duration-700">
+                        <Sparkles size={120} className="text-blue-500" />
                     </div>
-                    <div className="relative z-10 flex items-start gap-4">
-                        <div className="w-12 h-12 rounded-xl bg-blue-600 flex items-center justify-center flex-shrink-0 shadow-lg shadow-blue-500/20">
-                            <Sparkles className="text-white" size={24} />
+                    <div className="relative z-10 flex flex-col md:flex-row items-start gap-6">
+                        <div className="w-14 h-14 rounded-2xl bg-gradient-brand flex items-center justify-center flex-shrink-0 shadow-2xl shadow-blue-500/40 animate-pulse">
+                            <Sparkles className="text-white" size={28} />
                         </div>
-                        <div>
-                            <h3 className="font-bold text-slate-900 dark:text-white flex items-center gap-2">
-                                Daily AI Coach Advice
-                                <span className="text-[10px] bg-blue-500 text-white px-1.5 py-0.5 rounded uppercase tracking-tighter">AI Powered</span>
-                            </h3>
-                            <p className="text-slate-700 dark:text-slate-300 mt-2 italic leading-relaxed">
-                                {aiInsights?.dailyReminder || "Loading your daily motivation..."}
+                        <div className="flex-1">
+                            <div className="flex items-center gap-3 mb-2">
+                                <h3 className="font-black text-slate-900 dark:text-white text-lg tracking-tight">
+                                    AI Fitness Coach
+                                </h3>
+                                <span className="text-[9px] bg-blue-500 text-white font-black px-2 py-0.5 rounded-full uppercase tracking-widest flex items-center gap-1">
+                                    <div className="w-1 h-1 bg-white rounded-full animate-ping" /> Live Insight
+                                </span>
+                            </div>
+                            <p className="text-slate-600 dark:text-slate-300 text-sm leading-relaxed font-medium italic">
+                                "{aiInsights?.dailyReminder || "Analyzing your data to provide personalized motivation..."}"
                             </p>
-                            <div className="mt-4 flex items-center gap-2 text-xs font-semibold text-blue-600 dark:text-blue-400">
-                                <TrendingUp size={14} />
-                                <span>{aiInsights?.progressAnalysis || "Analyzing your recent progress..."}</span>
+                            <div className="mt-4 pt-4 border-t border-slate-200 dark:border-white/5 flex flex-wrap items-center gap-3">
+                                <div className="flex items-center gap-2 text-[10px] font-black uppercase tracking-widest text-blue-600 dark:text-blue-400 bg-blue-500/10 px-3 py-1.5 rounded-xl">
+                                    <TrendingUp size={14} />
+                                    <span>{aiInsights?.progressAnalysis || "Progress Analysis Pending"}</span>
+                                </div>
                             </div>
                         </div>
                     </div>
                 </div>
 
-                <div className={`${aiInsights?.healthWarning?.toLowerCase().includes('warning') || aiInsights?.healthWarning?.toLowerCase().includes('risk') ? 'bg-red-500/10 border-red-500/20' : 'bg-green-500/10 border-green-500/20'} border rounded-2xl p-5 flex flex-col justify-between`}>
-                    <div className="flex items-start gap-3">
-                        <div className={`${aiInsights?.healthWarning?.toLowerCase().includes('warning') || aiInsights?.healthWarning?.toLowerCase().includes('risk') ? 'bg-red-500' : 'bg-green-500'} w-10 h-10 rounded-lg flex items-center justify-center flex-shrink-0`}>
-                            <AlertCircle className="text-white" size={20} />
+                <div className={`glass-panel rounded-[32px] p-6 flex flex-col justify-between group hover:scale-[1.01] transition-transform duration-500 ${aiInsights?.healthWarning?.toLowerCase().includes('warning') || aiInsights?.healthWarning?.toLowerCase().includes('risk') ? 'border-red-500/20' : 'border-green-500/20'}`}>
+                    <div className="flex items-start gap-4">
+                        <div className={`${aiInsights?.healthWarning?.toLowerCase().includes('warning') || aiInsights?.healthWarning?.toLowerCase().includes('risk') ? 'bg-red-500 shadow-red-500/30' : 'bg-green-500 shadow-green-500/30'} w-12 h-12 rounded-2xl flex items-center justify-center flex-shrink-0 shadow-xl transition-transform group-hover:rotate-12`}>
+                            <AlertCircle className="text-white" size={24} />
                         </div>
                         <div>
-                            <h4 className="font-bold text-slate-900 dark:text-white text-sm">Health Status & Alerts</h4>
-                            <p className="text-xs text-slate-600 dark:text-slate-400 mt-1">Based on your BMI and history</p>
+                            <h4 className="font-black text-slate-900 dark:text-white text-sm tracking-tight uppercase opacity-50">Health Warning</h4>
+                            <p className="text-[10px] font-bold text-slate-500 dark:text-slate-400 mt-0.5">Automated Analysis</p>
                         </div>
                     </div>
-                    <p className="text-sm font-medium text-slate-800 dark:text-slate-200 mt-4 leading-relaxed">
-                        {aiInsights?.healthWarning || "Everything looks good! Keep it up."}
+                    <p className="text-sm font-bold text-slate-800 dark:text-slate-200 mt-6 leading-relaxed italic">
+                        {aiInsights?.healthWarning || "Everything looks good! Keep following your routine."}
                     </p>
                 </div>
             </div>
 
-            <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-6">
                 <SummaryCard
                     title="Calories Today"
                     value={todayCalories}
@@ -189,10 +197,11 @@ const Dashboard = () => {
                     icon={Flame}
                     color="orange"
                     progress={calProgress}
+                    className="hover:scale-105 transition-transform duration-500"
                 />
-                <SummaryCard title="Workouts Today" value={todayWorkouts} subtitle="exercises logged" icon={Dumbbell} color="blue" />
-                <SummaryCard title="Current Weight" value={latestWeight ? `${latestWeight} kg` : '—'} subtitle="latest entry" icon={Scale} color="green" />
-                <SummaryCard title="Fitness Goal" value={goalLabels[user?.goal] || '—'} subtitle="current target" icon={Target} color="purple" />
+                <SummaryCard title="Workouts Today" value={todayWorkouts} subtitle="exercises logged" icon={Dumbbell} color="blue" className="hover:scale-105 transition-transform duration-500" />
+                <SummaryCard title="Current Weight" value={latestWeight ? `${latestWeight} kg` : '—'} subtitle="latest entry" icon={Scale} color="green" className="hover:scale-105 transition-transform duration-500" />
+                <SummaryCard title="Fitness Goal" value={goalLabels[user?.goal] || '—'} subtitle="current target" icon={Target} color="purple" className="hover:scale-105 transition-transform duration-500" />
             </div>
 
             <div className="grid grid-cols-1 xl:grid-cols-2 gap-6">

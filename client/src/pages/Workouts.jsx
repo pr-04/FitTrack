@@ -134,7 +134,7 @@ const Workouts = () => {
     }, {});
 
     return (
-        <div className="space-y-6">
+        <div className="space-y-8 animate-premium-in pb-10">
             <Card>
                 <div className="flex items-center gap-2 mb-5">
                     <Plus size={20} className="text-accent-blue" />
@@ -221,7 +221,7 @@ const Workouts = () => {
                     </div>
                 </div>
 
-                <div className="flex flex-col sm:flex-row items-end sm:items-center justify-between gap-4 p-4 bg-slate-50/50 dark:bg-dark-900/50 rounded-xl border border-slate-200 dark:border-slate-700/50">
+                <div className="flex flex-col sm:flex-row items-end sm:items-center justify-between gap-4 p-4 bg-white/10 dark:bg-dark-900/50 rounded-xl border border-slate-200 dark:border-slate-700/50">
                     <div className="w-full sm:w-auto">
                         <Input label="Date" type="date" value={selectedDate} onChange={(e) => setSelectedDate(e.target.value)} />
                     </div>
@@ -265,7 +265,7 @@ const Workouts = () => {
                                 </div>
                                 <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
                                     {items.map(w => (
-                                        <Card key={w._id} className="p-4 flex items-center justify-between group hover:border-accent-blue/40 transition-colors">
+                                        <Card key={w._id} className="p-5 flex items-center justify-between group hover:scale-[1.02] transition-all duration-300 border-white/5 shadow-lg">
                                             <div>
                                                 <p className="font-semibold text-slate-900 dark:text-white">{w.exercise}</p>
                                                 <p className="text-slate-600 dark:text-slate-400 text-sm mt-0.5">

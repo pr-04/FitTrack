@@ -97,7 +97,7 @@ const Weight = () => {
     }
 
     return (
-        <div className="space-y-6">
+        <div className="space-y-8 animate-premium-in pb-10">
             <Card>
                 <div className="flex items-center gap-2 mb-5">
                     <Plus size={20} className="text-accent-green" />

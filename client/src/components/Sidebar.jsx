@@ -25,10 +25,10 @@ const Sidebar = ({ isOpen, onClose }) => {
     return (
         <aside
             className={`
-        fixed inset-y-0 left-0 z-30 w-64 glass-panel border-r border-white/50 dark:border-white/10
-        flex flex-col transform transition-transform duration-300 ease-in-out
-        lg:static lg:translate-x-0 lg:z-auto
-        ${isOpen ? 'translate-x-0' : '-translate-x-full'}
+        fixed inset-y-0 left-0 z-50 w-64 glass-panel border-white/5 shadow-2xl
+        flex flex-col transform transition-all duration-500 ease-in-out
+        lg:static lg:translate-x-0 lg:m-4 lg:rounded-[32px]
+        ${isOpen ? 'translate-x-0' : '-translate-x-full lg:translate-x-0'}
       `}
         >
             {/* Logo */}

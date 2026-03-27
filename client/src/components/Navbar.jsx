@@ -22,7 +22,7 @@ const Navbar = ({ onMenuClick }) => {
         : 'U';
 
     return (
-        <header className="glass-panel border-b px-4 md:px-6 py-4 flex items-center justify-between rounded-2xl mb-6 z-10 sticky top-0">
+        <header className="glass-panel px-4 md:px-6 py-4 flex items-center justify-between rounded-[28px] mb-8 z-50 sticky top-4 mx-1">
             {/* Left: hamburger + page title */}
             <div className="flex items-center gap-4">
                 <button
@@ -32,8 +32,8 @@ const Navbar = ({ onMenuClick }) => {
                     <Menu size={22} />
                 </button>
                 <div>
-                    <h1 className="text-xl font-bold text-slate-800 dark:text-white">{page.title}</h1>
-                    <p className="text-xs text-slate-500 dark:text-slate-400 hidden sm:block">{page.subtitle}</p>
+                    
+                    <h1 className="text-lg font-bold text-slate-800 dark:text-slate-100 leading-none">{page.title}</h1>
                 </div>
             </div>
 
@@ -41,10 +41,10 @@ const Navbar = ({ onMenuClick }) => {
             <div className="flex items-center gap-3">
                 <button
                     onClick={toggleTheme}
-                    className="p-2.5 rounded-xl bg-white/50 dark:bg-slate-800/50 hover:bg-white/80 dark:hover:bg-slate-700/80 border border-white/60 dark:border-white/10 transition-all text-slate-600 dark:text-slate-300 shadow-sm"
+                    className="p-3 rounded-2xl bg-white/50 dark:bg-slate-800/10 hover:bg-white dark:hover:bg-slate-800 border border-white/60 dark:border-white/5 transition-all duration-300 text-slate-600 dark:text-slate-300 shadow-sm hover:shadow-lg active:scale-90"
                     aria-label="Toggle theme"
                 >
-                    {isDarkMode ? <Sun size={18} /> : <Moon size={18} />}
+                    {isDarkMode ? <Sun size={18} className="text-yellow-500" /> : <Moon size={18} className="text-blue-500" />}
                 </button>
 
                 <Link to="/profile" className="flex items-center gap-3 group transition-transform active:scale-95">
