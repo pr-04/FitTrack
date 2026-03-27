@@ -2,7 +2,21 @@ const User = require('../models/User');
 const Workout = require('../models/Workout');
 const Weight = require('../models/Weight');
 const AIPlan = require('../models/AIPlan');
-const model = require('../config/gemini');
+const { grok, getCompletion } = require('../config/grok');
+
+// Helper to convert Gemini history format to OpenAI/Grok format if needed
+const convertHistory = (history) => {
+    if (!history || !Array.isArray(history)) return [];
+    return history.map(item => {
+        // If it's already in OpenAI format
+        if (item.content) return item;
+        
+        // If it's in Gemini format: { role: 'user'/'model', parts: [{ text: '...' }] }
+        const role = item.role === 'model' ? 'assistant' : item.role;
+        const content = item.parts && item.parts[0] ? item.parts[0].text : '';
+        return { role, content };
+    });
+};
 
 /**
  * @desc    Generate personalized workout plan
@@ -11,7 +25,7 @@ const model = require('../config/gemini');
  */
 const generateWorkoutPlan = async (req, res) => {
     try {
-        const { instruction, goal } = req.body;
+        const { instruction, goal, workoutType, numExercises } = req.body;
         const user = req.user;
         const weights = await Weight.find({ userId: user._id }).sort({ date: -1 }).limit(5);
 
@@ -29,33 +43,49 @@ const generateWorkoutPlan = async (req, res) => {
             - Recent Weight History: ${weights.map(w => `${w.weight}kg on ${w.date.toLocaleDateString()}`).join(', ')}
             ${instruction ? `- Specific User Instructions/Adjustments: ${instruction}` : ''}
 
-            The plan should include:
-            1. A 7-day schedule (including rest days).
-            2. Specific exercises for each workout day.
-            3. Sets and Reps for each exercise.
-            4. A brief motivational tip for the week.
+            The plan MUST include:
+            1. A full 7-day schedule (Day 1 to Day 7), NO EXCEPTIONS.
+            2. Days 1 through 6 MUST be active workout days.
+            3. Day 7 MUST be a Recovery or Optional day.
+            4. Environment: This is a **${workoutType === 'home' ? 'HOME-ONLY' : 'GYM-ONLY'}** plan. 
+               - If ${workoutType === 'home'}, use **ONLY** bodyweight, callisthenics, or common home items. **DO NOT** mention gym machines or barbells.
+               - If ${workoutType === 'gym'}, use **ONLY** commercial gym equipment (cables, machines, barbells, dumbbells). **DO NOT** provide simple home/bodyweight exercises unless they are a standard gym warmup.
+            5. Exercise Count: Provide exactly **${numExercises || 5} exercises** per workout day.
+            6. Ensure all exercises are highly effective and relevant to the user's selected goal: ${goal || user.goal || 'maintain'}.
+            7. Specific exercises for each workout day.
+            8. Sets, Reps, and Weight for each exercise.
+            9. A "completed" boolean field for each exercise, set to false by default.
+            10. A brief motivational tip for the week.
 
             Please format the response as a clean JSON object with the following structure:
             {
                 "title": "...",
                 "overview": "...",
                 "days": [
-                    { "day": "Day 1", "type": "...", "exercises": [{ "name": "...", "sets": "...", "reps": "...", "weight": "..." }] }
+                    { 
+                        "day": "Day 1", 
+                        "type": "...", 
+                        "exercises": [
+                            { "name": "...", "sets": "...", "reps": "...", "weight": "...", "completed": false }
+                        ] 
+                    }
                 ],
                 "motivationalTip": "..."
             }
+            CRITICAL: You must provide a plan for ALL 7 DAYS. 
             MUST return ONLY the JSON object.
         `;
 
-        const result = await model.generateContent(prompt);
-        const response = await result.response;
-        
-        if (!response.candidates || response.candidates.length === 0) {
-            console.error('AI Generation Blocked or No Candidates');
-            return res.status(500).json({ message: 'AI failed to generate content. Please try a different goal or instruction.' });
-        }
+        const completion = await getCompletion({
+            model: "grok-4",
+            messages: [
+                { role: "system", content: "You are a professional AI Fitness Coach. Return only valid JSON." },
+                { role: "user", content: prompt }
+            ],
+            temperature: 0.7,
+        });
 
-        const text = response.text();
+        const text = completion.choices[0].message.content;
         const jsonMatch = text.match(/\{[\s\S]*\}/);
         if (!jsonMatch) {
             console.error('Invalid JSON from AI:', text);
@@ -66,6 +96,79 @@ const generateWorkoutPlan = async (req, res) => {
         res.json(plan);
     } catch (error) {
         console.error('AI Workout Plan Error:', error);
+        
+        // Graceful Fallback if AI fails (e.g. no credits)
+        if (error.status === 403 || error.status === 401) {
+            return res.json({
+                title: "Classic Strength Starter",
+                overview: "Your AI Coach is currently on break, but here's a standard effective plan to keep you moving!",
+                days: [
+                    { 
+                        day: "Day 1", 
+                        type: "Full Body (Home)", 
+                        exercises: [
+                            { name: "Pushups", sets: "3", reps: "12", weight: "Bodyweight", completed: false }, 
+                            { name: "Air Squats", sets: "3", reps: "20", weight: "Bodyweight", completed: false },
+                            { name: "Lunges", sets: "3", reps: "10/side", weight: "Bodyweight", completed: false },
+                            { name: "Burpees", sets: "3", reps: "10", weight: "Bodyweight", completed: false }
+                        ] 
+                    },
+                    { 
+                        day: "Day 2", 
+                        type: "Upper Body (Gym)", 
+                        exercises: [
+                            { name: "Bench Press", sets: "3", reps: "10", weight: "40kg", completed: false }, 
+                            { name: "Lat Pulldown", sets: "3", reps: "12", weight: "35kg", completed: false },
+                            { name: "Dumbbell Rows", sets: "3", reps: "12/side", weight: "12kg", completed: false },
+                            { name: "Overhead Press", sets: "3", reps: "10", weight: "20kg", completed: false }
+                        ] 
+                    },
+                    { 
+                        day: "Day 3", 
+                        type: "Core & Cardio", 
+                        exercises: [
+                            { name: "Plank", sets: "3", reps: "60s", weight: "Bodyweight", completed: false }, 
+                            { name: "Running", sets: "1", reps: "15 min", weight: "N/A", completed: false },
+                            { name: "Mountain Climbers", sets: "3", reps: "30s", weight: "Bodyweight", completed: false },
+                            { name: "Leg Raises", sets: "3", reps: "15", weight: "Bodyweight", completed: false }
+                        ] 
+                    },
+                    { 
+                        day: "Day 4", 
+                        type: "Lower Body (Gym)", 
+                        exercises: [
+                            { name: "Leg Press", sets: "3", reps: "12", weight: "80kg", completed: false }, 
+                            { name: "Leg Curls", sets: "3", reps: "10", weight: "25kg", completed: false },
+                            { name: "Calf Raises", sets: "4", reps: "15", weight: "40kg", completed: false },
+                            { name: "Goblet Squats", sets: "3", reps: "12", weight: "16kg", completed: false }
+                        ] 
+                    },
+                    { 
+                        day: "Day 5", 
+                        type: "Push (Gym/Home Mix)", 
+                        exercises: [
+                            { name: "Dumbbell Shoulder Press", sets: "3", reps: "12", weight: "10kg/side", completed: false }, 
+                            { name: "Diamond Pushups", sets: "3", reps: "10", weight: "Bodyweight", completed: false },
+                            { name: "Tricep Dips", sets: "3", reps: "12", weight: "Bench", completed: false },
+                            { name: "Lateral Raises", sets: "3", reps: "15", weight: "5kg", completed: false }
+                        ] 
+                    },
+                    { 
+                        day: "Day 6", 
+                        type: "Pull (Gym/Home Mix)", 
+                        exercises: [
+                            { name: "Seated Rows", sets: "3", reps: "12", weight: "30kg", completed: false }, 
+                            { name: "Reverse Crunches", sets: "3", reps: "15", weight: "Bodyweight", completed: false },
+                            { name: "Hammer Curls", sets: "3", reps: "12", weight: "10kg", completed: false },
+                            { name: "Face Pulls", sets: "3", reps: "15", weight: "15kg", completed: false }
+                        ] 
+                    },
+                    { day: "Day 7", type: "Recovery & Optional", exercises: [] }
+                ],
+                motivationalTip: "Consistency is more important than perfection. Keep going!"
+            });
+        }
+        
         res.status(500).json({ message: error.message || 'Failed to generate workout plan' });
     }
 };
@@ -108,15 +211,16 @@ const generateDietPlan = async (req, res) => {
             MUST return ONLY the JSON object.
         `;
 
-        const result = await model.generateContent(prompt);
-        const response = await result.response;
+        const completion = await getCompletion({
+            model: "grok-4",
+            messages: [
+                { role: "system", content: "You are a professional Nutritionist AI. Return only valid JSON." },
+                { role: "user", content: prompt }
+            ],
+            temperature: 0.7,
+        });
 
-        if (!response.candidates || response.candidates.length === 0) {
-            console.error('AI Diet Plan Blocked or No Candidates');
-            return res.status(500).json({ message: 'AI failed to generate diet content. Please try a different goal.' });
-        }
-
-        const text = response.text();
+        const text = completion.choices[0].message.content;
         const jsonMatch = text.match(/\{[\s\S]*\}/);
         if (!jsonMatch) {
             console.error('Invalid JSON from AI:', text);
@@ -127,6 +231,22 @@ const generateDietPlan = async (req, res) => {
         res.json(diet);
     } catch (error) {
         console.error('AI Diet Plan Error:', error);
+
+        // Graceful Fallback
+        if (error.status === 403 || error.status === 401) {
+            return res.json({
+                dailyCalories: "2000-2200",
+                macros: { protein: "150g", carbs: "200g", fats: "70g" },
+                meals: { 
+                    breakfast: ["Oatmeal with berries and nuts"], 
+                    lunch: ["Grilled chicken salad with quinoa"], 
+                    dinner: ["Baked salmon with steamed vegetables"], 
+                    snacks: ["Greek yogurt", "A handful of almonds"] 
+                },
+                hydrationAdvice: "Aim for at least 3-4 liters of water daily."
+            });
+        }
+
         res.status(500).json({ message: error.message || 'Failed to generate diet plan' });
     }
 };
@@ -209,9 +329,16 @@ const getDashboardInsights = async (req, res) => {
             }
         `;
 
-        const result = await model.generateContent(prompt);
-        const response = await result.response;
-        const text = response.text();
+        const completion = await getCompletion({
+            model: "grok-4",
+            messages: [
+                { role: "system", content: "Analyze the user fitness data and provide insights. Return only valid JSON." },
+                { role: "user", content: prompt }
+            ],
+            temperature: 0.7,
+        });
+
+        const text = completion.choices[0].message.content;
         const jsonMatch = text.match(/\{[\s\S]*\}/);
         if (!jsonMatch) {
             throw new Error('AI response did not contain valid JSON');
@@ -221,6 +348,16 @@ const getDashboardInsights = async (req, res) => {
         res.json(insights);
     } catch (error) {
         console.error('AI Insights Error:', error);
+
+        // Graceful Fallback for Dashboard
+        if (error.status === 403 || error.status === 401) {
+            return res.json({
+                dailyReminder: "Focus on the process, and the results will follow. You've got this!",
+                healthWarning: "AI Analysis is currently paused. Please check your account credits at console.x.ai.",
+                progressAnalysis: "Analyzing your data requires active AI credits. However, keep logging your data to track it manually!"
+            });
+        }
+
         res.status(500).json({ message: 'Failed to get AI insights' });
     }
 };
@@ -233,16 +370,19 @@ const getDashboardInsights = async (req, res) => {
 const chatWithCoach = async (req, res) => {
     const { message, history } = req.body;
     try {
-        const chat = model.startChat({
-            history: history || [],
-            generationConfig: {
-                maxOutputTokens: 500,
-            },
+        const messages = [
+            { role: "system", content: "You are a professional AI Fitness Coach. Provide helpful, concise fitness and nutrition advice." },
+            ...convertHistory(history),
+            { role: "user", content: message }
+        ];
+
+        const completion = await getCompletion({
+            model: "grok-4",
+            messages,
+            max_tokens: 500,
         });
 
-        const result = await chat.sendMessage(message);
-        const response = await result.response;
-        res.json({ message: response.text() });
+        res.json({ message: completion.choices[0].message.content });
     } catch (error) {
         console.error('AI Chat Error:', error);
         res.status(500).json({ message: 'AI coach is currently unavailable' });
@@ -257,24 +397,20 @@ const chatWithCoach = async (req, res) => {
 const chatAboutPlan = async (req, res) => {
     const { message, planData, history } = req.body;
     try {
-        const contextPrompt = `
-            You are an AI Fitness Coach. The user is asking about their current plan:
-            ${JSON.stringify(planData)}
-            
-            Please answer their question specifically in the context of this plan.
-            User Message: ${message}
-        `;
+        const messages = [
+            { role: "system", content: "You are an AI Fitness Coach. The user is asking about their current plan. Answer specifically in the context of this plan." },
+            { role: "system", content: `CURRENT PLAN DATA: ${JSON.stringify(planData)}` },
+            ...convertHistory(history),
+            { role: "user", content: message }
+        ];
 
-        const chat = model.startChat({
-            history: history || [],
-            generationConfig: {
-                maxOutputTokens: 500,
-            },
+        const completion = await getCompletion({
+            model: "grok-4",
+            messages,
+            max_tokens: 500,
         });
 
-        const result = await chat.sendMessage(contextPrompt);
-        const response = await result.response;
-        res.json({ message: response.text() });
+        res.json({ message: completion.choices[0].message.content });
     } catch (error) {
         console.error('AI Plan Chat Error:', error);
         res.status(500).json({ message: 'Failed to get AI response for the plan' });
@@ -304,12 +440,43 @@ const deletePlan = async (req, res) => {
     }
 };
 
+/**
+ * @desc    Update an AI-generated plan (e.g. checkbox state)
+ * @route   PUT /api/ai/plan/:id
+ * @access  Private
+ */
+const updatePlan = async (req, res) => {
+    try {
+        const { data } = req.body;
+        const plan = await AIPlan.findById(req.params.id);
+        
+        if (!plan) return res.status(404).json({ message: 'Plan not found' });
+        
+        // Ensure user owns the plan
+        if (plan.userId.toString() !== req.user._id.toString()) {
+            return res.status(401).json({ message: 'Not authorized' });
+        }
+
+        const updatedPlan = await AIPlan.findByIdAndUpdate(
+            req.params.id,
+            { data },
+            { new: true }
+        );
+        
+        res.json(updatedPlan);
+    } catch (error) {
+        console.error('Update AI Plan Error:', error);
+        res.status(500).json({ message: 'Failed to update plan' });
+    }
+};
+
 module.exports = {
     generateWorkoutPlan,
     generateDietPlan,
     savePlan,
     getUserPlans,
     deletePlan,
+    updatePlan,
     chatAboutPlan,
     getDashboardInsights,
     chatWithCoach
