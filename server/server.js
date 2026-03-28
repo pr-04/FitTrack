@@ -23,7 +23,7 @@ const allowedOrigins = [
   'http://localhost:5173',
   'https://fit-track-phi-virid.vercel.app',
   'https://fit-track-priyanshu-ranjans-projects.vercel.app'
-];
+].filter(Boolean); // Filter out undefined if CLIENT_URL is not set
 
 app.use(cors({
   origin: (origin, callback) => {
