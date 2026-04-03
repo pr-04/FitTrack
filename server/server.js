@@ -4,6 +4,7 @@ const session = require('express-session');
 const passport = require('passport');
 const dotenv = require('dotenv');
 const path = require('path');
+const MongoStore = require('connect-mongo');
 const connectDB = require('./config/db');
 const { errorHandler, notFound } = require('./middleware/errorMiddleware');
 
@@ -51,6 +52,10 @@ app.use(session({
     secret: process.env.SESSION_SECRET || 'fittrack_session_secret_123',
     resave: false,
     saveUninitialized: false,
+    store: MongoStore.create({
+        mongoUrl: process.env.MONGO_URI,
+        ttl: 14 * 24 * 60 * 60 // 14 days
+    })
 }));
 app.use(passport.initialize());
 
