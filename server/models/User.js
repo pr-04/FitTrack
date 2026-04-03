@@ -23,25 +23,44 @@ const userSchema = new mongoose.Schema(
         googleId: {
             type: String,
             default: null,
-            sparse: true, // allow multiple null values
+            sparse: true,
         },
-        avatar: {
-            type: String,
-            default: null,
-        },
-        height: {
-            type: Number, // in cm
+        age: {
+            type: Number,
             default: null,
         },
         weight: {
             type: Number, // in kg
             default: null,
         },
+        height: {
+            type: Number, // in cm
+            default: null,
+        },
         goal: {
             type: String,
-            enum: ['lose_weight', 'gain_muscle', 'maintain', 'improve_fitness'],
+            enum: ['fat_loss', 'muscle_gain', 'body_recomposition', 'maintain', 'strength', 'endurance', 'general_fitness', 'flexibility', 'lose_weight'],
             default: 'maintain',
         },
+        dietType: {
+            type: String,
+            enum: ['vegetarian', 'non-vegetarian', 'vegan', 'pescatarian', 'any', 'Veg', 'Non-veg'],
+            default: 'any',
+        },
+        activityLevel: {
+            type: String,
+            enum: ['sedentary', 'light', 'moderate', 'active', 'very_active'],
+            default: 'light',
+        },
+        workoutLocation: {
+            type: String,
+            enum: ['Home', 'Gym', 'home', 'gym'],
+            default: 'Home',
+        },
+        isOnboarded: {
+            type: Boolean,
+            default: false,
+        }
     },
     { timestamps: true }
 );

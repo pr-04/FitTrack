@@ -1,0 +1,2 @@
+Status: 403
+Response: {"code":"The caller does not have permission to execute the specified operation","error":"Your newly created team doesn't have any credits or licenses yet. You can purchase those on https://console.x.ai/team/7cf87d0c-51fa-491f-accc-9424fbb8f04a."}

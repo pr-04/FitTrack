@@ -21,6 +21,7 @@ const app = express();
 const allowedOrigins = [
   process.env.CLIENT_URL,
   'http://localhost:5173',
+  'http://localhost:5174',
   'https://fit-track-phi-virid.vercel.app',
   'https://fit-track-priyanshu-ranjans-projects.vercel.app'
 ].filter(Boolean); // Filter out undefined if CLIENT_URL is not set
@@ -55,10 +56,11 @@ app.use(passport.initialize());
 
 // ─── Routes ──────────────────────────────────────────────────────────────────
 app.use('/api/auth', require('./routes/authRoutes'));
-app.use('/api/workouts', require('./routes/workoutRoutes'));
-app.use('/api/foods', require('./routes/foodRoutes'));
-app.use('/api/weights', require('./routes/weightRoutes'));
-app.use('/api/ai', require('./routes/aiRoutes'));
+app.use('/api/user', require('./routes/userRoutes'));
+app.use('/api/workout', require('./routes/workoutRoutes'));
+app.use('/api/diet', require('./routes/dietRoutes'));
+app.use('/api/tracker', require('./routes/trackerRoutes'));
+app.use('/api/dashboard', require('./routes/dashboardRoutes'));
 
 // Health check
 app.get('/', (req, res) => {

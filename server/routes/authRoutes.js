@@ -1,8 +1,7 @@
 const express = require('express');
 const router = express.Router();
 const passport = require('passport');
-const { signup, login, getMe, updateProfile, googleCallback } = require('../controllers/authController');
-const { protect } = require('../middleware/authMiddleware');
+const { signup, login, googleCallback } = require('../controllers/authController');
 
 // @route POST /api/auth/signup
 router.post('/signup', signup);
@@ -10,16 +9,10 @@ router.post('/signup', signup);
 // @route POST /api/auth/login
 router.post('/login', login);
 
-// @route GET /api/auth/me  (Protected)
-router.get('/me', protect, getMe);
-
-// @route PUT /api/auth/profile  (Protected)
-router.put('/profile', protect, updateProfile);
-
-// @route GET /api/auth/google  — initiates Google OAuth
+// @route GET /api/auth/google
 router.get('/google', passport.authenticate('google', { scope: ['profile', 'email'] }));
 
-// @route GET /api/auth/google/callback  — Google redirects here after login
+// @route GET /api/auth/google/callback
 router.get(
     '/google/callback',
     passport.authenticate('google', { 

@@ -1,6 +1,5 @@
 import axios from 'axios';
 
-// Create Axios instance with base URL from environment variable
 const api = axios.create({
     baseURL: import.meta.env.VITE_API_URL || 'http://localhost:5000/api',
     headers: {
@@ -8,7 +7,7 @@ const api = axios.create({
     },
 });
 
-// Request interceptor — attach JWT token from localStorage to every request
+// Request interceptor — attach JWT token
 api.interceptors.request.use(
     (config) => {
         const token = localStorage.getItem('fittrack_token');
@@ -20,7 +19,7 @@ api.interceptors.request.use(
     (error) => Promise.reject(error)
 );
 
-// Response interceptor — handle 401 globally (token expired)
+// Response interceptor — handle 401
 api.interceptors.response.use(
     (response) => response,
     (error) => {
@@ -33,49 +32,45 @@ api.interceptors.response.use(
     }
 );
 
-// ─── Auth ──────────────────────────────────────────────────────────────────
+// ─── Auth ───
 export const authAPI = {
     signup: (data) => api.post('/auth/signup', data),
-    login: (data) => api.post('/auth/login', data),
-    getMe: () => api.get('/auth/me'),
-    getMeWithToken: (token) =>
-        api.get('/auth/me', { headers: { Authorization: `Bearer ${token}` } }),
-    updateProfile: (data) => api.put('/auth/profile', data),
+    login: (data) => api.post('/auth/login', data)
 };
 
-// ─── Workouts ──────────────────────────────────────────────────────────────
-export const workoutsAPI = {
-    add: (data) => api.post('/workouts', data),
-    getAll: () => api.get('/workouts'),
-    delete: (id) => api.delete(`/workouts/${id}`),
-    getMockWorkouts: () => api.get(`/workouts/mock?t=${Date.now()}`),
+// ─── User ───
+export const userAPI = {
+    getProfile: () => api.get('/user/profile'),
+    updateProfile: (data) => api.put('/user/update', data),
+    deleteProfile: () => api.delete('/user/profile')
 };
 
-// ─── Foods ─────────────────────────────────────────────────────────────────
-export const foodsAPI = {
-    add: (data) => api.post('/foods', data),
-    getByDate: (date) => api.get(`/foods?date=${date}`),
-    delete: (id) => api.delete(`/foods/${id}`),
-    search: (query) => api.get(`/foods/search?query=${query}`),
-    getMockFoods: () => api.get(`/foods/mock?t=${Date.now()}`),
+// ─── Workouts ───
+export const workoutAPI = {
+    generate: (data) => api.post('/workout/generate', data),
+    log: (data) => api.post('/workout/log', data),
+    getHistory: () => api.get('/workout/history'),
+    getRecentExercises: () => api.get('/workout/recent-exercises'),
+    delete: (id) => api.delete(`/workout/history/${id}`),
 };
 
-// ─── Weights ───────────────────────────────────────────────────────────────
-export const weightsAPI = {
-    add: (data) => api.post('/weights', data),
-    getAll: () => api.get('/weights'),
+// ─── Diet ───
+export const dietAPI = {
+    generate: (data) => api.post('/diet/generate', data),
+    log: (data) => api.post('/diet/log', data),
+    getHistory: () => api.get('/diet/history'),
+    getRecentFoods: () => api.get('/diet/recent-foods'),
+    lookup: (query) => api.get(`/diet/lookup?query=${query}`),
 };
 
-// ─── AI ────────────────────────────────────────────────────────────────────
-export const aiAPI = {
-    getWorkoutPlan: (data) => api.post('/ai/workout-plan', data),
-    getDietPlan: (data) => api.post('/ai/diet-plan', data),
-    savePlan: (data) => api.post('/ai/save-plan', data),
-    getUserPlans: (params) => api.get('/ai/my-plans', { params }),
-    updatePlan: (id, data) => api.put(`/ai/plan/${id}`, { data }),
-    deletePlan: (id) => api.delete(`/ai/plan/${id}`),
-    chatAboutPlan: (message, planData, history) => api.post('/ai/chat-about-plan', { message, planData, history }),
-    getDashboardInsights: () => api.get('/ai/dashboard-insights'),
+// ─── Tracker ───
+export const trackerAPI = {
+    getStats: () => api.get('/tracker'),
+};
+
+// ─── Dashboard ───
+export const dashboardAPI = {
+    getSummary: () => api.get('/dashboard'),
 };
 
 export default api;

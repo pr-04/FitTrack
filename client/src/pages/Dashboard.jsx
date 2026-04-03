@@ -1,238 +1,307 @@
-import { useState, useEffect } from 'react';
+import { useEffect, useState } from 'react';
+import { Link } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
-import { workoutsAPI, foodsAPI, weightsAPI } from '../services/api';
-import SummaryCard from '../components/SummaryCard';
-import {
-    BarChart, Bar, LineChart, Line, XAxis, YAxis, CartesianGrid,
-    Tooltip, ResponsiveContainer
-} from 'recharts';
-import { Dumbbell, Flame, Scale, Target, Sparkles, AlertCircle, TrendingUp, Info } from 'lucide-react';
-import Card from '../components/ui/Card';
-import Button from '../components/ui/Button';
-import { aiAPI } from '../services/api';
+import { dashboardAPI } from '../services/api';
+import { Dumbbell, Apple, LineChart, Flame, ChevronRight, Activity, Target, Zap, Clock, Plus } from 'lucide-react';
+import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
+import { motion } from 'framer-motion';
+import { calculateBMI, getBMIStatus } from '../utils/biometrics';
+import { toast } from 'react-hot-toast';
 
-const goalLabels = {
-    lose_weight: 'Lose Weight',
-    gain_muscle: 'Gain Muscle',
-    maintain: 'Maintain Weight',
-    improve_fitness: 'Improve Fitness',
-};
-
-// Custom recharts tooltip
-const CustomTooltip = ({ active, payload, label }) => {
-    if (active && payload && payload.length) {
-        return (
-            <div className="bg-white/80 dark:bg-slate-800/80 backdrop-blur-md border border-slate-200 dark:border-slate-700/50 rounded-lg px-3 py-2 text-sm shadow-xl">
-                <p className="text-slate-600 dark:text-slate-400 mb-1">{label}</p>
-                {payload.map((p, i) => (
-                    <p key={i} style={{ color: p.color }} className="font-semibold">
-                        {p.name}: {p.value}
-                    </p>
-                ))}
-            </div>
-        );
-    }
-    return null;
-};
 
 const Dashboard = () => {
     const { user } = useAuth();
-    const [workouts, setWorkouts] = useState([]);
-    const [weights, setWeights] = useState([]);
-    const [todayCalories, setTodayCalories] = useState(0);
-    const [weeklyCalories, setWeeklyCalories] = useState([]);
-    const [aiInsights, setAiInsights] = useState(null);
+    const [stats, setStats] = useState(null);
     const [loading, setLoading] = useState(true);
 
-    const today = new Date().toISOString().split('T')[0];
-
-    // Count today's workouts
-    const todayWorkouts = workouts.filter(w => {
-        const wDate = new Date(w.date).toISOString().split('T')[0];
-        return wDate === today;
-    }).length;
-
-    // Calorie Goal Logic
-    const getCalorieGoal = (goal) => {
-        switch (goal) {
-            case 'lose_weight': return 1800;
-            case 'gain_muscle': return 2800;
-            case 'improve_fitness': return 2400;
-            case 'maintain': // Fallthrough
-            default: return 2200;
+    const fetchStats = async () => {
+        try {
+            setLoading(true);
+            const res = await dashboardAPI.getSummary();
+            setStats(res.data);
+        } catch (error) {
+            console.error("Failed to fetch dashboard stats", error);
+        } finally {
+            setLoading(false);
         }
     };
-    const calorieGoal = getCalorieGoal(user?.goal);
-    const calProgress = todayCalories > 0 ? (todayCalories / calorieGoal) * 100 : 0;
-
-    // Latest weight
-    const latestWeight = weights.length > 0 ? weights[weights.length - 1].weight : null;
 
     useEffect(() => {
-        const fetchData = async () => {
-            setLoading(true);
-            try {
-                const [wRes, foodRes, weightRes] = await Promise.all([
-                    workoutsAPI.getAll(),
-                    foodsAPI.getByDate(today),
-                    weightsAPI.getAll(),
-                ]);
-                setWorkouts(wRes.data);
-                setTodayCalories(foodRes.data.totalCalories || 0);
-                setWeights(weightRes.data);
-
-                // Build last 7 days calorie data
-                const days = [];
-                for (let i = 6; i >= 0; i--) {
-                    const d = new Date();
-                    d.setDate(d.getDate() - i);
-                    const dateStr = d.toISOString().split('T')[0];
-                    const label = d.toLocaleDateString('en', { weekday: 'short' });
-                    try {
-                        const r = await foodsAPI.getByDate(dateStr);
-                        days.push({ date: label, calories: r.data.totalCalories || 0 });
-                    } catch {
-                        days.push({ date: label, calories: 0 });
-                    }
-                }
-                setWeeklyCalories(days);
-
-                // Fetch AI Insights
-                try {
-                    const aiRes = await aiAPI.getDashboardInsights();
-                    setAiInsights(aiRes.data);
-                } catch (aiErr) {
-                    console.error('AI Insights fetch error:', aiErr);
-                }
-            } catch (err) {
-                console.error('Dashboard fetch error:', err.message);
-            } finally {
-                setLoading(false);
-            }
-        };
-        fetchData();
+        fetchStats();
     }, []);
 
-    // Weight chart data (last 14 entries)
-    const weightChartData = weights.slice(-14).map(w => ({
-        date: new Date(w.date).toLocaleDateString('en', { month: 'short', day: 'numeric' }),
-        weight: w.weight,
-    }));
+    const handleLogSuccess = (type) => {
+        toast.success(`${type} logged successfully!`, {
+            style: {
+                borderRadius: '16px',
+                background: '#0F172A',
+                color: '#fff',
+                fontWeight: 'bold'
+            }
+        });
+        fetchStats();
+    };
 
-    if (loading) {
-        return (
-            <div className="flex items-center justify-center h-64">
-                <div className="w-10 h-10 border-4 border-accent-blue border-t-transparent rounded-full animate-spin" />
-            </div>
-        );
+    let recommendation = "Generate your elite plan";
+    if (stats?.workoutPlan?.days?.length > 0) {
+        recommendation = `${stats.workoutPlan.days[0].type || "Full Body"} focus today`;
     }
 
+    const bmi = calculateBMI(user?.weight, user?.height);
+    const bmiStatus = getBMIStatus(bmi);
+
     return (
-        <div className="space-y-6 animate-premium-in">
-            <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
-                <div>
-                    <h2 className="text-3xl font-bold text-slate-900 dark:text-white tracking-tight">
-                        Good {new Date().getHours() < 12 ? 'morning' : new Date().getHours() < 17 ? 'afternoon' : 'evening'},{' '}
-                        <span>
-                            {user?.name?.split(' ')[0]}
-                        </span>! 👋
-                    </h2>
-                    <p className="text-slate-500 dark:text-slate-400 mt-1 font-medium">Here's your fitness summary for today.</p>
-                </div>
-            </div>
+        <div className="space-y-8 max-w-7xl mx-auto px-4 sm:px-6 lg:px-0">
 
-            {/* AI Insights Section */}
-            <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-                <div className="lg:col-span-2 glass-panel border-slate-200 dark:border-white/5 rounded-2xl p-6 relative group">
-                    <div className="relative z-10 flex flex-col md:flex-row items-start gap-6">
-                        <div className="w-12 h-12 rounded-xl bg-blue-600 dark:bg-blue-500 flex items-center justify-center flex-shrink-0 shadow-sm">
-                            <Sparkles className="text-white" size={24} />
-                        </div>
-                        <div className="flex-1">
-                            <div className="flex items-center gap-3 mb-2">
-                                <h3 className="font-bold text-slate-900 dark:text-white text-lg tracking-tight">
-                                    AI Fitness Coach
-                                </h3>
-                                <span className="text-[10px] bg-blue-600 dark:bg-blue-500 text-white font-bold px-2 py-0.5 rounded-lg uppercase tracking-wider">
-                                    Live Insight
-                                </span>
-                            </div>
-                            <p className="text-slate-600 dark:text-slate-300 text-sm leading-relaxed font-medium">
-                                "{aiInsights?.dailyReminder || "Analyzing your data to provide personalized motivation..."}"
-                            </p>
-                            <div className="mt-4 pt-4 border-t border-slate-100 dark:border-white/5 flex flex-wrap items-center gap-3">
-                                <div className="flex items-center gap-2 text-[10px] font-bold uppercase tracking-wider text-blue-600 dark:text-blue-400 bg-blue-50 dark:bg-blue-500/10 px-3 py-1.5 rounded-xl">
-                                    <TrendingUp size={14} />
-                                    <span>{aiInsights?.progressAnalysis || "Progress Analysis Pending"}</span>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-
-                <div className={`glass-panel border-slate-200 dark:border-white/5 rounded-2xl p-6 flex flex-col justify-between group ${aiInsights?.healthWarning?.toLowerCase().includes('warning') || aiInsights?.healthWarning?.toLowerCase().includes('risk') ? 'bg-red-50/50 dark:bg-red-500/5' : 'bg-slate-50/50 dark:bg-slate-800/10'}`}>
-                    <div className="flex items-start gap-4">
-                        <div className={`${aiInsights?.healthWarning?.toLowerCase().includes('warning') || aiInsights?.healthWarning?.toLowerCase().includes('risk') ? 'bg-red-500' : 'bg-emerald-500'} w-10 h-10 rounded-xl flex items-center justify-center flex-shrink-0 shadow-sm`}>
-                            <AlertCircle className="text-white" size={20} />
-                        </div>
-                        <div>
-                            <h4 className="font-bold text-slate-900 dark:text-white text-xs tracking-tight uppercase opacity-60">Health Warning</h4>
-                            <p className="text-[10px] font-bold text-slate-400 mt-0.5">Automated</p>
-                        </div>
-                    </div>
-                    <p className="text-sm font-semibold text-slate-700 dark:text-slate-300 mt-6 leading-relaxed">
-                        {aiInsights?.healthWarning || "Everything looks good! Keep following your routine."}
+            {/* Top Greeting */}
+            <motion.header
+                initial={{ opacity: 0, y: -10 }}
+                animate={{ opacity: 1, y: 0 }}
+                className="flex flex-col md:flex-row md:items-end justify-between gap-6 bg-white/50 backdrop-blur-md p-7 rounded-[28px] border border-white/60 shadow-sm relative overflow-hidden"
+            >
+                <div className="absolute top-0 right-0 w-56 h-56 bg-green-400/5 blur-[80px] -mr-24 -mt-24 rounded-full pointer-events-none" />
+                <div className="relative z-10">
+                    <h1 className="text-3xl font-extrabold tracking-tight text-gray-900 font-display">
+                        Welcome back, <span className="text-primary">{user?.name.split(' ')[0]}</span> 👋
+                    </h1>
+                    <p className="text-gray-500 mt-1.5 text-base font-medium">
+                        You're on track to{' '}
+                        <span className="text-gray-900 font-bold capitalize underline decoration-primary/30 underline-offset-4">
+                            {user?.goal?.replace('_', ' ')}
+                        </span>.
                     </p>
                 </div>
-            </div>
+                <div className="flex items-center gap-3 bg-white p-3.5 rounded-2xl shadow-sm border border-gray-100 relative z-10">
+                    <div className="w-9 h-9 bg-blue-50 rounded-xl flex items-center justify-center text-blue-600">
+                        <Target className="w-5 h-5" />
+                    </div>
+                    <div>
+                        <p className="text-xs font-bold text-gray-400 uppercase tracking-widest">Current Plan</p>
+                        <p className="font-bold text-gray-900 capitalize text-sm">{user?.goal?.replace('_', ' ') || 'Elite Training'}</p>
+                    </div>
+                </div>
+            </motion.header>
 
-            <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-6">
-                <SummaryCard
-                    title="Calories Today"
-                    value={todayCalories}
-                    subtitle={`Goal: ${calorieGoal} kcal`}
-                    icon={Flame}
-                    color="orange"
-                    progress={calProgress}
-                />
-                <SummaryCard title="Workouts Today" value={todayWorkouts} subtitle="exercises logged" icon={Dumbbell} color="blue" />
-                <SummaryCard title="Current Weight" value={latestWeight ? `${latestWeight} kg` : '—'} subtitle="latest entry" icon={Scale} color="green" />
-                <SummaryCard title="Fitness Goal" value={goalLabels[user?.goal] || '—'} subtitle="current target" icon={Target} color="purple" />
-            </div>
 
-            <div className="grid grid-cols-1 xl:grid-cols-2 gap-6">
-                <Card>
-                    <h3 className="text-base font-semibold text-slate-800 dark:text-white mb-5">Weekly Calories</h3>
-                    <ResponsiveContainer width="100%" height={220}>
-                        <BarChart data={weeklyCalories} barSize={30}>
-                            <CartesianGrid strokeDasharray="3 3" stroke="#334155" vertical={false} />
-                            <XAxis dataKey="date" tick={{ fill: '#94a3b8', fontSize: 12 }} axisLine={false} tickLine={false} />
-                            <YAxis tick={{ fill: '#94a3b8', fontSize: 12 }} axisLine={false} tickLine={false} />
-                            <Tooltip content={<CustomTooltip />} />
-                            <Bar dataKey="calories" name="Calories" fill="#f97316" radius={[4, 4, 0, 0]} />
-                        </BarChart>
-                    </ResponsiveContainer>
-                </Card>
 
-                <Card>
-                    <h3 className="text-base font-semibold text-slate-800 dark:text-white mb-5">Weight Progress</h3>
-                    {weightChartData.length > 0 ? (
-                        <ResponsiveContainer width="100%" height={220}>
-                            <LineChart data={weightChartData}>
-                                <CartesianGrid strokeDasharray="3 3" stroke="#334155" vertical={false} />
-                                <XAxis dataKey="date" tick={{ fill: '#94a3b8', fontSize: 12 }} axisLine={false} tickLine={false} />
-                                <YAxis tick={{ fill: '#94a3b8', fontSize: 12 }} axisLine={false} tickLine={false} domain={['auto', 'auto']} />
-                                <Tooltip content={<CustomTooltip />} />
-                                <Line type="monotone" dataKey="weight" name="Weight (kg)" stroke="#3b82f6" strokeWidth={2} dot={{ fill: '#3b82f6', r: 3 }} activeDot={{ r: 5, fill: '#8b5cf6' }} />
-                            </LineChart>
-                        </ResponsiveContainer>
-                    ) : (
-                        <div className="flex items-center justify-center h-[220px] text-slate-500 text-sm italic">
-                            No weight data yet. Add your first entry!
+            {/* Stats Cards — slightly smaller, secondary hierarchy */}
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-5">
+                {/* Streak */}
+                <motion.div
+                    initial={{ opacity: 0, y: 16 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ delay: 0.05 }}
+                    className="bg-white rounded-2xl p-6 border border-gray-100 shadow-md relative group overflow-hidden"
+                >
+                    <div className="absolute top-0 right-0 p-3 opacity-10 group-hover:opacity-20 transition-opacity">
+                        <Flame className="w-14 h-14 text-orange-500" />
+                    </div>
+                    <div className="flex items-center gap-2.5 mb-4">
+                        <div className="w-9 h-9 bg-orange-50 rounded-xl flex items-center justify-center text-orange-500">
+                            <Flame className="w-4 h-4" />
                         </div>
-                    )}
-                </Card>
+                        <h3 className="text-xs font-bold text-gray-500 uppercase tracking-widest">Active Streak</h3>
+                    </div>
+                    <div className="flex items-baseline gap-2">
+                        <p className="text-4xl font-extrabold text-gray-900 font-display">
+                            {loading ? '---' : stats?.streak || 0}
+                        </p>
+                        <span className="text-base font-bold text-gray-400 uppercase tracking-widest">Days</span>
+                    </div>
+                    <div className="mt-3 w-full bg-gray-100 h-1.5 rounded-full overflow-hidden">
+                        <div className="bg-orange-500 h-full rounded-full transition-all duration-700"
+                            style={{ width: `${Math.min(((stats?.streak || 0) / 7) * 100, 100)}%` }} />
+                    </div>
+                    <p className="text-xs text-orange-600 font-bold mt-2.5 uppercase tracking-tighter italic">
+                        Keep it burning. Don't break the chain.
+                    </p>
+                </motion.div>
+
+                {/* Today's Focus */}
+                <motion.div
+                    initial={{ opacity: 0, y: 16 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ delay: 0.1 }}
+                    className="bg-white rounded-2xl p-6 border border-gray-100 shadow-md group relative overflow-hidden"
+                >
+                    <div className="absolute top-0 right-0 p-3 opacity-10 group-hover:opacity-20 transition-opacity">
+                        <Zap className="w-14 h-14 text-primary" />
+                    </div>
+                    <div className="flex items-center gap-2.5 mb-4">
+                        <div className="w-9 h-9 bg-green-50 rounded-xl flex items-center justify-center text-primary">
+                            <Activity className="w-4 h-4" />
+                        </div>
+                        <h3 className="text-xs font-bold text-gray-500 uppercase tracking-widest">Today's Focus</h3>
+                    </div>
+                    <p className="text-xl font-extrabold text-gray-900 font-display leading-tight">
+                        {loading ? 'Scanning...' : recommendation}
+                    </p>
+                    <div className="mt-4 flex items-center gap-2 text-xs font-bold text-primary uppercase tracking-widest bg-green-50 w-fit px-3 py-1.5 rounded-lg border border-green-100">
+                        <Zap className="w-3 h-3" /> AI Optimized Plan
+                    </div>
+                </motion.div>
+
+                {/* BMI */}
+                <motion.div
+                    initial={{ opacity: 0, y: 16 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ delay: 0.15 }}
+                    className="bg-white rounded-2xl p-6 border border-gray-100 shadow-md group relative overflow-hidden"
+                >
+                    <div className="absolute top-0 right-0 p-3 opacity-10 group-hover:opacity-20 transition-opacity">
+                        <LineChart className="w-14 h-14 text-indigo-500" />
+                    </div>
+                    <div className="flex items-center gap-2.5 mb-4">
+                        <div className="w-9 h-9 bg-indigo-50 rounded-xl flex items-center justify-center text-indigo-600">
+                            <Clock className="w-4 h-4" />
+                        </div>
+                        <h3 className="text-xs font-bold text-gray-500 uppercase tracking-widest">Current BMI</h3>
+                    </div>
+                    <div className="flex items-baseline gap-2">
+                        <p className="text-4xl font-extrabold text-gray-900 font-display">{bmi}</p>
+                        <span className={`text-xs font-bold uppercase tracking-widest px-2 py-1 rounded ${bmiStatus.color}`}>
+                            {bmiStatus.label}
+                        </span>
+                    </div>
+                    <p className="text-xs text-gray-400 font-semibold mt-3">
+                        Synced with your {user?.weight || 0}kg weight profile.
+                    </p>
+                </motion.div>
             </div>
+
+            {/* MAIN: Chart (hero) + Side Panel */}
+            <div className="grid grid-cols-1 lg:grid-cols-[1fr_320px] gap-7">
+
+                {/* ★ Weekly Progress Chart — HIGHEST ELEVATION */}
+                <motion.div
+                    initial={{ opacity: 0, y: 20 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ delay: 0.2 }}
+                    className="bg-white rounded-3xl p-8 shadow-[0_24px_80px_-16px_rgba(34,197,94,0.18)] border border-gray-100/80 relative overflow-hidden"
+                >
+                    {/* Subtle corner glow */}
+                    <div className="absolute -top-16 -right-16 w-64 h-64 bg-green-400/8 blur-[80px] rounded-full pointer-events-none" />
+
+                    <div className="flex justify-between items-start mb-8">
+                        <div>
+                            <h2 className="text-2xl font-extrabold text-gray-900 font-display">Weekly Caloric Performance</h2>
+                            <p className="text-gray-400 text-sm font-medium mt-1 uppercase tracking-wider">Historical intake overview</p>
+                        </div>
+                        <div className="flex items-center gap-2 bg-green-50 px-3 py-1.5 rounded-xl border border-green-100">
+                            <div className="w-2.5 h-2.5 bg-primary rounded-full animate-pulse" />
+                            <span className="text-xs font-bold text-gray-500 uppercase tracking-widest">Daily kcal</span>
+                        </div>
+                    </div>
+
+                    <div className="h-[420px] w-full">
+                        {stats?.weekData?.length > 0 ? (
+                            <ResponsiveContainer width="100%" height="100%">
+                                <AreaChart data={stats.weekData} margin={{ top: 16, right: 16, left: -8, bottom: 0 }}>
+                                    <defs>
+                                        <linearGradient id="premiumGradient" x1="0" y1="0" x2="0" y2="1">
+                                            <stop offset="0%" stopColor="#22C55E" stopOpacity={0.28} />
+                                            <stop offset="60%" stopColor="#22C55E" stopOpacity={0.06} />
+                                            <stop offset="100%" stopColor="#22C55E" stopOpacity={0} />
+                                        </linearGradient>
+                                    </defs>
+                                    <CartesianGrid strokeDasharray="6 6" vertical={false} stroke="#F1F5F9" />
+                                    <XAxis
+                                        dataKey="name"
+                                        axisLine={false}
+                                        tickLine={false}
+                                        tick={{ fill: '#94A3B8', fontSize: 12, fontWeight: 600 }}
+                                        dy={12}
+                                    />
+                                    <YAxis
+                                        axisLine={false}
+                                        tickLine={false}
+                                        tick={{ fill: '#94A3B8', fontSize: 12, fontWeight: 600 }}
+                                        dx={-8}
+                                    />
+                                    <Tooltip
+                                        cursor={{ stroke: '#22C55E', strokeWidth: 1.5, strokeDasharray: '4 2' }}
+                                        contentStyle={{
+                                            borderRadius: '16px',
+                                            border: 'none',
+                                            boxShadow: '0 20px 40px -8px rgba(0,0,0,0.18)',
+                                            padding: '16px 20px',
+                                            backgroundColor: '#0F172A',
+                                            color: '#fff'
+                                        }}
+                                        itemStyle={{ color: '#22C55E', fontWeight: 800, fontSize: '16px' }}
+                                        labelStyle={{ color: '#94A3B8', marginBottom: '6px', fontWeight: 700, fontSize: '12px' }}
+                                    />
+                                    <Area
+                                        type="monotone"
+                                        dataKey="calories"
+                                        stroke="#22C55E"
+                                        strokeWidth={3}
+                                        fillOpacity={1}
+                                        fill="url(#premiumGradient)"
+                                        activeDot={{ r: 7, fill: '#0F172A', stroke: '#22C55E', strokeWidth: 2.5 }}
+                                    />
+                                </AreaChart>
+                            </ResponsiveContainer>
+                        ) : (
+                            <div className="h-full flex flex-col items-center justify-center text-gray-400 gap-4 bg-gray-50/60 rounded-2xl border-2 border-dashed border-gray-200">
+                                <Activity className="w-10 h-10 opacity-20" />
+                                <p className="font-bold text-base">{loading ? 'Initializing charts...' : 'No data yet.'}</p>
+                                <p className="text-sm">Log your first meal to see progress.</p>
+                            </div>
+                        )}
+                    </div>
+                </motion.div>
+
+                {/* Side Panel — less dominant */}
+                <motion.div
+                    initial={{ opacity: 0, x: 16 }}
+                    animate={{ opacity: 1, x: 0 }}
+                    transition={{ delay: 0.25 }}
+                    className="flex flex-col gap-4"
+                >
+                    <h2 className="text-lg font-extrabold text-gray-800 font-display">Elite Hub</h2>
+
+                    {[
+                        { to: '/app/workout', icon: <Dumbbell className="w-5 h-5" />, title: 'Titan Training', desc: 'AI Workout Plans', color: 'blue' },
+                        { to: '/app/diet', icon: <Apple className="w-5 h-5" />, title: 'Elite Nutrition', desc: 'Custom Meal Roadmap', color: 'emerald' },
+                        { to: '/app/tracker', icon: <LineChart className="w-5 h-5" />, title: 'Progress DNA', desc: 'Advanced Biometrics', color: 'indigo' }
+                    ].map((item, idx) => (
+                        <Link
+                            key={idx}
+                            to={item.to}
+                            className="bg-white rounded-2xl p-5 flex items-center justify-between group cursor-pointer border border-gray-100 shadow-sm hover:shadow-md hover:-translate-y-0.5 transition-all duration-200 border-l-[5px]"
+                            style={{ borderLeftColor: `var(--${item.color}-500, #6366f1)` }}
+                        >
+                            <div className="flex items-center gap-4">
+                                <div className={`w-10 h-10 bg-${item.color}-50 rounded-xl flex items-center justify-center text-${item.color}-600 group-hover:scale-110 transition-transform`}>
+                                    {item.icon}
+                                </div>
+                                <div>
+                                    <p className="font-extrabold text-gray-900 font-display text-sm">{item.title}</p>
+                                    <p className="text-xs text-gray-500 font-medium">{item.desc}</p>
+                                </div>
+                            </div>
+                            <div className="w-8 h-8 rounded-full bg-gray-50 flex items-center justify-center group-hover:bg-primary group-hover:text-white transition-all">
+                                <ChevronRight className="w-4 h-4" />
+                            </div>
+                        </Link>
+                    ))}
+
+                    {/* Pro CTA */}
+                    <div className="rounded-2xl p-6 bg-gradient-to-br from-slate-900 to-gray-800 text-white relative overflow-hidden mt-1">
+                        <div className="absolute -bottom-8 -right-8 w-32 h-32 bg-white/5 rounded-full blur-2xl pointer-events-none" />
+                        <h4 className="text-base font-bold font-display relative z-10 mb-1">Upgrade to Pro Elite</h4>
+                        <p className="text-slate-400 text-xs relative z-10 mb-4 leading-relaxed">
+                            Unlimited AI generations & deep biometric analysis.
+                        </p>
+                        <button className="w-full py-3 bg-white text-black font-extrabold text-sm rounded-xl hover:scale-105 active:scale-95 transition-all shadow-lg relative z-10">
+                            Go Pro Now
+                        </button>
+                    </div>
+                </motion.div>
+            </div>
+
+            <div className="h-4" /> {/* Spacer */}
         </div>
     );
 };

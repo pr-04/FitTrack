@@ -1,21 +1,12 @@
 const express = require('express');
 const router = express.Router();
-const { addWorkout, getWorkouts, deleteWorkout, getMockWorkouts } = require('../controllers/workoutController');
+const { generateWorkout, getWorkoutHistory, logWorkout, deleteWorkout, getRecentExercises } = require('../controllers/workoutController');
 const { protect } = require('../middleware/authMiddleware');
 
-// @route GET /api/workouts/mock
-router.get('/mock', getMockWorkouts);
-
-// All routes are protected
-router.use(protect);
-
-// @route POST /api/workouts
-router.post('/', addWorkout);
-
-// @route GET /api/workouts
-router.get('/', getWorkouts);
-
-// @route DELETE /api/workouts/:id
-router.delete('/:id', deleteWorkout);
+router.post('/generate', protect, generateWorkout);
+router.post('/log', protect, logWorkout);
+router.get('/history', protect, getWorkoutHistory);
+router.get('/recent-exercises', protect, getRecentExercises);
+router.delete('/history/:id', protect, deleteWorkout);
 
 module.exports = router;
