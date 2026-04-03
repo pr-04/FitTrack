@@ -2,11 +2,11 @@
   "name": "fittrack-backend",
   "version": "1.0.0",
   "description": "FitTrack Workout & Calorie Tracker Backend API",
-  "main": "server/server.js",
+  "main": "server.js",
   "scripts": {
-    "start": "node server/server.js",
-    "dev": "nodemon server/server.js",
-    "seed": "node server/seed.js"
+    "start": "node server.js",
+    "dev": "nodemon server.js",
+    "seed": "node seed.js"
   },
   "keywords": [
     "fitness",
