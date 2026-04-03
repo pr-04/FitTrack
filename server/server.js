@@ -4,7 +4,7 @@ const session = require('express-session');
 const passport = require('passport');
 const dotenv = require('dotenv');
 const path = require('path');
-const MongoStore = require('connect-mongo');
+const MongoStore = require('connect-mongo').default;
 const connectDB = require('./config/db');
 const { errorHandler, notFound } = require('./middleware/errorMiddleware');
 
