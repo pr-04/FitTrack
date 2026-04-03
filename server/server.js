@@ -68,8 +68,17 @@ app.use('/api/tracker', require('./routes/trackerRoutes'));
 app.use('/api/dashboard', require('./routes/dashboardRoutes'));
 
 // Health check
-app.get('/', (req, res) => {
+app.get('/api/health', (req, res) => {
     res.json({ message: 'FitTrack API is running 🚀' });
+});
+
+// ─── Static File Serving ──────────────────────────────────────────────────────
+const clientPath = path.join(__dirname, '../client/dist');
+app.use(express.static(clientPath));
+
+// Catch-all route for SPA
+app.get('*', (req, res) => {
+    res.sendFile(path.join(clientPath, 'index.html'));
 });
 
 // ─── Error Handling ───────────────────────────────────────────────────────────
