@@ -1,4 +1,6 @@
+const crypto = require('crypto');
 const User = require('../models/User');
+const OAuthCode = require('../models/OAuthCode');
 const jwt = require('jsonwebtoken');
 
 const generateToken = (id) => {
@@ -65,10 +67,58 @@ const login = async (req, res) => {
     }
 };
 
-const googleCallback = (req, res) => {
-    const token = generateToken(req.user._id);
-    const clientURL = process.env.CLIENT_URL || 'http://localhost:5173';
-    res.redirect(`${clientURL}/oauth-callback?token=${token}`);
+const googleCallback = async (req, res) => {
+    try {
+        const rawCode = crypto.randomBytes(32).toString('hex');
+        const codeHash = crypto.createHash('sha256').update(rawCode).digest('hex');
+
+        await OAuthCode.create({
+            codeHash,
+            userId: req.user._id
+        });
+
+        const clientURL = process.env.CLIENT_URL || 'http://localhost:5173';
+        res.redirect(`${clientURL}/oauth-callback?code=${rawCode}`);
+    } catch (error) {
+        console.error('OAuth Callback Error:', error);
+        const clientURL = process.env.CLIENT_URL || 'http://localhost:5173';
+        res.redirect(`${clientURL}/login?error=oauth_failed`);
+    }
 };
 
-module.exports = { signup, login, googleCallback };
+const exchangeOAuthCode = async (req, res) => {
+    try {
+        const { code } = req.body;
+        if (!code) {
+            return res.status(400).json({ message: 'Authorization code is required' });
+        }
+
+        const codeHash = crypto.createHash('sha256').update(code).digest('hex');
+
+        // Single-use, atomic redemption
+        const oauthDoc = await OAuthCode.findOneAndDelete({ codeHash });
+        if (!oauthDoc) {
+            return res.status(400).json({ message: 'Invalid or expired authorization code' });
+        }
+
+        const user = await User.findById(oauthDoc.userId);
+        if (!user) {
+            return res.status(404).json({ message: 'User not found' });
+        }
+
+        const isOnboarded = !!user.age && !!user.weight && !!user.height;
+        const token = generateToken(user._id);
+
+        res.json({
+            _id: user._id,
+            name: user.name,
+            email: user.email,
+            token,
+            isOnboarded
+        });
+    } catch (error) {
+        res.status(500).json({ message: error.message });
+    }
+};
+
+module.exports = { signup, login, googleCallback, exchangeOAuthCode };

@@ -6,37 +6,41 @@ import { Zap } from 'lucide-react';
 
 /**
  * OAuthCallback — landing page after Google OAuth redirect.
- * URL: /oauth-callback?token=<jwt>
+ * URL: /oauth-callback?code=<authorization_code>
  *
- * Reads the token from the query string, fetches the user profile
- * from the server, stores everything in AuthContext, then redirects
- * to the dashboard.
+ * Atomically exchanges the single-use authorization code for JWT token and user profile,
+ * stores credentials in AuthContext, and redirects based on onboarding status.
  */
 const OAuthCallback = () => {
     const navigate = useNavigate();
     const { loginWithToken } = useAuth();
-    const calledRef = useRef(false); // prevent double-call in StrictMode
+    const calledRef = useRef(false); // prevent double-call in React StrictMode
 
     useEffect(() => {
         if (calledRef.current) return;
         calledRef.current = true;
 
         const params = new URLSearchParams(window.location.search);
-        const token = params.get('token');
+        const code = params.get('code');
 
-        if (!token) {
-            navigate('/login');
+        if (!code) {
+            navigate('/login', { replace: true });
             return;
         }
 
         authAPI
-            .getMeWithToken(token)
+            .exchangeOAuthCode(code)
             .then((res) => {
-                loginWithToken(token, res.data);
-                navigate('/dashboard', { replace: true });
+                const { token, ...userData } = res.data;
+                loginWithToken(token, userData);
+                if (userData.isOnboarded) {
+                    navigate('/app/dashboard', { replace: true });
+                } else {
+                    navigate('/app/onboarding', { replace: true });
+                }
             })
             .catch(() => {
-                navigate('/login');
+                navigate('/login', { replace: true });
             });
     }, [navigate, loginWithToken]);
 

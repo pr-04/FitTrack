@@ -161,6 +161,7 @@ wt project/
     │   └── schemas.js             # Zod schemas for auth, profile, workout, diet
     ├── models/                    # Mongoose Data Schemas
     │   ├── User.js                # User profile, credentials, and biometric preferences schema
+    │   ├── OAuthCode.js           # Temporary single-use OAuth authorization codes (TTL 60s)
     │   ├── Workout.js             # Stored AI-generated workout plan JSON schema
     │   ├── WorkoutLog.js          # Individual exercise log schema
     │   ├── Diet.js                # Stored AI-generated diet plan JSON schema
@@ -506,12 +507,24 @@ New user completes signup → Redirected to `/app/onboarding` → Submits height
 - **Collection Name**: `logs` (Unified legacy log schema for backward compatibility)
 - **Fields**: `userId`, `type` (`'workout'`, `'diet'`, `'weight'`), `exercise`, `sets`, `reps`, `liftWeight`, `foodItem`, `calories`, `bodyWeight`, `date`.
 
+### 7. Model: `OAuthCode` (`server/models/OAuthCode.js`)
+- **Collection Name**: `oauthcodes` (Temporary single-use authorization code store)
+- **Fields**:
+  - `codeHash`: `String` (SHA-256 hash of random 32-byte hex authorization code, Unique, Indexed)
+  - `userId`: `ObjectId` (Ref: `User`, Required)
+  - `createdAt`: `Date` (Default: `Date.now`, MongoDB TTL index `expires: 60` seconds)
+
 ---
 
 # 11. API DOCUMENTATION
 
 - **Authentication**: JWT Bearer Token passed via HTTP Header: `Authorization: Bearer <TOKEN>`.
 - **Response Format**: All endpoints return JSON objects. Errors return `{ "message": "Error description" }`.
+- **Validation**: All incoming requests with payload/query are validated via Zod schemas (`server/validators/schemas.js`).
+- **Rate Limits**:
+  - General API: 200 req / 15 min per IP
+  - AI Generation (`/api/workout/generate`, `/api/diet/generate`): 10 req / 15 min per user ID (after auth)
+  - AI Nutrition Lookup (`/api/diet/lookup`): 60 req / 15 min per user ID (debounced frontend)
 
 ---
 
@@ -519,11 +532,13 @@ New user completes signup → Redirected to `/app/onboarding` → Submits height
 
 - **Password Hashing**: `bcryptjs` with 10 salt rounds executed in `UserSchema.pre('save')` hook.
 - **JWT Tokens**: Signed using `jwt.sign({ id }, process.env.JWT_SECRET, { expiresIn: '30d' })`.
-- **Google OAuth 2.0**: Implemented via Passport.js (`passport-google-oauth20`).
-  - Google Client ID & Secret set in `.env`.
+- **Google OAuth 2.0 (Secure Code Exchange Flow)**: Implemented via Passport.js (`passport-google-oauth20`).
+  - Google Client ID & Secret configured in `server/.env`.
   - Callback URL: `/api/auth/google/callback`.
   - Express Session enabled via `connect-mongo` during OAuth handshake.
-  - On callback success, backend generates JWT token and redirects user to `${CLIENT_URL}/oauth-callback?token=${token}`.
+  - On callback success, backend generates a cryptographically random 32-byte authorization code, stores its SHA-256 hash in `OAuthCode` (with 60-second TTL index), and redirects user to `${CLIENT_URL}/oauth-callback?code=${rawCode}` (no tokens exposed in URL).
+  - Frontend `OAuthCallback` page calls `POST /api/auth/oauth/exchange` with `{ code }`.
+  - Backend performs atomic, single-use redemption via `OAuthCode.findOneAndDelete({ codeHash })`, retrieves user, issues JWT, and returns user object with `isOnboarded` status.
 
 ---
 

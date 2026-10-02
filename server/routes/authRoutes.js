@@ -1,15 +1,18 @@
 const express = require('express');
 const router = express.Router();
 const passport = require('passport');
-const { signup, login, googleCallback } = require('../controllers/authController');
+const { signup, login, googleCallback, exchangeOAuthCode } = require('../controllers/authController');
 const validate = require('../middleware/validate');
-const { signupSchema, loginSchema } = require('../validators/schemas');
+const { signupSchema, loginSchema, exchangeOAuthSchema } = require('../validators/schemas');
 
 // @route POST /api/auth/signup
 router.post('/signup', validate(signupSchema), signup);
 
 // @route POST /api/auth/login
 router.post('/login', validate(loginSchema), login);
+
+// @route POST /api/auth/oauth/exchange
+router.post('/oauth/exchange', validate(exchangeOAuthSchema), exchangeOAuthCode);
 
 // @route GET /api/auth/google
 router.get('/google', passport.authenticate('google', { scope: ['profile', 'email'] }));

@@ -18,6 +18,12 @@ const loginSchema = z.object({
     })
 });
 
+const exchangeOAuthSchema = z.object({
+    body: z.object({
+        code: z.string({ message: 'Authorization code is required' }).trim().min(1, 'Authorization code is required')
+    })
+});
+
 // User Profile Schemas
 const updateProfileSchema = z.object({
     body: z.object({
@@ -88,6 +94,7 @@ const lookupNutritionSchema = z.object({
 module.exports = {
     signupSchema,
     loginSchema,
+    exchangeOAuthSchema,
     updateProfileSchema,
     generateWorkoutSchema,
     logWorkoutSchema,

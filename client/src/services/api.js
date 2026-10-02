@@ -23,10 +23,13 @@ api.interceptors.request.use(
 api.interceptors.response.use(
     (response) => response,
     (error) => {
-        if (error.response?.status === 401) {
+        const isAuthRequest = error.config?.url?.includes('/auth/login') || error.config?.url?.includes('/auth/signup');
+        if (error.response?.status === 401 && !isAuthRequest) {
             localStorage.removeItem('fittrack_token');
             localStorage.removeItem('fittrack_user');
-            window.location.href = '/login';
+            if (window.location.pathname !== '/login') {
+                window.location.href = '/login';
+            }
         }
         return Promise.reject(error);
     }
@@ -35,7 +38,8 @@ api.interceptors.response.use(
 // ─── Auth ───
 export const authAPI = {
     signup: (data) => api.post('/auth/signup', data),
-    login: (data) => api.post('/auth/login', data)
+    login: (data) => api.post('/auth/login', data),
+    exchangeOAuthCode: (code) => api.post('/auth/oauth/exchange', { code })
 };
 
 // ─── User ───
