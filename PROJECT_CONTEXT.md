@@ -71,7 +71,10 @@
 | **Authentication** | JSON Web Token (`jsonwebtoken`) | `^9.0.2` | Stateless token authorization | Signed with `JWT_SECRET` |
 | **Password Hashing** | `bcryptjs` | `^2.4.3` | One-way password hashing | 10 salt rounds in pre-save hook |
 | **OAuth Strategy** | `passport-google-oauth20` | `^2.0.0` | Passport Google Strategy | Google login/signup callback handler |
-| **AI Engine** | `@google/generative-ai` | `^0.24.1` | Google Gemini API SDK | Model `gemini-2.0-flash` with JSON mime type |
+| **Security Headers** | `helmet` | `^8.1.0` | HTTP security headers & CSP | Configured CSP for Vite, Google Fonts & OAuth |
+| **Rate Limiting** | `express-rate-limit` | `^8.3.1` | API protection & cost control | General 200/15m, AI 10/15m by user, lookup 60/15m |
+| **NoSQL Sanitization** | `express-mongo-sanitize` | `^2.2.0` | NoSQL injection prevention | Strips $ and . from body/query/params |
+| **AI Engine** | `@google/generative-ai` | `^0.24.1` | Google Gemini API SDK | Model `gemini-3.8-flash` via `process.env.GEMINI_MODEL` |
 | **Environment Config** | `dotenv` | `^16.4.7` | Env variable loading | Loaded from `server/.env` |
 
 ---
@@ -151,7 +154,8 @@ wt project/
     │   └── dashboardController.js # Dashboard aggregation (streak, 7-day calories, recent logs)
     ├── middleware/                # Custom Express Middleware
     │   ├── authMiddleware.js      # JWT Bearer token authentication & `req.user` populator
-    │   └── errorMiddleware.js     # 404 handler & global error handler middleware
+    │   ├── errorMiddleware.js     # 404 handler & global error handler middleware
+    │   └── rateLimiters.js        # IP rate limiter, user-keyed AI generation limiter, lookup limiter
     ├── models/                    # Mongoose Data Schemas
     │   ├── User.js                # User profile, credentials, and biometric preferences schema
     │   ├── Workout.js             # Stored AI-generated workout plan JSON schema

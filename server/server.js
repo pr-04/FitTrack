@@ -1,5 +1,7 @@
-const express = require('express'); // Restarted to reload .env and connect to MongoDB Atlas
+const express = require('express');
 const cors = require('cors');
+const helmet = require('helmet');
+const mongoSanitize = require('express-mongo-sanitize');
 const session = require('express-session');
 const passport = require('passport');
 const dotenv = require('dotenv');
@@ -7,6 +9,7 @@ const path = require('path');
 const MongoStore = require('connect-mongo').default;
 const connectDB = require('./config/db');
 const { errorHandler, notFound } = require('./middleware/errorMiddleware');
+const { apiLimiter } = require('./middleware/rateLimiters');
 
 // Load .env from server/ directory regardless of where npm is run from
 dotenv.config({ path: path.join(__dirname, '.env') });
@@ -18,6 +21,35 @@ connectDB();
 require('./config/passport');
 
 const app = express();
+
+// Trust proxy for Render reverse proxy (ensures correct IP for rate limiting)
+app.set('trust proxy', 1);
+
+// Security Headers with Helmet
+app.use(helmet({
+    contentSecurityPolicy: {
+        directives: {
+            defaultSrc: ["'self'"],
+            scriptSrc: ["'self'", "'unsafe-inline'"],
+            styleSrc: ["'self'", "'unsafe-inline'", "https://fonts.googleapis.com"],
+            fontSrc: ["'self'", "https://fonts.gstatic.com", "data:"],
+            imgSrc: ["'self'", "data:", "blob:", "https://*.googleusercontent.com", "https://images.unsplash.com"],
+            connectSrc: [
+                "'self'",
+                "https://accounts.google.com",
+                "http://localhost:5000",
+                "http://localhost:5173",
+                "http://localhost:5174",
+                "https://*.vercel.app",
+                "https://*.render.com"
+            ],
+            frameSrc: ["'self'", "https://accounts.google.com"],
+            objectSrc: ["'none'"],
+            upgradeInsecureRequests: process.env.NODE_ENV === 'production' ? [] : null
+        }
+    },
+    crossOriginEmbedderPolicy: false
+}));
 
 const allowedOrigins = [
   process.env.CLIENT_URL,
@@ -46,6 +78,12 @@ app.use(cors({
 }));
 app.use(express.json());
 app.use(express.urlencoded({ extended: false }));
+
+// Sanitize against NoSQL injection
+app.use(mongoSanitize());
+
+// Apply rate limiting to all /api routes
+app.use('/api', apiLimiter);
 
 // Session (required by Passport for OAuth flow even with session:false on callback)
 app.use(session({
