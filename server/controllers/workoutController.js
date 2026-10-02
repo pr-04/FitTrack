@@ -1,7 +1,7 @@
 const Workout = require('../models/Workout');
 const Log = require('../models/Log');
 const WorkoutLog = require('../models/WorkoutLog');
-const { genAI, safetySettings } = require('../config/gemini');
+const { ai, safetySettings } = require('../config/gemini');
 
 // Helper to clean AI JSON responses
 const cleanAIJSON = (text) => {
@@ -17,21 +17,6 @@ exports.generateWorkout = async (req, res) => {
         if (!req.user) {
             return res.status(401).json({ message: "User session expired. Please log in again." });
         }
-
-        // 1. Initialize modern model with System Instructions
-        const model = genAI.getGenerativeModel({
-            model: process.env.GEMINI_MODEL,
-            systemInstruction: "You are an elite AI performance coach for FitTrack Premium. Your mission is to architect high-depth, strictly structured 7-day training programs. You must output ONLY valid JSON that conforms to the user requested schema. Never include conversational text before or after the JSON.",
-        });
-
-        // 2. Configure Native JSON output
-        const generationConfig = {
-            temperature: 0.7,
-            topP: 0.95,
-            topK: 40,
-            maxOutputTokens: 2048,
-            responseMimeType: "application/json",
-        };
 
         const userGoal = goal || req.user.goal || 'maintain';
         const userLevel = fitnessLevel || req.user.activityLevel || 'moderate';
@@ -69,14 +54,22 @@ exports.generateWorkout = async (req, res) => {
             Ensure exactly 7 days are included.
         `;
 
-        const result = await model.generateContent(prompt);
-        const response = await result.response;
-        
+        const response = await ai.models.generateContent({
+            model: process.env.GEMINI_MODEL,
+            contents: prompt,
+            config: {
+                systemInstruction: "You are an elite AI performance coach for FitTrack Premium. Your mission is to architect high-depth, strictly structured 7-day training programs. You must output ONLY valid JSON that conforms to the user requested schema. Never include conversational text before or after the JSON.",
+                responseMimeType: "application/json",
+                maxOutputTokens: 8192,
+                safetySettings
+            }
+        });
+
         if (!response.candidates || response.candidates.length === 0) {
             throw new Error("The AI coach is currently unavailable due to safety filters. Try a different goal.");
         }
 
-        const text = response.text();
+        const text = response.text;
         let workoutData;
         
         try {

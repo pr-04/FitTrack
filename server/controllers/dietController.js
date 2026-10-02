@@ -1,7 +1,7 @@
 const Diet = require('../models/Diet');
 const Log = require('../models/Log');
 const DietLog = require('../models/DietLog');
-const { genAI, safetySettings } = require('../config/gemini');
+const { ai, safetySettings } = require('../config/gemini');
 
 // Helper to clean AI JSON responses
 const cleanAIJSON = (text) => {
@@ -17,21 +17,6 @@ exports.generateDiet = async (req, res) => {
         if (!req.user) {
             return res.status(401).json({ message: "User session expired. Please log in again." });
         }
-
-        // 1. Initialize modern model with System Instructions
-        const model = genAI.getGenerativeModel({
-            model: process.env.GEMINI_MODEL,
-            systemInstruction: "You are an expert AI nutritionist for FitTrack Premium. Your mission is to architect high-depth, strictly structured 7-day meal roadmaps. You must output ONLY valid JSON that conforms to the user requested schema. Never include conversational text before or after the JSON. Focus on macronutrient balance and premium, varied food suggestions.",
-        });
-
-        // 2. Configure Native JSON output
-        const generationConfig = {
-            temperature: 0.7,
-            topP: 0.95,
-            topK: 40,
-            maxOutputTokens: 2048,
-            responseMimeType: "application/json",
-        };
 
         const userGoal = goal || req.user.goal || 'maintain';
         const userDiet = dietType || req.user.dietType || 'any';
@@ -64,14 +49,22 @@ exports.generateDiet = async (req, res) => {
             ONLY include the 4 categories: "Breakfast", "Lunch", "Snacks", "Dinner".
         `;
 
-        const result = await model.generateContent(prompt);
-        const response = await result.response;
-        
+        const response = await ai.models.generateContent({
+            model: process.env.GEMINI_MODEL,
+            contents: prompt,
+            config: {
+                systemInstruction: "You are an expert AI nutritionist for FitTrack Premium. Your mission is to architect high-depth, strictly structured 7-day meal roadmaps. You must output ONLY valid JSON that conforms to the user requested schema. Never include conversational text before or after the JSON. Focus on macronutrient balance and premium, varied food suggestions.",
+                responseMimeType: "application/json",
+                maxOutputTokens: 8192,
+                safetySettings
+            }
+        });
+
         if (!response.candidates || response.candidates.length === 0) {
             throw new Error("The nutrition engine is currently unavailable due to safety filters. Try a different dietary preference.");
         }
 
-        const text = response.text();
+        const text = response.text;
         let dietData;
         
         try {
@@ -178,12 +171,6 @@ exports.lookupNutrition = async (req, res) => {
             return res.status(400).json({ message: 'Query is required' });
         }
 
-        // Initialize Gemini (matching workoutController pattern)
-        const model = genAI.getGenerativeModel({
-            model: process.env.GEMINI_MODEL,
-            systemInstruction: "You are a precise nutrition database for FitTrack Premium. Given a food name and amount (weight/quantity), provide estimated calories, protein, carbs, and fats. Output MUST be ONLY valid JSON matching the schema. No conversational text.",
-        });
-
         const prompt = `
             Estimate the nutritional value for: ${query}
             
@@ -196,9 +183,18 @@ exports.lookupNutrition = async (req, res) => {
             }
         `;
 
-        const result = await model.generateContent(prompt);
-        const response = await result.response;
-        const text = response.text();
+        const response = await ai.models.generateContent({
+            model: process.env.GEMINI_LOOKUP_MODEL || process.env.GEMINI_MODEL,
+            contents: prompt,
+            config: {
+                systemInstruction: "You are a precise nutrition database for FitTrack Premium. Given a food name and amount (weight/quantity), provide estimated calories, protein, carbs, and fats. Output MUST be ONLY valid JSON matching the schema. No conversational text.",
+                responseMimeType: "application/json",
+                maxOutputTokens: 1024,
+                safetySettings
+            }
+        });
+
+        const text = response.text;
         
         const cleanedText = cleanAIJSON(text);
         const nutritionData = JSON.parse(cleanedText);

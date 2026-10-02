@@ -23,7 +23,7 @@
   - **Frontend**: React 19 SPA built with Vite, styled using Tailwind CSS and Framer Motion, with React Router v7.
   - **Backend**: Node.js & Express RESTful API with JWT authentication and Passport.js Google OAuth 2.0.
   - **Database**: MongoDB (via Mongoose ODM) with Connect-Mongo session storage.
-  - **AI Engine**: Google Generative AI (`@google/generative-ai`) utilizing model `gemini-2.0-flash` with native JSON response formatting (`application/json`).
+  - **AI Engine**: Google Gen AI (`@google/genai`) utilizing `gemini-3.7-flash` (primary), `gemini-3.5-flash` (fallback), and `gemini-3.5-flash-lite` (lookup) with native JSON schema enforcement.
 - **Major Technologies Used**: Node.js, Express, React 19, Vite, MongoDB, Mongoose, JWT, Passport.js, Google Gemini API, Tailwind CSS, Framer Motion, Recharts, Lucide React, Axios.
 
 ---
@@ -74,7 +74,7 @@
 | **Security Headers** | `helmet` | `^8.1.0` | HTTP security headers & CSP | Configured CSP for Vite, Google Fonts & OAuth |
 | **Rate Limiting** | `express-rate-limit` | `^8.3.1` | API protection & cost control | General 200/15m, AI 10/15m by user, lookup 60/15m |
 | **NoSQL Sanitization** | `express-mongo-sanitize` | `^2.2.0` | NoSQL injection prevention | Strips $ and . from body/query/params |
-| **AI Engine** | `@google/generative-ai` | `^0.24.1` | Google Gemini API SDK | Model `gemini-3.8-flash` via `process.env.GEMINI_MODEL` |
+| **AI Engine** | `@google/genai` | `^2.26.0` | Official Google GenAI SDK | Models `gemini-3.7-flash`, `gemini-3.5-flash`, `gemini-3.5-flash-lite` |
 | **Environment Config** | `dotenv` | `^16.4.7` | Env variable loading | Loaded from `server/.env` |
 
 ---
@@ -592,7 +592,9 @@ GOOGLE_CLIENT_ID=your_google_client_id
 GOOGLE_CLIENT_SECRET=your_google_client_secret
 GOOGLE_CALLBACK_URL=http://localhost:5000/api/auth/google/callback
 GEMINI_API_KEY=your_gemini_api_key
-GEMINI_MODEL=gemini-3.8-flash
+GEMINI_MODEL=gemini-3.7-flash
+GEMINI_FALLBACK_MODEL=gemini-3.5-flash
+GEMINI_LOOKUP_MODEL=gemini-3.5-flash-lite
 XAI_API_KEY=your_xai_api_key (Optional)
 NODE_ENV=development
 ```
