@@ -20,7 +20,7 @@ exports.generateWorkout = async (req, res) => {
 
         // 1. Initialize modern model with System Instructions
         const model = genAI.getGenerativeModel({
-            model: "gemini-1.5-flash",
+            model: process.env.GEMINI_MODEL,
             systemInstruction: "You are an elite AI performance coach for FitTrack Premium. Your mission is to architect high-depth, strictly structured 7-day training programs. You must output ONLY valid JSON that conforms to the user requested schema. Never include conversational text before or after the JSON.",
         });
 

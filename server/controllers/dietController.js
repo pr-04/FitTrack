@@ -20,7 +20,7 @@ exports.generateDiet = async (req, res) => {
 
         // 1. Initialize modern model with System Instructions
         const model = genAI.getGenerativeModel({
-            model: "gemini-2.5-flash",
+            model: process.env.GEMINI_MODEL,
             systemInstruction: "You are an expert AI nutritionist for FitTrack Premium. Your mission is to architect high-depth, strictly structured 7-day meal roadmaps. You must output ONLY valid JSON that conforms to the user requested schema. Never include conversational text before or after the JSON. Focus on macronutrient balance and premium, varied food suggestions.",
         });
 
@@ -180,7 +180,7 @@ exports.lookupNutrition = async (req, res) => {
 
         // Initialize Gemini (matching workoutController pattern)
         const model = genAI.getGenerativeModel({
-            model: "gemini-1.5-flash",
+            model: process.env.GEMINI_MODEL,
             systemInstruction: "You are a precise nutrition database for FitTrack Premium. Given a food name and amount (weight/quantity), provide estimated calories, protein, carbs, and fats. Output MUST be ONLY valid JSON matching the schema. No conversational text.",
         });
 
