@@ -11,6 +11,7 @@ const apiLimiter = rateLimit({
 
 // AI Generation limiter: 10 requests per 15 minutes per authenticated user
 // Note: Must run AFTER protect middleware so req.user is populated
+// Provider 5xx and 429 errors do not count against the user limit
 const aiGenerateLimiter = rateLimit({
     windowMs: 15 * 60 * 1000,
     max: 10,
@@ -18,11 +19,14 @@ const aiGenerateLimiter = rateLimit({
     validate: { keyGeneratorIpFallback: false },
     standardHeaders: true,
     legacyHeaders: false,
+    skipFailedRequests: true,
+    requestWasSuccessful: (req, res) => res.statusCode < 500 && res.statusCode !== 429,
     message: { message: 'AI generation limit reached. You can generate up to 10 plans per 15 minutes.' }
 });
 
 // Diet nutrition lookup limiter: 60 requests per 15 minutes per user (debounced while typing)
 // Note: Must run AFTER protect middleware
+// Provider 5xx and 429 errors do not count against the user limit
 const dietLookupLimiter = rateLimit({
     windowMs: 15 * 60 * 1000,
     max: 60,
@@ -30,6 +34,8 @@ const dietLookupLimiter = rateLimit({
     validate: { keyGeneratorIpFallback: false },
     standardHeaders: true,
     legacyHeaders: false,
+    skipFailedRequests: true,
+    requestWasSuccessful: (req, res) => res.statusCode < 500 && res.statusCode !== 429,
     message: { message: 'Nutrition lookup limit reached. Please wait a few minutes before trying again.' }
 });
 

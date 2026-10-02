@@ -13,6 +13,7 @@ const Workout = () => {
     const [plan, setPlan] = useState(null);
     const [planId, setPlanId] = useState(null);
     const [completedExercises, setCompletedExercises] = useState({});
+    const [error, setError] = useState(null);
 
     const fetchHistory = async () => {
         try {
@@ -35,16 +36,17 @@ const Workout = () => {
 
     const handleGenerate = async () => {
         setLoading(true);
+        setError(null);
         try {
             const res = await workoutAPI.generate({ goal: user.goal, fitnessLevel: user.activityLevel });
             setPlan(res.data.plan);
             setPlanId(res.data._id);
             // Refresh history to ensure synchronization
             fetchHistory();
-        } catch (error) {
-            console.error("Failed to generate plan", error);
-            const errorMsg = error.response?.data?.message || error.message;
-            alert(`Coach Error: ${errorMsg}`);
+        } catch (err) {
+            console.error("Failed to generate plan", err);
+            const errorMsg = err.response?.data?.message || err.message || "Failed to generate workout plan.";
+            setError(errorMsg);
         } finally {
             setLoading(false);
         }
@@ -137,6 +139,21 @@ const Workout = () => {
                 </div>
             </header>
 
+            {error && !loading && (
+                <div className="bg-red-50 border border-red-200 text-red-700 px-6 py-4 rounded-2xl flex flex-col sm:flex-row items-center justify-between gap-4 shadow-sm">
+                    <div>
+                        <p className="font-bold">{error}</p>
+                        <p className="text-sm text-red-600 mt-0.5">The AI Coach is experiencing high demand. Please try again.</p>
+                    </div>
+                    <button 
+                        onClick={handleGenerate}
+                        className="bg-red-600 hover:bg-red-700 text-white px-5 py-2.5 rounded-xl font-bold text-sm transition-all duration-200 flex items-center shadow-sm"
+                    >
+                        <Sparkles className="w-4 h-4 mr-2" /> Retry Generation
+                    </button>
+                </div>
+            )}
+
             {!plan && !loading && (
                 <div className="card-elevated p-20 text-center flex flex-col items-center bg-white border-none shadow-[0_45px_100px_-20px_rgba(0,0,0,0.06)]">
                     <div className="w-24 h-24 bg-blue-50 rounded-full flex items-center justify-center mb-10">
@@ -158,7 +175,7 @@ const Workout = () => {
                     </div>
                     <div className="text-center">
                         <p className="text-2xl font-black text-gray-900 font-display italic">Instructing AI Coach...</p>
-                        <p className="text-gray-400 font-bold mt-2 uppercase tracking-widest text-xs">Optimizing exercise vectors</p>
+                        <p className="text-gray-400 font-bold mt-2 uppercase tracking-widest text-xs">Generating 7-day program, this can take up to 30s</p>
                     </div>
                 </div>
             )}

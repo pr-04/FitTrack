@@ -1,14 +1,9 @@
 const Diet = require('../models/Diet');
 const Log = require('../models/Log');
 const DietLog = require('../models/DietLog');
-const { ai, safetySettings } = require('../config/gemini');
+const { generateDietPlan, lookupNutrition: aiLookupNutrition } = require('../services/aiService');
 
-// Helper to clean AI JSON responses
-const cleanAIJSON = (text) => {
-    return text.replace(/```json|```/g, "").trim();
-};
-
-// @desc Generate an AI Diet Plan
+// @desc Generate an AI Diet Plan (Daily Nutrition Blueprint)
 // @route POST /api/diet/generate
 exports.generateDiet = async (req, res) => {
     try {
@@ -21,63 +16,10 @@ exports.generateDiet = async (req, res) => {
         const userGoal = goal || req.user.goal || 'maintain';
         const userDiet = dietType || req.user.dietType || 'any';
 
-        const prompt = `
-            Create a professional 7-day meal plan for a user with the goal: ${userGoal.replace('_', ' ')}.
-            Dietary Preference: ${userDiet}
-
-            Special Instructions for Goals:
-            - Fat Loss: Focus on a caloric deficit, high volume low calorie foods, and high protein.
-            - Muscle Gain: Focus on a caloric surplus with high protein (1.8g-2.2g per kg) and complex carbs.
-            - Body Recomposition: Focus on maintenance calories with very high protein and timing carbs around workouts.
-            - Strength & Endurance: Focus on high carbohydrate intake for glycogen replenishment.
-            - Flexibility & General Fitness: Focus on micronutrient density, anti-inflammatory foods, and balanced macros.
-            - Maintain: Focus on balanced macros to stay at current weight.
-
-            JSON Schema:
-            {
-              "plan": {
-                "dailyCalories": number,
-                "macros": { "protein": "string", "carbs": "string", "fats": "string" },
-                "meals": {
-                    "Breakfast": ["Option 1", "Option 2"],
-                    "Lunch": ["Option 1", "Option 2"],
-                    "Snacks": ["Option 1", "Option 2"],
-                    "Dinner": ["Option 1", "Option 2"]
-                }
-              }
-            }
-            ONLY include the 4 categories: "Breakfast", "Lunch", "Snacks", "Dinner".
-        `;
-
-        const response = await ai.models.generateContent({
-            model: process.env.GEMINI_MODEL,
-            contents: prompt,
-            config: {
-                systemInstruction: "You are an expert AI nutritionist for FitTrack Premium. Your mission is to architect high-depth, strictly structured 7-day meal roadmaps. You must output ONLY valid JSON that conforms to the user requested schema. Never include conversational text before or after the JSON. Focus on macronutrient balance and premium, varied food suggestions.",
-                responseMimeType: "application/json",
-                maxOutputTokens: 8192,
-                safetySettings
-            }
+        const { plan: finalPlan } = await generateDietPlan({
+            goal: userGoal,
+            dietType: userDiet
         });
-
-        if (!response.candidates || response.candidates.length === 0) {
-            throw new Error("The nutrition engine is currently unavailable due to safety filters. Try a different dietary preference.");
-        }
-
-        const text = response.text;
-        let dietData;
-        
-        try {
-            const cleanedText = cleanAIJSON(text);
-            dietData = JSON.parse(cleanedText);
-        } catch (parseError) {
-            console.error("Native JSON Parse Failure:", text);
-            throw new Error("Failed to parse the nutrition plan. Please try again.");
-        }
-
-        // Flatten if AI returned an array, and extract inner plan if exists
-        let planData = Array.isArray(dietData) ? dietData[0] : dietData;
-        const finalPlan = planData.plan || planData;
 
         const newDiet = await Diet.create({
             userId: req.user._id,
@@ -86,10 +28,16 @@ exports.generateDiet = async (req, res) => {
 
         res.status(201).json(newDiet);
     } catch (error) {
-        console.error('MODERN_DIET_FAIL:', error.message);
-        res.status(500).json({ 
-            message: 'Nutrition Generation Failed: ' + error.message,
-            tip: "Try slightly changing your goal or dietary preference."
+        console.error('DIET_GENERATION_FAILED:', error.message);
+        if (error.message === 'SAFETY_FILTER_BLOCKED') {
+            return res.status(400).json({
+                message: 'Nutrition generation was blocked by safety filters. Please try modifying your preferences.',
+                tip: 'Try selecting standard dietary preferences.'
+            });
+        }
+        res.status(502).json({ 
+            message: 'AI Nutritionist is currently experiencing high demand. Please try again in a few moments.',
+            tip: 'Try slightly changing your goal or dietary preference.'
         });
     }
 };
@@ -171,43 +119,13 @@ exports.lookupNutrition = async (req, res) => {
             return res.status(400).json({ message: 'Query is required' });
         }
 
-        const prompt = `
-            Estimate the nutritional value for: ${query}
-            
-            Return JSON in this format:
-            {
-                "calories": number,
-                "protein": number,
-                "carbs": number,
-                "fats": number
-            }
-        `;
-
-        const response = await ai.models.generateContent({
-            model: process.env.GEMINI_LOOKUP_MODEL || process.env.GEMINI_MODEL,
-            contents: prompt,
-            config: {
-                systemInstruction: "You are a precise nutrition database for FitTrack Premium. Given a food name and amount (weight/quantity), provide estimated calories, protein, carbs, and fats. Output MUST be ONLY valid JSON matching the schema. No conversational text.",
-                responseMimeType: "application/json",
-                maxOutputTokens: 1024,
-                safetySettings
-            }
-        });
-
-        const text = response.text;
-        
-        const cleanedText = cleanAIJSON(text);
-        const nutritionData = JSON.parse(cleanedText);
-
-        res.json({
-            name: query,
-            calories: Math.round(nutritionData.calories || 0),
-            protein: Math.round(nutritionData.protein || 0),
-            carbs: Math.round(nutritionData.carbs || 0),
-            fats: Math.round(nutritionData.fats || 0)
-        });
+        const nutritionData = await aiLookupNutrition(query);
+        res.json(nutritionData);
     } catch (error) {
         console.error('AI_NUTRITION_LOOKUP_FAIL:', error.message);
-        res.status(500).json({ message: 'AI Nutrition estimation failed. ' + error.message });
+        if (error.message === 'SAFETY_FILTER_BLOCKED') {
+            return res.status(400).json({ message: 'Food lookup was blocked by safety filters. Please try another query.' });
+        }
+        res.status(502).json({ message: 'AI Nutrition lookup is busy. Please try again or enter values manually.' });
     }
 };

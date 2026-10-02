@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import { useAuth } from '../context/AuthContext';
 import { dietAPI, trackerAPI } from '../services/api';
 import { Loader2, Plus, Sparkles, CheckCircle, Flame } from 'lucide-react';
-import { motion, AnimatePresence } from 'framer-motion';
+import { AnimatePresence } from 'framer-motion';
 import LogFoodModal from '../components/modals/LogFoodModal';
 import { toast } from 'react-hot-toast';
 
@@ -12,6 +12,7 @@ const Diet = () => {
     const [plan, setPlan] = useState(null);
     const [isLogModalOpen, setIsLogModalOpen] = useState(false);
     const [dailyCalories, setDailyCalories] = useState(0);
+    const [error, setError] = useState(null);
 
     const fetchHistory = async () => {
         try {
@@ -40,13 +41,15 @@ const Diet = () => {
 
     const handleGenerate = async () => {
         setLoading(true);
+        setError(null);
         try {
             const res = await dietAPI.generate({ goal: user.goal, dietType: user.dietType });
             setPlan(res.data.plan);
             fetchHistory();
-        } catch (error) {
-            console.error("Failed to generate diet plan", error);
-            alert("Failed to generate AI plan. " + (error.response?.data?.message || 'Please try again later.'));
+        } catch (err) {
+            console.error("Failed to generate diet plan", err);
+            const errorMsg = err.response?.data?.message || err.message || "Failed to generate nutrition blueprint.";
+            setError(errorMsg);
         } finally {
             setLoading(false);
         }
@@ -64,7 +67,7 @@ const Diet = () => {
         <div className="space-y-8 max-w-5xl mx-auto">
             <header className="flex flex-col md:flex-row md:items-center justify-between gap-4">
                 <div>
-                    <h1 className="text-3xl font-bold tracking-tight text-gray-900">Your Diet Plan</h1>
+                    <h1 className="text-3xl font-bold tracking-tight text-gray-900">Daily Nutrition Blueprint</h1>
                     <p className="text-gray-500 mt-2">Customized for {user?.dietType} / {user?.goal?.replace('_', ' ')}</p>
                 </div>
                 <div className="flex gap-3">
@@ -75,10 +78,22 @@ const Diet = () => {
                         className="bg-emerald-500 hover:bg-emerald-600 hover:scale-105 shadow-md text-white px-6 py-2.5 rounded-lg font-medium flex items-center justify-center transition-all duration-200 disabled:opacity-50"
                     >
                         {loading ? <Loader2 className="w-5 h-5 mr-2 animate-spin" /> : <Sparkles className="w-5 h-5 mr-2" />}
-                        Generate Plan
+                        {plan ? "Regenerate Blueprint" : "Generate Blueprint"}
                     </button>
                 </div>
             </header>
+
+            {error && !loading && (
+                <div className="bg-red-50 border border-red-200 text-red-700 px-6 py-4 rounded-xl flex flex-col sm:flex-row items-center justify-between gap-4 shadow-sm">
+                    <div>
+                        <p className="font-semibold">{error}</p>
+                        <p className="text-sm text-red-600 mt-0.5">The AI Nutritionist is experiencing high demand. Please try again.</p>
+                    </div>
+                    <button onClick={handleGenerate} className="bg-red-600 hover:bg-red-700 text-white px-4 py-2 rounded-lg font-medium text-sm transition-colors flex items-center shadow-sm">
+                        <Sparkles className="w-4 h-4 mr-2" /> Retry Generation
+                    </button>
+                </div>
+            )}
 
             {/* Daily Progress Bar */}
             <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} className="card-container p-6 bg-white shadow-xl border border-gray-100">
@@ -103,23 +118,22 @@ const Diet = () => {
                 </div>
             </motion.div>
 
-            {/* Manual Entry Modal removed and replaced by LogFoodModal */}
-
             {!plan && !loading && (
                 <div className="card-container p-12 text-center flex flex-col items-center">
                     <Sparkles className="w-12 h-12 text-gray-300 mb-4" />
-                    <h3 className="text-xl font-bold text-gray-900 mb-2">No diet plan generated yet</h3>
-                    <p className="text-gray-500 max-w-sm mb-6">Let our AI act as your personal nutritionist and generate a meal plan today.</p>
+                    <h3 className="text-xl font-bold text-gray-900 mb-2">No nutrition blueprint generated yet</h3>
+                    <p className="text-gray-500 max-w-sm mb-6">Let our AI act as your personal nutritionist and generate a daily nutrition blueprint today.</p>
                     <button onClick={handleGenerate} className="bg-gray-900 text-white px-6 py-3 rounded-lg font-medium hover:bg-black transition-colors shadow-md">
-                        Create Nutrition Plan
+                        Create Nutrition Blueprint
                     </button>
                 </div>
             )}
 
             {loading && (
-                <div className="card-container p-20 flex flex-col items-center justify-center">
+                <div className="card-container p-20 flex flex-col items-center justify-center text-center">
                     <Loader2 className="w-10 h-10 text-emerald-500 animate-spin mb-4" />
-                    <p className="text-gray-500 font-medium animate-pulse">Analyzing macro profiles...</p>
+                    <p className="text-gray-900 font-semibold text-lg">Architecting nutrition blueprint...</p>
+                    <p className="text-gray-500 text-sm mt-1 animate-pulse">Generating macro profiles, this can take up to 30s</p>
                 </div>
             )}
 
@@ -157,7 +171,7 @@ const Diet = () => {
                                             {mealObj.options?.map((opt, j) => (
                                                 <li key={j} className="flex justify-between items-start gap-4 text-gray-700 text-sm border-b border-gray-50 pb-2 last:border-0 last:pb-0">
                                                     <span className="leading-relaxed">• {opt}</span>
-                                                    <button onClick={() => { setManualEntry({foodItem: opt, calories: Math.floor(targetCalories/4)}); setShowManualLog(true); }}
+                                                    <button onClick={() => setIsLogModalOpen(true)}
                                                         className="flex-shrink-0 text-emerald-600 hover:bg-emerald-50 p-1.5 rounded transition-colors" title="Log this meal" >
                                                         <Plus className="w-5 h-5" />
                                                     </button>
@@ -177,7 +191,7 @@ const Diet = () => {
                                                 {plan.meals[category]?.map((opt, j) => (
                                                     <li key={j} className="flex justify-between items-start gap-4 text-gray-700 text-sm border-b border-gray-50 pb-2 last:border-0 last:pb-0">
                                                         <span>• {opt}</span>
-                                                        <button onClick={() => { setManualEntry({foodItem: opt, calories: Math.floor(targetCalories/4)}); setShowManualLog(true); }}
+                                                        <button onClick={() => setIsLogModalOpen(true)}
                                                             className="flex-shrink-0 text-emerald-600 hover:bg-emerald-50 p-1.5 rounded transition-colors" title="Log this meal" >
                                                             <Plus className="w-5 h-5" />
                                                         </button>

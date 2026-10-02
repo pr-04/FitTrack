@@ -1,12 +1,7 @@
 const Workout = require('../models/Workout');
 const Log = require('../models/Log');
 const WorkoutLog = require('../models/WorkoutLog');
-const { ai, safetySettings } = require('../config/gemini');
-
-// Helper to clean AI JSON responses
-const cleanAIJSON = (text) => {
-    return text.replace(/```json|```/g, "").trim();
-};
+const { generateWorkoutPlan } = require('../services/aiService');
 
 // @desc Generate an AI Workout Plan
 // @route POST /api/workout/generate
@@ -21,68 +16,10 @@ exports.generateWorkout = async (req, res) => {
         const userGoal = goal || req.user.goal || 'maintain';
         const userLevel = fitnessLevel || req.user.activityLevel || 'moderate';
 
-        const prompt = `
-            Create a professional 7-day workout plan for a user with the goal: ${userGoal.replace('_', ' ')}.
-            Fitness Level: ${userLevel}
-
-            Special Instructions for Goals:
-            - Flexibility: Focus on yoga, static stretching, and mobility routines.
-            - Endurance: Focus on zone 2 cardio, long-distance running/cycling, and high-rep endurance circuits.
-            - Strength: Focus on heavy compound lifts, low reps (1-5), and longer rest periods.
-            - Body Recomposition: Balance resistance training with minimal cardio and focus on bodyweight/weighted movements.
-            - Fat Loss: High-intensity interval training (HIIT) paired with steady-state cardio.
-            - Muscle Gain: Hypertrophy focus (8-12 reps) with progressive overload.
-            - General Fitness: A balanced mix of cardio and resistance training.
-            - Maintain: Steady maintenance routine to keep current fitness levels.
-
-            JSON Schema:
-            {
-              "plan": {
-                "title": "ELITE PERFORMANCE: [Title]",
-                "overview": "[Strategy summary]",
-                "days": [
-                  {
-                    "day": "Day 1",
-                    "type": "[Focus]",
-                    "exercises": [
-                      { "name": "[Name]", "sets": number, "reps": "string", "rest": "string" }
-                    ]
-                  }
-                ]
-              }
-            }
-            Ensure exactly 7 days are included.
-        `;
-
-        const response = await ai.models.generateContent({
-            model: process.env.GEMINI_MODEL,
-            contents: prompt,
-            config: {
-                systemInstruction: "You are an elite AI performance coach for FitTrack Premium. Your mission is to architect high-depth, strictly structured 7-day training programs. You must output ONLY valid JSON that conforms to the user requested schema. Never include conversational text before or after the JSON.",
-                responseMimeType: "application/json",
-                maxOutputTokens: 8192,
-                safetySettings
-            }
+        const { plan: finalPlan } = await generateWorkoutPlan({
+            goal: userGoal,
+            fitnessLevel: userLevel
         });
-
-        if (!response.candidates || response.candidates.length === 0) {
-            throw new Error("The AI coach is currently unavailable due to safety filters. Try a different goal.");
-        }
-
-        const text = response.text;
-        let workoutData;
-        
-        try {
-            const cleanedText = cleanAIJSON(text);
-            workoutData = JSON.parse(cleanedText);
-        } catch (parseError) {
-            console.error("Native JSON Parse Failure:", text);
-            throw new Error("Failed to parse the coach's plan. Please try again.");
-        }
-
-        // Flatten if AI returned an array, and extract inner plan if exists
-        let planData = Array.isArray(workoutData) ? workoutData[0] : workoutData;
-        const finalPlan = planData.plan || planData;
 
         const newWorkout = await Workout.create({
             userId: req.user._id,
@@ -91,10 +28,16 @@ exports.generateWorkout = async (req, res) => {
 
         res.status(201).json(newWorkout);
     } catch (error) {
-        console.error('MODERN_GEN_FAIL:', error.message);
-        res.status(500).json({ 
-            message: 'Coach Generation Failed: ' + error.message,
-            tip: "Check your API key and network connection."
+        console.error('WORKOUT_GENERATION_FAILED:', error.message);
+        if (error.message === 'SAFETY_FILTER_BLOCKED') {
+            return res.status(400).json({
+                message: 'Workout generation was blocked by safety filters. Please try modifying your goal.',
+                tip: 'Try selecting a standard fitness goal.'
+            });
+        }
+        res.status(502).json({ 
+            message: 'AI Coach is currently experiencing high demand. Please try again in a few moments.',
+            tip: 'You can retry in a few seconds.'
         });
     }
 };

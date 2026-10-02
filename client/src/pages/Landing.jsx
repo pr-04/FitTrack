@@ -206,7 +206,7 @@ const Landing = () => {
                     <div className="grid md:grid-cols-3 gap-10">
                         {[
                             { icon: <Zap className="w-8 h-8 text-primary group-hover:text-white" />, bg: 'bg-green-50 group-hover:bg-primary', title: 'Gemini-Driven Workouts', desc: 'Hyper-personalized routines that adapt to your progress, equipment, and schedule in real-time.' },
-                            { icon: <Apple className="w-8 h-8 text-blue-500 group-hover:text-white" />, bg: 'bg-blue-50 group-hover:bg-blue-500', title: 'Elite Nutritional AI', desc: 'Macro-precise meal plans designed by AI to fuel your specific goals without sacrificing flavor.' },
+                            { icon: <Apple className="w-8 h-8 text-blue-500 group-hover:text-white" />, bg: 'bg-blue-50 group-hover:bg-blue-500', title: 'Elite Nutritional AI', desc: 'Macro-precise daily nutrition blueprints designed by AI to fuel your specific goals without sacrificing flavor.' },
                             { icon: <LineChart className="w-8 h-8 text-purple-500 group-hover:text-white" />, bg: 'bg-purple-50 group-hover:bg-purple-500', title: 'Live Progress DNA', desc: 'Visual data layers that track your evolution through high-performance charts and predictive analytics.' },
                         ].map((f, i) => (
                             <div key={i} className="card-container p-10 group">

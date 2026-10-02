@@ -198,19 +198,31 @@ wt project/
 - **Responsibilities**: Verifies Google OAuth user profiles. Finds user by `googleId` or matching `email`. If user exists with email, links `googleId`; if brand new, creates user record without password. Performs minimal serialization (`user.id`).
 - **Used by**: `server.js`, `authRoutes.js`.
 
+### `server/services/aiService.js`
+- **Purpose**: Centralized Gemini AI generation service with resilient retry, deadline management, and multi-model failover.
+- **Responsibilities**:
+  - Enforces shared total deadlines (30s for workout/diet plans, 10s for nutrition lookup) and per-attempt timeouts (15s for plans, 6s for lookup) using `Promise.race`.
+  - Primary model: `process.env.GEMINI_MODEL || 'gemini-3.5-flash-lite'`; lookup model: `process.env.GEMINI_LOOKUP_MODEL || 'gemini-3.5-flash-lite'`; fallback model: `process.env.GEMINI_FALLBACK_MODEL || null`.
+  - On 503 / timeout: retries the same model once after a jittered 1-3s delay if the deadline budget allows, then falls back to `GEMINI_FALLBACK_MODEL`.
+  - On 429 quota: switches immediately to fallback model.
+  - On 400 thinkingConfig rejection: retries immediately without `thinkingConfig` on the same model.
+  - On 404: logs critical error for missing/deprecated model.
+  - Logs model and attempt serving each request. Preserves 1 decimal place on macros and runs soft macro-calorie sanity check.
+- **Used by**: `workoutController.js`, `dietController.js`.
+
 ### `server/controllers/workoutController.js`
 - **Purpose**: Handles AI workout generation and workout logging.
-- **Responsibilities**: Constructs Gemini system instructions and prompt, calls Gemini API using `responseMimeType: "application/json"`, parses JSON response with `cleanAIJSON`, creates `Workout` document. Also creates `WorkoutLog` entries and fetches exercise suggestions.
+- **Responsibilities**: Delegates plan generation to `aiService.generateWorkoutPlan({ goal, fitnessLevel })`. Creates `Workout` document. Maps AI errors to HTTP 502 with friendly user messaging (400 on safety blocks). Also creates `WorkoutLog` entries and fetches exercise suggestions.
 - **Important Functions**: `generateWorkout`, `getWorkoutHistory`, `logWorkout`, `getRecentExercises`, `deleteWorkout`.
 - **Used by**: `workoutRoutes.js`.
-- **Calls**: `genAI.getGenerativeModel()`, `Workout.create()`, `WorkoutLog.create()`, `Workout.find()`.
+- **Calls**: `aiService.generateWorkoutPlan()`, `Workout.create()`, `WorkoutLog.create()`, `Workout.find()`.
 
 ### `server/controllers/dietController.js`
-- **Purpose**: Handles AI diet plan generation, food logging, and AI nutrition estimations.
-- **Responsibilities**: Calls Gemini API to generate structured 7-day meal JSON matching goal/diet preference. Provides `lookupNutrition` endpoint querying Gemini to estimate calories/macros for arbitrary food strings. Logs food to `DietLog`.
+- **Purpose**: Handles AI daily nutrition blueprint generation, food logging, and AI nutrition estimations.
+- **Responsibilities**: Delegates blueprint generation to `aiService.generateDietPlan({ goal, dietType })` and food lookups to `aiService.lookupNutrition(query)`. Maps AI errors to HTTP 502 with friendly user messaging (400 on safety blocks). Logs food to `DietLog`.
 - **Important Functions**: `generateDiet`, `getDietHistory`, `logDiet`, `getRecentFoods`, `lookupNutrition`.
 - **Used by**: `dietRoutes.js`.
-- **Calls**: `genAI.getGenerativeModel()`, `Diet.create()`, `DietLog.create()`, `DietLog.find()`.
+- **Calls**: `aiService.generateDietPlan()`, `aiService.lookupNutrition()`, `Diet.create()`, `DietLog.create()`, `DietLog.find()`.
 
 ### `client/src/services/api.js`
 - **Purpose**: Centralized Axios HTTP client.
@@ -308,47 +320,48 @@ User navigates to `/app/workout` → Clicks "Generate Plan" → Chooses goal/lev
 - **API Call**: `workoutAPI.generate({ goal, fitnessLevel })`.
 
 ### Backend
-- **Route**: `POST /api/workout/generate` (Protected)
+- **Route**: `POST /api/workout/generate` (Protected, rate limited: 10/15min per user, 5xx/429 exempted)
 - **Controller**: `workoutController.generateWorkout`
-- **Logic**: Calls Gemini API (`gemini-2.0-flash`) with system instructions and JSON schema constraint. Cleans output using `cleanAIJSON()` and parses JSON. Saves plan object to `Workout` collection.
+- **Logic**: Delegates to `aiService.generateWorkoutPlan` with shared 30s deadline (15s per-attempt timeout). Uses `gemini-3.5-flash-lite` (primary) and optional `GEMINI_FALLBACK_MODEL`. Retries 503 once with 1-3s jitter; falls back immediately on 429; retries without thinkingConfig on 400. Saves plan object to `Workout` collection.
 
 ### Database
 - **Collection**: `workouts`
-- **Fields**: `userId` (ObjectId ref User), `plan` (Object containing `title`, `overview`, `days` array).
+- **Fields**: `userId` (ObjectId ref User), `plan` (Object containing `title`, `overview`, `days` array of 7 days).
 
 ### External Services
-- **Google Gemini API**: Model `gemini-2.0-flash`.
+- **Google Gemini API**: `@google/genai` with model `gemini-3.5-flash-lite`.
 
 ### Data Flow
-Frontend Form → `workoutAPI.generate()` → `POST /api/workout/generate` → `authMiddleware.protect` → `workoutController.generateWorkout` → Gemini API → Parsed JSON → `Workout.create()` → Responded to client → React State update.
+Frontend Form → `workoutAPI.generate()` → `POST /api/workout/generate` → `authMiddleware.protect` → `aiGenerateLimiter` → `workoutController.generateWorkout` → `aiService.generateWorkoutPlan` → Gemini API → Parsed JSON → `Workout.create()` → Responded to client → React State update.
 
 ### Error Handling
-If Gemini fails or returns blocked content due to safety filters, catches error and returns HTTP 500 with user tip: `"Coach Generation Failed... Check your API key and network connection."`
+If Gemini fails, returns HTTP 502 with friendly user message: `"AI Coach is currently experiencing high demand. Please try again in a few moments."` Safety blocks return HTTP 400.
 
 ---
 
-## Feature 2: AI Diet Plan Generator & AI Nutrition Lookup
+## Feature 2: AI Daily Nutrition Blueprint & AI Nutrition Lookup
 
 ### Purpose
-Generates 7-day structured meal plans and offers real-time AI estimations of calories and macros for arbitrary food items.
+Generates personalized daily nutrition blueprints (target calories, macro splits, and meal suggestions across 4 categories) and offers sub-second AI estimations of calories and macros for arbitrary food items.
 
 ### User Flow
-1. **Diet Plan**: User goes to `/app/diet` → Selects diet preference & goal → Clicks "Generate" → Gemini returns meal roadmap → Stored and displayed.
-2. **AI Nutrition Lookup**: User opens `LogFoodModal` → Types food name and weight/quantity → After 1s debounce, AI estimates calories and macros → Auto-populates input fields.
+1. **Daily Blueprint**: User goes to `/app/diet` → Selects diet preference & goal → Clicks "Generate Blueprint" → `aiService` returns daily blueprint with macro profile → Stored in MongoDB and displayed.
+2. **AI Nutrition Lookup**: User opens `LogFoodModal` → Types food name and weight/quantity → Debounced AI call estimates calories and macros (1 decimal precision) → Auto-populates input fields.
 
 ### Frontend
 - **Pages / Modals**: `client/src/pages/Diet.jsx`, `client/src/components/modals/LogFoodModal.jsx`.
 - **API Calls**: `dietAPI.generate()`, `dietAPI.lookup(query)`, `dietAPI.log(formData)`.
 
 ### Backend
-- **Routes**: `POST /api/diet/generate`, `GET /api/diet/lookup`, `POST /api/diet/log`.
+- **Routes**: `POST /api/diet/generate` (Protected, rate limited: 10/15min), `GET /api/diet/lookup` (Protected, rate limited: 60/15min, 5xx/429 exempted), `POST /api/diet/log`.
 - **Controller**: `dietController.js` (`generateDiet`, `lookupNutrition`, `logDiet`).
+- **Logic**: Enforces 30s shared deadline for blueprint generation and 10s shared deadline for lookups.
 
 ### Database
 - **Collections**: `diets` (AI plans), `dietlogs` (Individual logged food entries).
 
 ### External Services
-- **Google Gemini API**: Model `gemini-2.0-flash`.
+- **Google Gemini API**: `@google/genai` with model `gemini-3.5-flash-lite`.
 
 ---
 

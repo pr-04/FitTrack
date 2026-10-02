@@ -437,7 +437,7 @@ const Profile = () => {
 
                     <div className="mt-8 p-4 bg-gray-50 rounded-xl border border-gray-100">
                         <p className="text-xs text-[#6B7280] font-medium leading-relaxed">
-                            Our AI uses these preferences to tailor your weekly meal plans for optimal results mapping to your {user?.goal?.replace('_', ' ')} goal.
+                            Our AI uses these preferences to tailor your daily nutrition blueprints for optimal results mapping to your {user?.goal?.replace('_', ' ')} goal.
                         </p>
                     </div>
                 </motion.div>
