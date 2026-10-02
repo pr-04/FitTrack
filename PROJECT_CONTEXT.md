@@ -155,7 +155,10 @@ wt project/
     ├── middleware/                # Custom Express Middleware
     │   ├── authMiddleware.js      # JWT Bearer token authentication & `req.user` populator
     │   ├── errorMiddleware.js     # 404 handler & global error handler middleware
-    │   └── rateLimiters.js        # IP rate limiter, user-keyed AI generation limiter, lookup limiter
+    │   ├── rateLimiters.js        # IP rate limiter, user-keyed AI generation limiter, lookup limiter
+    │   └── validate.js            # Zod request validation middleware (body, query, params)
+    ├── validators/                # Request Validation Schemas
+    │   └── schemas.js             # Zod schemas for auth, profile, workout, diet
     ├── models/                    # Mongoose Data Schemas
     │   ├── User.js                # User profile, credentials, and biometric preferences schema
     │   ├── Workout.js             # Stored AI-generated workout plan JSON schema

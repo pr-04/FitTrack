@@ -1,0 +1,98 @@
+const { z } = require('zod');
+
+const mongoIdRegex = /^[0-9a-fA-F]{24}$/;
+
+// Auth Schemas
+const signupSchema = z.object({
+    body: z.object({
+        name: z.string({ message: 'Name is required' }).trim().min(1, 'Name is required'),
+        email: z.string({ message: 'Email is required' }).trim().email('Invalid email address'),
+        password: z.string({ message: 'Password is required' }).min(6, 'Password must be at least 6 characters')
+    })
+});
+
+const loginSchema = z.object({
+    body: z.object({
+        email: z.string({ message: 'Email is required' }).trim().email('Invalid email address'),
+        password: z.string({ message: 'Password is required' }).min(1, 'Password is required')
+    })
+});
+
+// User Profile Schemas
+const updateProfileSchema = z.object({
+    body: z.object({
+        name: z.string().trim().min(1).optional(),
+        age: z.coerce.number().int().min(10, 'Age must be at least 10').max(120, 'Age must be less than 120').optional(),
+        weight: z.coerce.number().positive('Weight must be positive').optional(),
+        height: z.coerce.number().positive('Height must be positive').optional(),
+        goal: z.string().optional(),
+        dietType: z.string().optional(),
+        activityLevel: z.string().optional(),
+        workoutLocation: z.string().optional(),
+        isOnboarded: z.boolean().optional()
+    }).passthrough()
+});
+
+// Workout Schemas
+const generateWorkoutSchema = z.object({
+    body: z.object({
+        fitnessGoal: z.string().optional(),
+        workoutLocation: z.string().optional(),
+        daysPerWeek: z.union([z.number(), z.string()]).optional(),
+        fitnessLevel: z.string().optional()
+    }).passthrough().optional()
+});
+
+const logWorkoutSchema = z.object({
+    body: z.object({
+        exercise: z.string({ message: 'Exercise name is required' }).trim().min(1, 'Exercise name is required'),
+        sets: z.coerce.number({ message: 'Number of sets is required' }).int().min(1, 'Sets must be at least 1'),
+        reps: z.coerce.number({ message: 'Number of reps is required' }).int().min(1, 'Reps must be at least 1'),
+        weight: z.coerce.number().min(0, 'Weight cannot be negative').optional().default(0),
+        date: z.union([z.string(), z.date()]).optional()
+    }).passthrough()
+});
+
+const deleteWorkoutSchema = z.object({
+    params: z.object({
+        id: z.string().regex(mongoIdRegex, 'Invalid workout ID format')
+    })
+});
+
+// Diet Schemas
+const generateDietSchema = z.object({
+    body: z.object({
+        dietType: z.string().optional(),
+        allergies: z.union([z.string(), z.array(z.string())]).optional(),
+        targetCalories: z.coerce.number().optional()
+    }).passthrough().optional()
+});
+
+const logDietSchema = z.object({
+    body: z.object({
+        name: z.string({ message: 'Food name is required' }).trim().min(1, 'Food name is required'),
+        calories: z.coerce.number({ message: 'Calories are required' }).min(0, 'Calories cannot be negative'),
+        protein: z.coerce.number().min(0).optional().default(0),
+        carbs: z.coerce.number().min(0).optional().default(0),
+        fats: z.coerce.number().min(0).optional().default(0),
+        date: z.union([z.string(), z.date()]).optional()
+    }).passthrough()
+});
+
+const lookupNutritionSchema = z.object({
+    query: z.object({
+        query: z.string({ message: 'Query is required' }).trim().min(1, 'Query is required')
+    }).passthrough()
+});
+
+module.exports = {
+    signupSchema,
+    loginSchema,
+    updateProfileSchema,
+    generateWorkoutSchema,
+    logWorkoutSchema,
+    deleteWorkoutSchema,
+    generateDietSchema,
+    logDietSchema,
+    lookupNutritionSchema
+};

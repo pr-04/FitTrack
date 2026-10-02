@@ -2,12 +2,14 @@ const express = require('express');
 const router = express.Router();
 const passport = require('passport');
 const { signup, login, googleCallback } = require('../controllers/authController');
+const validate = require('../middleware/validate');
+const { signupSchema, loginSchema } = require('../validators/schemas');
 
 // @route POST /api/auth/signup
-router.post('/signup', signup);
+router.post('/signup', validate(signupSchema), signup);
 
 // @route POST /api/auth/login
-router.post('/login', login);
+router.post('/login', validate(loginSchema), login);
 
 // @route GET /api/auth/google
 router.get('/google', passport.authenticate('google', { scope: ['profile', 'email'] }));
