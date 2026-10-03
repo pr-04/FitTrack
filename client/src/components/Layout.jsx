@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { Outlet, Link, useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { LogOut, Dumbbell, Apple, LineChart, LayoutDashboard, User, Menu, X } from 'lucide-react';
+import ErrorBoundary from './ErrorBoundary';
 
 const TopNav = () => {
     const { logout } = useAuth();
@@ -20,8 +21,10 @@ const TopNav = () => {
 
     // Close mobile menu on route change
     useEffect(() => {
-        setMobileMenuOpen(false);
-    }, [location.pathname]);
+        if (mobileMenuOpen) {
+            setMobileMenuOpen(false);
+        }
+    }, [location.pathname, mobileMenuOpen]);
 
     // Close menu when resizing to desktop
     useEffect(() => {
@@ -159,7 +162,9 @@ const Layout = () => {
         <div className="min-h-screen bg-[#F9FAFB] flex flex-col font-sans text-gray-900">
             <TopNav />
             <main className="flex-1 w-full max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 animate-in fade-in slide-in-from-bottom-4 duration-500">
-                <Outlet />
+                <ErrorBoundary>
+                    <Outlet />
+                </ErrorBoundary>
             </main>
         </div>
     );

@@ -16,6 +16,7 @@ import Tracker from './pages/Tracker';
 import Profile from './pages/Profile';
 import OAuthCallback from './pages/OAuthCallback';
 import PageBackground from './components/PageBackground';
+import ErrorBoundary from './components/ErrorBoundary';
 
 // Protected Route — strict checking for onboarding
 const ProtectedRoute = ({ children, requireOnboarded = true }) => {
@@ -45,7 +46,7 @@ function AppRoutes() {
     <AnimatePresence mode="wait">
       <Routes location={location} key={location.pathname}>
         {/* Public Routes */}
-        <Route path="/" element={<Landing />} />
+        <Route path="/" element={<ErrorBoundary><Landing /></ErrorBoundary>} />
         <Route path="/login" element={<AuthRoute><Login /></AuthRoute>} />
         <Route path="/signup" element={<AuthRoute><Signup /></AuthRoute>} />
         <Route path="/oauth-callback" element={<OAuthCallback />} />
@@ -53,7 +54,9 @@ function AppRoutes() {
         {/* Onboarding - User must be logged in, but strictly NOT onboarded yet */}
         <Route path="/app/onboarding" element={
           <ProtectedRoute requireOnboarded={false}>
-            <Onboarding />
+            <ErrorBoundary>
+              <Onboarding />
+            </ErrorBoundary>
           </ProtectedRoute>
         } />
 
