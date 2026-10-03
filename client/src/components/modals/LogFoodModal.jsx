@@ -20,12 +20,23 @@ const LogFoodModal = ({ isOpen, onClose, onSuccess }) => {
     const [error, setError] = useState(null);
     const [needsConfirmation, setNeedsConfirmation] = useState(false);
     const [isConfirmed, setIsConfirmed] = useState(false);
+    
     const inputRef = useRef(null);
+    const requestIdRef = useRef(0);
 
+    // Reset state whenever modal opens or closes
     useEffect(() => {
         if (isOpen) {
+            setNeedsConfirmation(false);
+            setIsConfirmed(false);
+            setError(null);
             fetchSuggestions();
             setTimeout(() => inputRef.current?.focus(), 100);
+        } else {
+            setNeedsConfirmation(false);
+            setIsConfirmed(false);
+            setError(null);
+            requestIdRef.current++;
         }
     }, [isOpen]);
 
@@ -39,6 +50,7 @@ const LogFoodModal = ({ isOpen, onClose, onSuccess }) => {
     };
 
     const handleLookup = async (nameVal, weightVal, quantityVal) => {
+        const currentRequestId = ++requestIdRef.current;
         try {
             setFetching(true);
             setError(null);
@@ -59,6 +71,12 @@ const LogFoodModal = ({ isOpen, onClose, onSuccess }) => {
             lookupQuery += nameVal;
 
             const res = await dietAPI.lookup(lookupQuery.trim());
+            
+            // Race-condition guard: ignore stale responses if a newer request was dispatched
+            if (currentRequestId !== requestIdRef.current) {
+                return;
+            }
+
             const data = res.data;
             setFormData(prev => ({
                 ...prev,
@@ -76,14 +94,20 @@ const LogFoodModal = ({ isOpen, onClose, onSuccess }) => {
                 setIsConfirmed(true);
             }
         } catch (err) {
+            if (currentRequestId !== requestIdRef.current) {
+                return;
+            }
             console.error("Lookup failed", err);
             setNeedsConfirmation(false);
             setError(err.response?.data?.message || "Could not estimate nutrition. Please enter values manually.");
         } finally {
-            setFetching(false);
+            if (currentRequestId === requestIdRef.current) {
+                setFetching(false);
+            }
         }
     };
 
+    // 1-second debounce for auto nutrition estimation
     useEffect(() => {
         const timer = setTimeout(() => {
             if (formData.name && formData.name.trim().length > 2) {
@@ -119,6 +143,11 @@ const LogFoodModal = ({ isOpen, onClose, onSuccess }) => {
             setLoading(true);
             setError(null);
             await dietAPI.log(formData);
+            
+            // Reset confirmation states after successful save
+            setNeedsConfirmation(false);
+            setIsConfirmed(false);
+            
             onSuccess?.();
             onClose();
         } catch (err) {

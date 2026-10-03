@@ -406,10 +406,16 @@ JSON Schema:
         throw new Error('COULD_NOT_ESTIMATE');
     }
 
-    const calories = Math.round(Number(d.calories) || 0);
-    const protein = Math.round((Number(d.protein) || 0) * 10) / 10;
-    const carbs = Math.round((Number(d.carbs) || 0) * 10) / 10;
-    const fats = Math.round((Number(d.fats) || 0) * 10) / 10;
+    const clampVal = (val) => {
+        const num = Number(val);
+        if (!isFinite(num) || num < 0) return 0;
+        return num;
+    };
+
+    const calories = Math.round(clampVal(d.calories));
+    const protein = Math.round(clampVal(d.protein) * 10) / 10;
+    const carbs = Math.round(clampVal(d.carbs) * 10) / 10;
+    const fats = Math.round(clampVal(d.fats) * 10) / 10;
 
     if (calories === 0 && protein === 0 && carbs === 0 && fats === 0) {
         throw new Error('COULD_NOT_ESTIMATE');

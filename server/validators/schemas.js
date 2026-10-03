@@ -87,7 +87,11 @@ const logDietSchema = z.object({
 
 const lookupNutritionSchema = z.object({
     query: z.object({
-        query: z.string({ message: 'Query is required' }).trim().min(1, 'Query is required')
+        query: z.string({ message: 'Query is required' })
+            .trim()
+            .min(1, 'Query is required')
+            .max(120, 'Query cannot exceed 120 characters')
+            .regex(/^[^\x00-\x1F\x7F]+$/, 'Query cannot contain control characters or newlines')
     }).passthrough()
 });
 
