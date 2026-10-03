@@ -116,9 +116,35 @@ async function testMigrateLegacyLogs() {
         /Refusing to run migration script in production environment/,
         'Should refuse to run when in production environment'
     );
-    console.log('✔ Production environment guard test passed');
+    // Test 5: Double Execute Run (Idempotency check)
+    const mockDbWorkouts = [...mockExistingWorkouts, ...createdWorkouts];
+    const mockDbDiets = [...mockExistingDiets, ...createdDiets];
 
-    console.log('\nAll 4 unit tests for migrate-legacy-logs.js passed successfully!');
+    const MockIdempotentWorkoutLogModel = {
+        find: () => ({ lean: async () => mockDbWorkouts }),
+        create: async (doc) => { mockDbWorkouts.push(doc); return doc; },
+    };
+    const MockIdempotentDietLogModel = {
+        find: () => ({ lean: async () => mockDbDiets }),
+        create: async (doc) => { mockDbDiets.push(doc); return doc; },
+    };
+
+    const secondRunStats = await runMigration({
+        LogModel: MockLogModel,
+        WorkoutLogModel: MockIdempotentWorkoutLogModel,
+        DietLogModel: MockIdempotentDietLogModel,
+        isDryRun: false,
+        confirmDbName: 'fittrack_test',
+        targetDbName: 'fittrack_test',
+        isProd: false,
+    });
+
+    assert.strictEqual(secondRunStats.created, 0, 'Second execute run should create 0 new documents');
+    assert.strictEqual(secondRunStats.wouldCreate, 0, 'Second execute run should have 0 would-create documents');
+    assert.strictEqual(secondRunStats.skippedAsDuplicate, 4, 'Second run should skip all 4 workout/diet items as duplicates');
+    console.log('✔ Idempotency test (double --execute creates 0 docs) passed');
+
+    console.log('\nAll 5 unit tests for migrate-legacy-logs.js passed successfully!');
 }
 
 testMigrateLegacyLogs().catch((err) => {
