@@ -1,3 +1,5 @@
+// WARNING: Do NOT run --execute until the code that stops merging legacy Log is the running code, or old dashboards will double-count.
+
 const path = require('path');
 module.paths.push(path.join(__dirname, '../server/node_modules'));
 const mongoose = require('mongoose');
@@ -47,6 +49,7 @@ async function runMigration({
         created: 0,
         skippedAsDuplicate: 0,
         skippedNonMigratable: 0,
+        weightEntriesFound: 0,
         failed: 0,
     };
 
@@ -124,6 +127,9 @@ async function runMigration({
                 }
             } else {
                 // Weight or other legacy types
+                if (item.type === 'weight') {
+                    stats.weightEntriesFound++;
+                }
                 stats.skippedNonMigratable++;
             }
         } catch (err) {
@@ -157,7 +163,8 @@ async function main() {
 
     console.log(`\n--- Legacy Log Migration Script ---`);
     console.log(`Target Database: "${targetDbName}"`);
-    console.log(`Mode: ${isDryRun ? 'DRY RUN (No changes will be saved)' : 'EXECUTE'}\n`);
+    console.log(`Mode: ${isDryRun ? 'DRY RUN (No changes will be saved)' : 'EXECUTE'}`);
+    console.log(`WARNING: Do NOT run --execute until the code that stops merging legacy Log is the running code, or old dashboards will double-count.\n`);
 
     let confirmDbName = null;
 
@@ -194,6 +201,7 @@ async function main() {
         console.log(`Created:               ${stats.created}`);
         console.log(`Skipped as Duplicate:  ${stats.skippedAsDuplicate}`);
         console.log(`Skipped Non-Migratable:${stats.skippedNonMigratable}`);
+        console.log(`Weight Entries (Kept): ${stats.weightEntriesFound}`);
         console.log(`Failed:                ${stats.failed}`);
         console.log(`-------------------------\n`);
     } catch (err) {
