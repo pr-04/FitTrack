@@ -21,10 +21,8 @@ const TopNav = () => {
 
     // Close mobile menu on route change
     useEffect(() => {
-        if (mobileMenuOpen) {
-            setMobileMenuOpen(false);
-        }
-    }, [location.pathname, mobileMenuOpen]);
+        setMobileMenuOpen(false);
+    }, [location.pathname]);
 
     // Close menu when resizing to desktop
     useEffect(() => {
