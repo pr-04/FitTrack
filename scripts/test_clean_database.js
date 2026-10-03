@@ -114,6 +114,24 @@ async function testCleanDatabase() {
     assert.strictEqual(await freshModelsForExec.User.countDocuments(), 1, '1 user should remain');
     console.log('✔ Execute mode (emails) test passed');
 
+    // 3b. Nonexistent Email Test (Execute mode)
+    const freshModelsForNonexistent = getFreshMockModels();
+    const execNonexistentRes = await runCleanDatabase({
+        dbConnection: null,
+        models: freshModelsForNonexistent,
+        mode: { emails: ['nonexistent@example.com'] },
+        isDryRun: false,
+        confirmDbName: 'fittrack_test',
+        targetDbName: 'fittrack_test',
+        isProd: false,
+    });
+    assert.strictEqual(execNonexistentRes.matchedUsers.length, 0);
+    assert.strictEqual(execNonexistentRes.unmatchedEmails.length, 1);
+    assert.strictEqual(execNonexistentRes.unmatchedEmails[0], 'nonexistent@example.com');
+    assert.strictEqual(Object.keys(execNonexistentRes.deletedCounts).length, 0, '0 deletes executed for nonexistent email');
+    assert.strictEqual(await freshModelsForNonexistent.User.countDocuments(), 2, 'No users should be deleted');
+    console.log('✔ Nonexistent email execute mode test passed');
+
     // 4. Execute Mode Test (ALL Mode)
     const freshModelsForAll = getFreshMockModels();
     const execAllRes = await runCleanDatabase({
