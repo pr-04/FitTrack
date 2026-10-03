@@ -202,6 +202,7 @@ wt project/
 - **Purpose**: Centralized Gemini AI generation service with resilient retry, deadline management, and multi-model failover.
 - **Responsibilities**:
   - Enforces shared total deadlines (30s for workout/diet plans, 10s for nutrition lookup) and per-attempt timeouts (15s for plans, 6s for lookup) using `Promise.race`.
+  - Integrates 30-day `NutritionCache` for food lookups: normalizes queries (NFKC, lowercase, trim, collapse spaces, strip trailing punctuation), queries cache before calling Gemini, and upserts valid AI results (calories <= 5000). Returns `source: "cache"` or `source: "ai"`.
   - Primary model: `process.env.GEMINI_MODEL || 'gemini-3.5-flash-lite'`; lookup model: `process.env.GEMINI_LOOKUP_MODEL || 'gemini-3.5-flash-lite'`; fallback model: `process.env.GEMINI_FALLBACK_MODEL || null`.
   - On 503 / timeout: retries the same model once after a jittered 1-3s delay if the deadline budget allows, then falls back to `GEMINI_FALLBACK_MODEL`.
   - On 429 quota: switches immediately to fallback model.
@@ -209,6 +210,15 @@ wt project/
   - On 404: logs critical error for missing/deprecated model.
   - Logs model and attempt serving each request. Preserves 1 decimal place on macros and runs soft macro-calorie sanity check.
 - **Used by**: `workoutController.js`, `dietController.js`.
+
+### `server/models/NutritionCache.js`
+- **Purpose**: MongoDB collection storing AI-estimated food nutrition lookups with a 30-day TTL index.
+- **Responsibilities**:
+  - `key`: Normalized query string (NFKC, lowercase, trimmed, collapsed whitespace, trailing punctuation stripped) with unique index.
+  - `result`: `{ name, calories, protein, carbs, fats }`.
+  - `createdAt`: Date field with MongoDB TTL index set to 30 days (`2592000` seconds).
+  - Never stores user PII or user IDs. Does not cache `COULD_NOT_ESTIMATE` failures or >5000 kcal items.
+- **Used by**: `aiService.js`.
 
 ### `server/controllers/workoutController.js`
 - **Purpose**: Handles AI workout generation and workout logging.

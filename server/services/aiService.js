@@ -1,5 +1,6 @@
 const { ai, safetySettings, ThinkingLevel } = require('../config/gemini');
 const { workoutPlanSchema, dietPlanSchema } = require('../validators/planSchemas');
+const { NutritionCache, normalizeCacheKey } = require('../models/NutritionCache');
 
 // Helper to sleep with promise
 const sleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
@@ -357,14 +358,39 @@ ONLY include the 4 categories: "Breakfast", "Lunch", "Snacks", "Dinner".
 }
 
 /**
- * Real-time nutrition estimation for arbitrary food item
+ * Real-time nutrition estimation for arbitrary food item with 30-day NutritionCache
  */
 async function lookupNutrition(query) {
     if (!query || typeof query !== 'string' || !query.trim()) {
         throw new Error('COULD_NOT_ESTIMATE');
     }
     const cleanQuery = query.trim();
+    const cacheKey = normalizeCacheKey(cleanQuery);
 
+    // 1. Cache Lookup
+    try {
+        const cachedDoc = await NutritionCache.findOne({ key: cacheKey });
+        if (cachedDoc && cachedDoc.result) {
+            const c = cachedDoc.result;
+            const calories = Math.round(Number(c.calories) || 0);
+            const needsConfirmation = calories > 5000;
+            console.log(`[NutritionCache HIT] '${cleanQuery}' (key: '${cacheKey}') served from cache.`);
+            return {
+                name: cleanQuery,
+                calories,
+                protein: Number(c.protein) || 0,
+                carbs: Number(c.carbs) || 0,
+                fats: Number(c.fats) || 0,
+                needsConfirmation,
+                source: 'cache',
+                model: cachedDoc.model || 'cache'
+            };
+        }
+    } catch (cacheErr) {
+        console.warn(`[NutritionCache Read Warning] Cache lookup failed: ${cacheErr.message}`);
+    }
+
+    // 2. Cache Miss -> Call Gemini API
     const primaryModel = process.env.GEMINI_LOOKUP_MODEL || process.env.GEMINI_MODEL || 'gemini-3.5-flash-lite';
     const fallbackModel = process.env.GEMINI_FALLBACK_MODEL || null;
 
@@ -429,6 +455,33 @@ JSON Schema:
 
     const needsConfirmation = calories > 5000;
 
+    // 3. Upsert to Cache if valid food AND calories <= 5000
+    if (!needsConfirmation && calories <= 5000) {
+        try {
+            await NutritionCache.updateOne(
+                { key: cacheKey },
+                {
+                    $setOnInsert: {
+                        key: cacheKey,
+                        result: {
+                            name: cleanQuery,
+                            calories,
+                            protein,
+                            carbs,
+                            fats
+                        },
+                        model: result.model
+                    }
+                },
+                { upsert: true }
+            );
+        } catch (writeErr) {
+            if (!writeErr.message?.includes('E11000')) {
+                console.warn(`[NutritionCache Write Warning] Upsert failed: ${writeErr.message}`);
+            }
+        }
+    }
+
     return {
         name: cleanQuery,
         calories,
@@ -436,6 +489,7 @@ JSON Schema:
         carbs,
         fats,
         needsConfirmation,
+        source: 'ai',
         model: result.model
     };
 }
