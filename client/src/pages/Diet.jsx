@@ -11,8 +11,19 @@ const Diet = () => {
     const [loading, setLoading] = useState(false);
     const [plan, setPlan] = useState(null);
     const [isLogModalOpen, setIsLogModalOpen] = useState(false);
+    const [initialFood, setInitialFood] = useState(null);
     const [dailyCalories, setDailyCalories] = useState(0);
     const [error, setError] = useState(null);
+
+    const handleOpenLogModal = (foodSuggestion = null) => {
+        setInitialFood(foodSuggestion);
+        setIsLogModalOpen(true);
+    };
+
+    const handleCloseLogModal = () => {
+        setIsLogModalOpen(false);
+        setInitialFood(null);
+    };
 
     const fetchHistory = async () => {
         try {
@@ -71,7 +82,7 @@ const Diet = () => {
                     <p className="text-gray-500 mt-2">Customized for {user?.dietType} / {user?.goal?.replace('_', ' ')}</p>
                 </div>
                 <div className="flex gap-3">
-                    <button onClick={() => setIsLogModalOpen(true)} className="bg-white border text-gray-700 hover:bg-gray-50 hover:scale-105 px-4 py-2.5 rounded-lg flex items-center transition-all duration-200 shadow-sm font-medium">
+                    <button onClick={() => handleOpenLogModal(null)} className="bg-white border text-gray-700 hover:bg-gray-50 hover:scale-105 px-4 py-2.5 rounded-lg flex items-center transition-all duration-200 shadow-sm font-medium">
                         <Plus className="w-4 h-4 mr-2" /> Log Food
                     </button>
                     <button onClick={handleGenerate} disabled={loading}
@@ -171,7 +182,7 @@ const Diet = () => {
                                             {mealObj.options?.map((opt, j) => (
                                                 <li key={j} className="flex justify-between items-start gap-4 text-gray-700 text-sm border-b border-gray-50 pb-2 last:border-0 last:pb-0">
                                                     <span className="leading-relaxed">• {opt}</span>
-                                                    <button onClick={() => setIsLogModalOpen(true)}
+                                                    <button onClick={() => handleOpenLogModal({ name: opt, category: mealObj.category || mealObj.name })}
                                                         className="flex-shrink-0 text-emerald-600 hover:bg-emerald-50 p-1.5 rounded transition-colors" title="Log this meal" >
                                                         <Plus className="w-5 h-5" />
                                                     </button>
@@ -191,7 +202,7 @@ const Diet = () => {
                                                 {plan.meals[category]?.map((opt, j) => (
                                                     <li key={j} className="flex justify-between items-start gap-4 text-gray-700 text-sm border-b border-gray-50 pb-2 last:border-0 last:pb-0">
                                                         <span>• {opt}</span>
-                                                        <button onClick={() => setIsLogModalOpen(true)}
+                                                        <button onClick={() => handleOpenLogModal({ name: opt, category })}
                                                             className="flex-shrink-0 text-emerald-600 hover:bg-emerald-50 p-1.5 rounded transition-colors" title="Log this meal" >
                                                             <Plus className="w-5 h-5" />
                                                         </button>
@@ -209,8 +220,9 @@ const Diet = () => {
 
             <LogFoodModal 
                 isOpen={isLogModalOpen} 
-                onClose={() => setIsLogModalOpen(false)} 
+                onClose={handleCloseLogModal} 
                 onSuccess={handleLogSuccess}
+                initialFood={initialFood}
             />
         </div>
     );

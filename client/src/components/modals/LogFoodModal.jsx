@@ -3,7 +3,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { X, Apple, Save, Loader2, History, Zap, Sparkles, AlertTriangle, CheckCircle2 } from 'lucide-react';
 import { dietAPI } from '../../services/api';
 
-const LogFoodModal = ({ isOpen, onClose, onSuccess }) => {
+const LogFoodModal = ({ isOpen, onClose, onSuccess, initialFood = null }) => {
     const [formData, setFormData] = useState({
         name: '',
         weight: '',
@@ -23,22 +23,7 @@ const LogFoodModal = ({ isOpen, onClose, onSuccess }) => {
     
     const inputRef = useRef(null);
     const requestIdRef = useRef(0);
-
-    // Reset state whenever modal opens or closes
-    useEffect(() => {
-        if (isOpen) {
-            setNeedsConfirmation(false);
-            setIsConfirmed(false);
-            setError(null);
-            fetchSuggestions();
-            setTimeout(() => inputRef.current?.focus(), 100);
-        } else {
-            setNeedsConfirmation(false);
-            setIsConfirmed(false);
-            setError(null);
-            requestIdRef.current++;
-        }
-    }, [isOpen]);
+    const lastLookupQueryRef = useRef('');
 
     const fetchSuggestions = async () => {
         try {
@@ -50,6 +35,7 @@ const LogFoodModal = ({ isOpen, onClose, onSuccess }) => {
     };
 
     const handleLookup = async (nameVal, weightVal, quantityVal) => {
+        if (!nameVal || !nameVal.trim()) return;
         const currentRequestId = ++requestIdRef.current;
         try {
             setFetching(true);
@@ -64,13 +50,13 @@ const LogFoodModal = ({ isOpen, onClose, onSuccess }) => {
             }
             if (weight > 0 && weight !== 100) {
                 lookupQuery += `${weight}g `;
-            } else if (quantity === 0 || !quantity) {
-                lookupQuery += `${weight}g `;
             }
             
-            lookupQuery += nameVal;
+            lookupQuery += nameVal.trim();
+            const trimmedQuery = lookupQuery.trim();
+            lastLookupQueryRef.current = trimmedQuery;
 
-            const res = await dietAPI.lookup(lookupQuery.trim());
+            const res = await dietAPI.lookup(trimmedQuery);
             
             // Race-condition guard: ignore stale responses if a newer request was dispatched
             if (currentRequestId !== requestIdRef.current) {
@@ -80,10 +66,10 @@ const LogFoodModal = ({ isOpen, onClose, onSuccess }) => {
             const data = res.data;
             setFormData(prev => ({
                 ...prev,
-                calories: data.calories,
-                protein: data.protein,
-                carbs: data.carbs,
-                fats: data.fats
+                calories: data.calories !== undefined ? data.calories : prev.calories,
+                protein: data.protein !== undefined ? data.protein : prev.protein,
+                carbs: data.carbs !== undefined ? data.carbs : prev.carbs,
+                fats: data.fats !== undefined ? data.fats : prev.fats
             }));
 
             if (data.needsConfirmation || data.calories > 5000) {
@@ -107,11 +93,78 @@ const LogFoodModal = ({ isOpen, onClose, onSuccess }) => {
         }
     };
 
-    // 1-second debounce for auto nutrition estimation
+    // Reset state whenever modal opens or closes, and prefill / trigger lookup if initialFood is provided
+    useEffect(() => {
+        if (isOpen) {
+            setNeedsConfirmation(false);
+            setIsConfirmed(false);
+            setError(null);
+            fetchSuggestions();
+
+            const initialName = (typeof initialFood === 'string' ? initialFood : initialFood?.name) || '';
+
+            if (initialName) {
+                const newForm = {
+                    name: initialName,
+                    weight: '',
+                    quantity: '',
+                    calories: '',
+                    protein: '',
+                    carbs: '',
+                    fats: '',
+                    date: new Date().toISOString().split('T')[0]
+                };
+                setFormData(newForm);
+                // Trigger immediate AI lookup without waiting for 1s debounce
+                handleLookup(initialName, '', '');
+            } else {
+                setFormData({
+                    name: '',
+                    weight: '',
+                    quantity: '',
+                    calories: '',
+                    protein: '',
+                    carbs: '',
+                    fats: '',
+                    date: new Date().toISOString().split('T')[0]
+                });
+                lastLookupQueryRef.current = '';
+                setTimeout(() => inputRef.current?.focus(), 100);
+            }
+        } else {
+            setNeedsConfirmation(false);
+            setIsConfirmed(false);
+            setError(null);
+            setFetching(false);
+            requestIdRef.current++;
+            lastLookupQueryRef.current = '';
+            setFormData({
+                name: '',
+                weight: '',
+                quantity: '',
+                calories: '',
+                protein: '',
+                carbs: '',
+                fats: '',
+                date: new Date().toISOString().split('T')[0]
+            });
+        }
+    }, [isOpen, initialFood]);
+
+    // 1-second debounce for auto nutrition estimation when user types
     useEffect(() => {
         const timer = setTimeout(() => {
             if (formData.name && formData.name.trim().length > 2) {
-                handleLookup(formData.name, formData.weight, formData.quantity);
+                let currentQuery = '';
+                const q = Number(formData.quantity);
+                const w = Number(formData.weight);
+                if (q > 0) currentQuery += `${q} `;
+                if (w > 0 && w !== 100) currentQuery += `${w}g `;
+                currentQuery += formData.name.trim();
+
+                if (currentQuery.trim() !== lastLookupQueryRef.current) {
+                    handleLookup(formData.name, formData.weight, formData.quantity);
+                }
             }
         }, 1000);
         return () => clearTimeout(timer);

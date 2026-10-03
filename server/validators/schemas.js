@@ -95,7 +95,7 @@ const lookupNutritionSchema = z.object({
         query: z.string({ message: 'Query is required' })
             .trim()
             .min(1, 'Query is required')
-            .max(120, 'Query cannot exceed 120 characters')
+            .max(200, 'Query cannot exceed 200 characters')
             .regex(/^[^\x00-\x1F\x7F]+$/, 'Query cannot contain control characters or newlines')
     }).passthrough()
 });
