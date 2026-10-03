@@ -605,7 +605,7 @@ React Modal Form State Auto-Populated & Rendered
 
 ```env
 PORT=5000
-MONGO_URI=mongodb+srv://<username>:<password>@cluster.mongodb.net/fittrack
+MONGO_URI=mongodb+srv://<username>:<password>@cluster.mongodb.net
 JWT_SECRET=your_jwt_secret_key
 JWT_EXPIRE=30d
 SESSION_SECRET=fittrack_session_secret_key
@@ -614,12 +614,14 @@ GOOGLE_CLIENT_ID=your_google_client_id
 GOOGLE_CLIENT_SECRET=your_google_client_secret
 GOOGLE_CALLBACK_URL=http://localhost:5000/api/auth/google/callback
 GEMINI_API_KEY=your_gemini_api_key
-GEMINI_MODEL=gemini-3.7-flash
-GEMINI_FALLBACK_MODEL=gemini-3.5-flash
+GEMINI_MODEL=gemini-3.5-flash-lite
 GEMINI_LOOKUP_MODEL=gemini-3.5-flash-lite
-XAI_API_KEY=your_xai_api_key (Optional)
+GEMINI_FALLBACK_MODEL=gemini-3.1-flash-lite
+AI_GENERATE_TOTAL_LIMIT_PER_HOUR=30
+AI_LOOKUP_TOTAL_LIMIT_PER_HOUR=300
 NODE_ENV=development
 ```
+*(Note: gemini-2.0-flash and gemini-2.5-flash are retired / do not use).*
 
 ### Frontend (`client/.env`)
 
@@ -672,7 +674,7 @@ VITE_API_URL=http://localhost:5000/api
 
 # 19. AI / ML LOGIC
 
-- **Model**: `gemini-2.0-flash`
+- **Model**: `gemini-3.5-flash-lite` *(retired / do not use: `gemini-2.0-flash`, `gemini-2.5-flash`)*
 - **Configuration**:
   - System instruction enforces AI persona (Elite Coach / Nutritionist) and strict JSON compliance.
   - `responseMimeType: "application/json"` forces native JSON mode.
@@ -764,12 +766,12 @@ npm run build
 ### Required Deployment Environment Variables
 When deploying the FitTrack backend (e.g., on Render or Vercel), the following environment variables **must** be set:
 - `GEMINI_API_KEY`: Google Gemini API key.
-- `GEMINI_MODEL`: Primary AI model for workout and diet plan generation (e.g., `gemini-3.5-flash-lite` or `gemini-2.5-flash`).
+- `GEMINI_MODEL`: Primary AI model for workout and diet plan generation (e.g., `gemini-3.5-flash-lite`; retired / do not use: `gemini-2.0-flash`, `gemini-2.5-flash`).
 - `GEMINI_LOOKUP_MODEL`: Model dedicated for real-time nutrition lookups (e.g., `gemini-3.5-flash-lite`).
 - `GEMINI_FALLBACK_MODEL`: Fallback model used when the primary model returns 429 quota errors or 503 high demand (e.g., `gemini-3.1-flash-lite`).
 - `AI_GENERATE_TOTAL_LIMIT_PER_HOUR`: Outer hourly rate limit per user counting all generate attempts (default `30`).
 - `AI_LOOKUP_TOTAL_LIMIT_PER_HOUR`: Outer hourly rate limit per user counting all lookup attempts (default `300`).
-- `MONGO_URI`: MongoDB connection string (the application currently uses the default `test` database from `server/.env`).
+- `MONGO_URI`: MongoDB connection string (production keeps existing connection string unchanged).
 
 - **Backend Not Starting**: Check `server/.env` exists and contains valid `MONGO_URI`.
 - **AI Generation Failing**: Verify `GEMINI_API_KEY` in `server/.env` is valid and active.
@@ -781,7 +783,7 @@ When deploying the FitTrack backend (e.g., on Render or Vercel), the following e
 # 27. AI HANDOFF / QUICK CONTEXT
 
 ## Project Identity
-FitTrack is a MERN-stack fitness application leveraging Google Gemini 2.0 Flash AI for structured workout/diet plan generation and nutrition lookup.
+FitTrack is a MERN-stack fitness application leveraging Google Gemini AI (`gemini-3.5-flash-lite`) for structured workout/diet plan generation and nutrition lookup.
 
 ## Key Entry Points
 - Backend Server: [`server/server.js`](file:///c:/Users/asus/OneDrive/Desktop/wt%20project/server/server.js)
@@ -831,45 +833,110 @@ Modifying AI Diet Generation or Food Lookup
 
 # 30. FINAL AI SUMMARY
 
-FitTrack is a full-stack MERN application that provides personalized AI-generated 7-day workout routines and dietary meal plans, real-time AI food calorie/macronutrient estimations, WHO BMI calculations, and 7-day caloric performance tracking. Backend operations run on Express/Node with Mongoose MongoDB schemas, Passport Google OAuth 2.0, and JWT security. Frontend operations run on React 19 SPA with Vite, React Router v7, Tailwind CSS, Framer Motion, and Recharts. All AI workflows consume the Google Gemini 2.0 Flash model via `@google/generative-ai` with strict system prompting and native JSON mode enforcement.
+FitTrack is a full-stack MERN application that provides personalized AI-generated 7-day workout routines and dietary meal plans, real-time AI food calorie/macronutrient estimations, WHO BMI calculations, and 7-day caloric performance tracking. Backend operations run on Express/Node with Mongoose MongoDB schemas, Passport Google OAuth 2.0, and JWT security. Frontend operations run on React 19 SPA with Vite, React Router v7, Tailwind CSS, Framer Motion, and Recharts. All AI workflows consume Google Gemini models (`gemini-3.5-flash-lite`, `gemini-3.1-flash-lite`; retired / do not use: `gemini-2.0-flash`, `gemini-2.5-flash`) via `@google/generative-ai` with strict system prompting and native JSON mode enforcement.
 
 ---
 
 # 31. PRODUCTION DEPLOYMENT CHECKLIST & MIGRATION SEQUENCE
 
-## 1. Environment Variables Required on Render / Hosting Platform
-Ensure all required environment variables are set in your deployment environment settings:
-* `PORT=5000`
-* `NODE_ENV=production`
-* `MONGO_URI=mongodb+srv://<user>:<password>@cluster.mongodb.net/fittrack?retryWrites=true&w=majority`
-* `JWT_SECRET=<your_jwt_signing_secret>`
-* `SESSION_SECRET=<your_session_secret>`
-* `GEMINI_API_KEY=<your_google_ai_studio_api_key>`
-* `GEMINI_MODEL=gemini-2.0-flash`
-* `GOOGLE_CLIENT_ID=<your_google_client_id>`
-* `GOOGLE_CLIENT_SECRET=<your_google_client_secret>`
-* `CLIENT_URL=https://<your-render-app>.onrender.com`
+## 1. Code-Generated Environment Variable List (`server/` Code Audit)
+
+Every `process.env` variable referenced in `server/` code has been audited from source:
+
+### Backend Environment Variables (`server/`)
+| Variable Name | Required in Prod | Default / Fallback Value | Description |
+|---|---|---|---|
+| `PORT` | Optional (Set by host) | `5000` | Port number for Express server to listen on. |
+| `NODE_ENV` | Required | `'development'` | Environment mode (`'production'` or `'development'`). Controls stack traces, security headers (`upgradeInsecureRequests`), and logging. |
+| `MONGO_URI` | Required | N/A | MongoDB connection string. Keep production connection string unchanged (do not append `/fittrack` database name). |
+| `JWT_SECRET` | Required | N/A | Secret key used to sign and verify JWT authorization tokens. |
+| `JWT_EXPIRE` | Optional | `'30d'` | Token expiration timeframe string. |
+| `SESSION_SECRET` | Required in Prod | `'fittrack_session_secret_123'` | Secret used by Express session middleware for cookie signing during Google OAuth flow. |
+| `GEMINI_API_KEY` | Required | N/A | Google AI Studio API key for workout/diet generation and nutrition lookups. |
+| `GEMINI_MODEL` | Optional | `'gemini-3.5-flash-lite'` | Primary model for generating workout and diet plans. Example: `gemini-3.5-flash-lite`. *(Note: `gemini-2.0-flash` and `gemini-2.5-flash` are retired / do not use).* |
+| `GEMINI_LOOKUP_MODEL` | Optional | `GEMINI_MODEL` / `'gemini-3.5-flash-lite'` | Model dedicated to quick nutrition lookups. Example: `gemini-3.5-flash-lite`. |
+| `GEMINI_FALLBACK_MODEL` | Optional | `'gemini-3.1-flash-lite'` | Resilience fallback model invoked on retryable 429/503 errors. Example: `gemini-3.1-flash-lite`. |
+| `AI_GENERATE_TOTAL_LIMIT_PER_HOUR` | Optional | `30` | Outer hourly rate limit per user counting all workout/diet plan generation attempts including failures. |
+| `AI_LOOKUP_TOTAL_LIMIT_PER_HOUR` | Optional | `300` | Outer hourly rate limit per user counting all nutrition lookup attempts including failures. |
+| `GOOGLE_CLIENT_ID` | Required for OAuth | N/A | OAuth 2.0 Client ID for Google login authentication. |
+| `GOOGLE_CLIENT_SECRET` | Required for OAuth | N/A | OAuth 2.0 Client Secret for Google login authentication. |
+| `GOOGLE_CALLBACK_URL` | Optional | `http://localhost:5000/api/auth/google/callback` | Server-side callback endpoint registered with Google Cloud Console (e.g. `https://<render-backend>.onrender.com/api/auth/google/callback`). |
+| `CLIENT_URL` | Required | `http://localhost:5173` | Public frontend client URL where the client is hosted (e.g. Vercel `https://fittrack.vercel.app`). Used for CORS origin allowlist and post-OAuth redirect target. |
+
+### Client-side Environment Variables (`client/`)
+| Variable Name | Required in Prod | Default / Fallback Value | Description |
+|---|---|---|---|
+| `VITE_API_URL` | Required | `http://localhost:5000/api` | API base URL target used by Axios client instance and Google OAuth login triggers (e.g. `https://<render-backend>.onrender.com/api`). |
+
+### Rate Limiter Configuration Summary
+- **Outer Total Rate Limiters** (Env configurable): `AI_GENERATE_TOTAL_LIMIT_PER_HOUR` (default `30`/hr) & `AI_LOOKUP_TOTAL_LIMIT_PER_HOUR` (default `300`/hr).
+- **Phase 1 Success Rate Limiters** (Fixed in code): `aiGenerateLimiter` (max `10` successful plan generations per 15 min per user; `skipFailedRequests: true`) & `dietLookupLimiter` (max `60` successful nutrition lookups per 15 min per user; `skipFailedRequests: true`).
+- **General API Limiter**: `apiLimiter` (max `200` requests per 15 min per IP).
+
+### Domain & Cross-Origin Authorization Architecture
+- Frontend client host (e.g. Vercel `https://fittrack.vercel.app`) sets `VITE_API_URL` targeting backend server (e.g. Render `https://fittrack-backend.onrender.com/api`).
+- Backend server host sets `CLIENT_URL` targeting the frontend client URL.
+- CORS middleware in `server.js` includes `CLIENT_URL` in its origin allowlist.
+- Post-OAuth authentication in `authController.js` redirects browser to `${CLIENT_URL}/oauth-callback?code=${rawCode}`.
+- Single-domain hosting is **NOT** required for OAuth or CORS. Backend and frontend run cleanly on distinct domains.
 
 ## 2. Order of Operations for Safe Deployment
 
-```
-1. DEPLOY SERVER AND CLIENT
-   └── Deploy backend server and frontend client simultaneously.
-       - Enables /api/auth/oauth/exchange endpoint for single-domain OAuth code exchange.
-       - Activates schema setters, validator transforms, and read-time enum normalization.
-       - Disables dual-model reading of legacy Log in dashboard and tracker controllers.
+Follow this exact sequence during deployment:
 
-2. RUN ENUM NORMALIZATION MIGRATION
-   └── Run from localhost (or admin CLI) pointing MONGO_URI to target DB:
-       node scripts/normalize-enums.js --execute
-       - Safe to run anytime after server deploy.
-       - Converts existing user documents (e.g. 'lose_weight' -> 'fat_loss', 'Home' -> 'home') to canonical values.
-
-3. RUN LEGACY LOG MIGRATION
-   └── Run from localhost (or admin CLI) pointing MONGO_URI to target DB:
-       node scripts/migrate-legacy-logs.js --execute
-       - MUST be run ONLY after the updated server is deployed and running.
-       - Copies legacy Log documents into WorkoutLog and DietLog without deleting original records.
-       - Historical body weight entries (type === 'weight') remain preserved in the legacy Log collection.
 ```
+(a) MONGODUMP BACKUP
+    └── Run mongodump against the production database to create a complete restore point before executing scripts.
+
+(b) SET ENVIRONMENT VARIABLES ON RENDER AND VERCEL
+    └── Configure environment variables on Render (backend server) and Vercel (frontend client):
+        - Render: MONGO_URI, JWT_SECRET, SESSION_SECRET, GEMINI_API_KEY, GEMINI_MODEL=gemini-3.5-flash-lite, GEMINI_LOOKUP_MODEL=gemini-3.5-flash-lite, GEMINI_FALLBACK_MODEL=gemini-3.1-flash-lite, AI_GENERATE_TOTAL_LIMIT_PER_HOUR=30, AI_LOOKUP_TOTAL_LIMIT_PER_HOUR=300, GOOGLE_CLIENT_ID, GOOGLE_CLIENT_SECRET, GOOGLE_CALLBACK_URL, CLIENT_URL=https://fittrack.vercel.app.
+        - Vercel: VITE_API_URL=https://fittrack-backend.onrender.com/api.
+
+(c) DEPLOY SERVER AND CLIENT TOGETHER
+    └── Deploy backend server and frontend client simultaneously.
+
+(d) SMOKE TEST CRITICAL USER FLOWS
+    └── Perform smoke tests in production:
+        1. Password login & signup
+        2. Google OAuth SSO login flow
+        3. AI Workout & Diet plan generation
+        4. Food logging and nutrition lookup
+
+(e) RUN MIGRATION SCRIPTS FROM LOCALHOST
+    └── Execute migration scripts sequentially from localhost (pointing MONGO_URI to production):
+        1. node scripts/normalize-enums.js --execute
+           (Converts legacy user document enum values e.g. 'lose_weight' -> 'fat_loss', 'Home' -> 'home')
+        2. node scripts/migrate-legacy-logs.js --execute
+           (Copies legacy Log records into WorkoutLog and DietLog without deleting legacy documents)
+
+(f) TIGHTEN SCHEMA ENUMS (FUTURE RELEASE)
+    └── Only after verifying migration success and data integrity, tighten Mongoose schema enum validators to reject non-canonical values in a future release.
+```
+
+## 3. Query Setters (`runSettersOnQuery`) & Endpoint Validator Audit
+
+### Query Setter Casting Behavior (`runSettersOnQuery: true`)
+- Setting `schema.set('runSettersOnQuery', true)` on the `User` schema ensures Mongoose update queries (`User.updateOne()`, `User.findOneAndUpdate()`, `User.updateMany()`) execute path setters (`normalizeGoal`, `normalizeDietType`, `normalizeWorkoutLocation`).
+- Tested without a live database via Mongoose update query compilation (`_castUpdate`): update operations containing `{ $set: { goal: 'lose_weight', dietType: 'Veg', workoutLocation: 'Home' } }` automatically cast input values to canonical `'fat_loss'`, `'vegetarian'`, and `'home'`.
+
+### Endpoint Audit for Enum Writes
+All endpoints writing `workoutLocation`, `dietType`, or `goal` pass through Zod validation schemas (`validators/schemas.js`) prior to controller execution:
+1. `PUT /api/user/profile` (Profile update / Onboarding):
+   - Writes: `goal`, `dietType`, `workoutLocation` to `User` document.
+   - Validator: `validate(updateProfileSchema)`.
+   - Result: Validated & transformed via `normalizeGoal`, `normalizeDietType`, `normalizeWorkoutLocation`.
+2. `POST /api/workout/generate` (AI Workout Generation):
+   - Accepts: `fitnessGoal` (alias for `goal`), `workoutLocation`.
+   - Validator: `validate(generateWorkoutSchema)`.
+   - Result: Validated & transformed via `normalizeGoal`, `normalizeWorkoutLocation`.
+3. `POST /api/diet/generate` (AI Diet Generation):
+   - Accepts: `dietType`.
+   - Validator: `validate(generateDietSchema)`.
+   - Result: Validated & transformed via `normalizeDietType`.
+4. `POST /api/auth/signup` (User Registration):
+   - Accepts: `name`, `email`, `password`.
+   - Validator: `validate(signupSchema)`.
+   - Result: Initializes User document with default schema fields (executing model setters).
+
 
