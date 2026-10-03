@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import { useAuth } from '../context/AuthContext';
 import { dietAPI, trackerAPI } from '../services/api';
 import { Loader2, Plus, Sparkles, CheckCircle, Flame } from 'lucide-react';
-import { AnimatePresence } from 'framer-motion';
+import { motion, AnimatePresence } from 'framer-motion';
 import LogFoodModal from '../components/modals/LogFoodModal';
 import { toast } from 'react-hot-toast';
 

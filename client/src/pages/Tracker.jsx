@@ -44,11 +44,6 @@ const Tracker = () => {
         }
     };
 
-    const handleLogSuccess = (type) => {
-        toast.success(`${type} logged successfully!`);
-        fetchStats();
-    };
-
     if (loading) {
         return (
             <div className="min-h-[500px] flex items-center justify-center">
@@ -157,9 +152,9 @@ const Tracker = () => {
                         <h3 className="text-2xl font-extrabold text-gray-900 font-display italic">Fuel Velocity</h3>
                         <span className="text-xs font-black text-gray-400 uppercase tracking-widest bg-gray-50 px-3 py-1 rounded-lg">Kcal Variance</span>
                     </div>
-                    <div className="h-80 w-full">
+                    <div className="h-80 w-full min-w-0">
                         {calorieChartData.length > 0 ? (
-                            <ResponsiveContainer width="100%" height="100%">
+                            <ResponsiveContainer width="100%" height="100%" minWidth={0} minHeight={0}>
                                 <AreaChart data={calorieChartData}>
                                     <defs>
                                         <linearGradient id="colorCal" x1="0" y1="0" x2="0" y2="1">

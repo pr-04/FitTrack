@@ -6,7 +6,6 @@ import { Dumbbell, Apple, LineChart, Flame, ChevronRight, Activity, Target, Zap,
 import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
 import { motion } from 'framer-motion';
 import { calculateBMI, getBMIStatus } from '../utils/biometrics';
-import { toast } from 'react-hot-toast';
 
 
 const Dashboard = () => {
@@ -29,18 +28,6 @@ const Dashboard = () => {
     useEffect(() => {
         fetchStats();
     }, []);
-
-    const handleLogSuccess = (type) => {
-        toast.success(`${type} logged successfully!`, {
-            style: {
-                borderRadius: '16px',
-                background: '#0F172A',
-                color: '#fff',
-                fontWeight: 'bold'
-            }
-        });
-        fetchStats();
-    };
 
     let recommendation = "Generate your elite plan";
     if (stats?.workoutPlan?.days?.length > 0) {
@@ -193,9 +180,9 @@ const Dashboard = () => {
                         </div>
                     </div>
 
-                    <div className="h-[420px] w-full">
+                    <div className="h-[420px] w-full min-w-0">
                         {stats?.weekData?.length > 0 ? (
-                            <ResponsiveContainer width="100%" height="100%">
+                            <ResponsiveContainer width="100%" height="100%" minWidth={0} minHeight={0}>
                                 <AreaChart data={stats.weekData} margin={{ top: 16, right: 16, left: -8, bottom: 0 }}>
                                     <defs>
                                         <linearGradient id="premiumGradient" x1="0" y1="0" x2="0" y2="1">
