@@ -448,7 +448,6 @@ New user completes signup → Redirected to `/app/onboarding` → Submits height
 | `GET` | `/api/auth/google/callback` | OAuth Callback | No | `googleCallback` | URL Code | 302 Redirect to client with token |
 | `GET` | `/api/user/profile` | Get current user profile | Bearer JWT | `getProfile` | None | 200 OK + User Object |
 | `PUT` | `/api/user/profile` | Update user biometrics | Bearer JWT | `updateProfile` | `{ age, weight, height, goal, ... }` | 200 OK + Updated User |
-| `PUT` | `/api/user/update` | Update user biometrics | Bearer JWT | `updateProfile` | `{ age, weight, height, goal, ... }` | 200 OK + Updated User |
 | `DELETE` | `/api/user/profile` | Delete user account | Bearer JWT | `deleteProfile` | None | 200 OK `{ message }` |
 | `POST` | `/api/workout/generate` | Generate AI workout | Bearer JWT | `generateWorkout` | `{ goal, fitnessLevel }` | 201 Created + Workout Plan |
 | `POST` | `/api/workout/log` | Log exercise completed | Bearer JWT | `logWorkout` | `{ exercise, sets, reps, weight }` | 201 Created + WorkoutLog |
@@ -833,3 +832,44 @@ Modifying AI Diet Generation or Food Lookup
 # 30. FINAL AI SUMMARY
 
 FitTrack is a full-stack MERN application that provides personalized AI-generated 7-day workout routines and dietary meal plans, real-time AI food calorie/macronutrient estimations, WHO BMI calculations, and 7-day caloric performance tracking. Backend operations run on Express/Node with Mongoose MongoDB schemas, Passport Google OAuth 2.0, and JWT security. Frontend operations run on React 19 SPA with Vite, React Router v7, Tailwind CSS, Framer Motion, and Recharts. All AI workflows consume the Google Gemini 2.0 Flash model via `@google/generative-ai` with strict system prompting and native JSON mode enforcement.
+
+---
+
+# 31. PRODUCTION DEPLOYMENT CHECKLIST & MIGRATION SEQUENCE
+
+## 1. Environment Variables Required on Render / Hosting Platform
+Ensure all required environment variables are set in your deployment environment settings:
+* `PORT=5000`
+* `NODE_ENV=production`
+* `MONGO_URI=mongodb+srv://<user>:<password>@cluster.mongodb.net/fittrack?retryWrites=true&w=majority`
+* `JWT_SECRET=<your_jwt_signing_secret>`
+* `SESSION_SECRET=<your_session_secret>`
+* `GEMINI_API_KEY=<your_google_ai_studio_api_key>`
+* `GEMINI_MODEL=gemini-2.0-flash`
+* `GOOGLE_CLIENT_ID=<your_google_client_id>`
+* `GOOGLE_CLIENT_SECRET=<your_google_client_secret>`
+* `CLIENT_URL=https://<your-render-app>.onrender.com`
+
+## 2. Order of Operations for Safe Deployment
+
+```
+1. DEPLOY SERVER AND CLIENT
+   └── Deploy backend server and frontend client simultaneously.
+       - Enables /api/auth/oauth/exchange endpoint for single-domain OAuth code exchange.
+       - Activates schema setters, validator transforms, and read-time enum normalization.
+       - Disables dual-model reading of legacy Log in dashboard and tracker controllers.
+
+2. RUN ENUM NORMALIZATION MIGRATION
+   └── Run from localhost (or admin CLI) pointing MONGO_URI to target DB:
+       node scripts/normalize-enums.js --execute
+       - Safe to run anytime after server deploy.
+       - Converts existing user documents (e.g. 'lose_weight' -> 'fat_loss', 'Home' -> 'home') to canonical values.
+
+3. RUN LEGACY LOG MIGRATION
+   └── Run from localhost (or admin CLI) pointing MONGO_URI to target DB:
+       node scripts/migrate-legacy-logs.js --execute
+       - MUST be run ONLY after the updated server is deployed and running.
+       - Copies legacy Log documents into WorkoutLog and DietLog without deleting original records.
+       - Historical body weight entries (type === 'weight') remain preserved in the legacy Log collection.
+```
+
