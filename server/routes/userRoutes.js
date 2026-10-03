@@ -11,9 +11,6 @@ router.get('/profile', protect, getProfile);
 // @route PUT /api/user/profile (used for onboarding as well)
 router.put('/profile', protect, validate(updateProfileSchema), updateProfile);
 
-// @route PUT /api/user/update
-router.put('/update', protect, validate(updateProfileSchema), updateProfile);
-
 // @route DELETE /api/user/profile
 router.delete('/profile', protect, deleteProfile);
 
