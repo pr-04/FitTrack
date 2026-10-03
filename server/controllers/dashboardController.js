@@ -1,7 +1,6 @@
 const User = require('../models/User');
 const Workout = require('../models/Workout');
 const Diet = require('../models/Diet');
-const Log = require('../models/Log');
 const WorkoutLog = require('../models/WorkoutLog');
 const DietLog = require('../models/DietLog');
 
@@ -21,16 +20,14 @@ const getDashboardSummary = async (req, res) => {
         const latestWorkout = await Workout.findOne({ userId }).sort({ createdAt: -1 });
         const latestDiet = await Diet.findOne({ userId }).sort({ createdAt: -1 });
 
-        // Fetch logs from all sources
-        const [oldLogs, newWorkoutLogs, newDietLogs] = await Promise.all([
-            Log.find({ userId, date: { $gte: sevenDaysAgo } }).sort({ date: -1 }),
+        // Fetch logs from primary sources
+        const [newWorkoutLogs, newDietLogs] = await Promise.all([
             WorkoutLog.find({ userId, date: { $gte: sevenDaysAgo } }).sort({ date: -1 }),
             DietLog.find({ userId, date: { $gte: sevenDaysAgo } }).sort({ date: -1 })
         ]);
         
         // Normalize logs for display
         const normalizedLogs = [
-            ...oldLogs.map(l => ({ ...l.toObject(), name: l.foodItem || l.exercise, displayType: l.type })),
             ...newWorkoutLogs.map(l => ({ ...l.toObject(), name: l.exercise, type: 'workout', displayType: 'workout' })),
             ...newDietLogs.map(l => ({ ...l.toObject(), type: 'diet', displayType: 'diet' }))
         ].sort((a, b) => new Date(b.date) - new Date(a.date));
@@ -39,15 +36,9 @@ const getDashboardSummary = async (req, res) => {
         const thirtyDaysAgo = new Date();
         thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
         
-        const [streakWorkouts, streakOldLogs] = await Promise.all([
-            WorkoutLog.find({ userId, date: { $gte: thirtyDaysAgo } }),
-            Log.find({ userId, type: 'workout', date: { $gte: thirtyDaysAgo } })
-        ]);
+        const streakWorkouts = await WorkoutLog.find({ userId, date: { $gte: thirtyDaysAgo } });
 
-        const workoutDays = new Set([
-            ...streakWorkouts.map(l => new Date(l.date).toDateString()),
-            ...streakOldLogs.map(l => new Date(l.date).toDateString())
-        ]);
+        const workoutDays = new Set(streakWorkouts.map(l => new Date(l.date).toDateString()));
         const streak = workoutDays.size;
 
         // Weekly Caloric Performance Chart (Last 7 Days)
@@ -63,13 +54,8 @@ const getDashboardSummary = async (req, res) => {
                 calories: 0
             };
         }
-
-        const allDietLogs = [
-            ...oldLogs.filter(l => l.type === 'diet'),
-            ...newDietLogs
-        ];
         
-        allDietLogs.forEach(log => {
+        newDietLogs.forEach(log => {
             const dateStr = new Date(log.date).toDateString();
             if (weekDataMap[dateStr]) {
                 weekDataMap[dateStr].calories += log.calories || 0;
