@@ -1,4 +1,5 @@
 const User = require('../models/User');
+const { formatUserResponse } = require('../utils/userResponse');
 
 // @desc    Get user profile
 // @route   GET /api/user/profile
@@ -8,7 +9,7 @@ const getProfile = async (req, res) => {
     if (!user) {
         return res.status(404).json({ message: 'User not found' });
     }
-    res.json({ ...user.toObject() });
+    res.json(formatUserResponse(user));
 };
 
 // @desc    Update user profile & complete onboarding
@@ -37,10 +38,7 @@ const updateProfile = async (req, res) => {
         }
 
         const updatedUser = await user.save();
-        const userResponse = updatedUser.toObject();
-        delete userResponse.password;
-        
-        res.json(userResponse);
+        res.json(formatUserResponse(updatedUser));
     } catch (error) {
         res.status(500).json({ message: error.message });
     }

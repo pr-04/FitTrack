@@ -54,7 +54,7 @@ const Dashboard = () => {
                     <p className="text-gray-500 mt-1.5 text-base font-medium">
                         You're on track to{' '}
                         <span className="text-gray-900 font-bold capitalize underline decoration-primary/30 underline-offset-4">
-                            {user?.goal?.replace('_', ' ')}
+                            {user?.goal ? user.goal.replace('_', ' ') : 'your fitness goals'}
                         </span>.
                     </p>
                 </div>

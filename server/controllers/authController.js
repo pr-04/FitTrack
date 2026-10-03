@@ -2,6 +2,7 @@ const crypto = require('crypto');
 const User = require('../models/User');
 const OAuthCode = require('../models/OAuthCode');
 const jwt = require('jsonwebtoken');
+const { formatUserResponse } = require('../utils/userResponse');
 
 const generateToken = (id) => {
     return jwt.sign({ id }, process.env.JWT_SECRET, {
@@ -25,13 +26,8 @@ const signup = async (req, res) => {
         const user = await User.create({ name, email, password });
 
         if (user) {
-            res.status(201).json({
-                _id: user._id,
-                name: user.name,
-                email: user.email,
-                token: generateToken(user._id),
-                isOnboarded: false // indicating onboarding is needed
-            });
+            const token = generateToken(user._id);
+            res.status(201).json(formatUserResponse(user, token));
         } else {
             res.status(400).json({ message: 'Invalid user data' });
         }
@@ -51,14 +47,8 @@ const login = async (req, res) => {
         const user = await User.findOne({ email });
 
         if (user && (await user.matchPassword(password))) {
-            const isOnboarded = !!user.age && !!user.weight && !!user.height;
-            res.json({
-                _id: user._id,
-                name: user.name,
-                email: user.email,
-                token: generateToken(user._id),
-                isOnboarded
-            });
+            const token = generateToken(user._id);
+            res.json(formatUserResponse(user, token));
         } else {
             res.status(401).json({ message: 'Invalid email or password' });
         }
@@ -106,16 +96,8 @@ const exchangeOAuthCode = async (req, res) => {
             return res.status(404).json({ message: 'User not found' });
         }
 
-        const isOnboarded = !!user.age && !!user.weight && !!user.height;
         const token = generateToken(user._id);
-
-        res.json({
-            _id: user._id,
-            name: user.name,
-            email: user.email,
-            token,
-            isOnboarded
-        });
+        res.json(formatUserResponse(user, token));
     } catch (error) {
         res.status(500).json({ message: error.message });
     }

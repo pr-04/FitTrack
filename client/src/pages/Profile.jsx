@@ -49,6 +49,38 @@ const Profile = () => {
     const [bmi, setBmi] = useState('0.0');
     const [bmiStatus, setBmiStatus] = useState(getBMIStatus(0));
 
+    // Refetch profile on mount if fields are missing or stale
+    useEffect(() => {
+        const fetchProfile = async () => {
+            try {
+                const res = await userAPI.getProfile();
+                if (res.data) {
+                    updateUser(res.data);
+                }
+            } catch (err) {
+                console.error("Failed to fetch user profile", err);
+            }
+        };
+        fetchProfile();
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, []);
+
+    // Sync formData whenever user updates
+    useEffect(() => {
+        if (user) {
+            setFormData({
+                name: user.name || '',
+                age: user.age || '',
+                weight: user.weight || '',
+                height: user.height || '',
+                goal: user.goal === 'lose_weight' ? 'fat_loss' : (user.goal || 'maintain'),
+                dietType: user.dietType === 'Veg' ? 'vegetarian' : (user.dietType === 'Non-veg' ? 'non-vegetarian' : (user.dietType || 'any')),
+                activityLevel: user.activityLevel || 'moderate',
+                workoutLocation: user.workoutLocation ? user.workoutLocation.toLowerCase() : 'gym'
+            });
+        }
+    }, [user]);
+
     useEffect(() => {
         if (formData.weight && formData.height) {
             const calculatedBmi = calculateBMI(formData.weight, formData.height);
@@ -122,6 +154,10 @@ const Profile = () => {
         visible: { opacity: 1, y: 0 }
     };
 
+    const joinedDateFormatted = user?.createdAt && !isNaN(new Date(user.createdAt).getTime())
+        ? new Date(user.createdAt).toLocaleDateString()
+        : 'Recently';
+
     return (
         <motion.div 
             initial="hidden"
@@ -171,7 +207,7 @@ const Profile = () => {
                                 {user?.isOnboarded ? 'Profile Verified' : 'Incomplete'}
                             </span>
                             <span className="text-gray-300 text-sm">•</span>
-                            <span className="text-[#6B7280] text-sm font-medium">Joined {new Date(user?.createdAt).toLocaleDateString()}</span>
+                            <span className="text-[#6B7280] text-sm font-medium">Joined {joinedDateFormatted}</span>
                         </div>
                     </div>
                 </div>
