@@ -7,68 +7,12 @@ const readline = require('readline');
 require('dotenv').config({ path: path.join(__dirname, '../server/.env') });
 
 const User = require('../server/models/User');
-
-/**
- * Mapping rules for canonical enum values.
- * Performs case-insensitive, trimmed matching.
- * Unknown / null / undefined values return unchanged.
- */
-function normalizeWorkoutLocation(value) {
-    if (typeof value !== 'string') return value;
-    const clean = value.trim().toLowerCase();
-    if (clean === 'home') return 'home';
-    if (clean === 'gym') return 'gym';
-    return value; // unknown value left unchanged
-}
-
-function normalizeDietType(value) {
-    if (typeof value !== 'string') return value;
-    const clean = value.trim().toLowerCase();
-    if (clean === 'veg' || clean === 'vegetarian') return 'vegetarian';
-    if (clean === 'non-veg' || clean === 'non-vegetarian') return 'non-vegetarian';
-    if (clean === 'vegan') return 'vegan';
-    if (clean === 'pescatarian') return 'pescatarian';
-    if (clean === 'any') return 'any';
-    return value; // unknown value left unchanged
-}
-
-function normalizeGoal(value) {
-    if (typeof value !== 'string') return value;
-    const clean = value.trim().toLowerCase();
-    if (clean === 'lose_weight' || clean === 'fat_loss') return 'fat_loss';
-    if ([
-        'muscle_gain',
-        'body_recomposition',
-        'maintain',
-        'strength',
-        'endurance',
-        'general_fitness',
-        'flexibility'
-    ].includes(clean)) {
-        return clean;
-    }
-    return value; // unknown value left unchanged
-}
-
-/**
- * Normalize all 3 user enum fields on a user object/document.
- */
-function normalizeUserEnums(userDoc) {
-    if (!userDoc) return userDoc;
-    const normalized = {};
-
-    if (userDoc.workoutLocation !== undefined) {
-        normalized.workoutLocation = normalizeWorkoutLocation(userDoc.workoutLocation);
-    }
-    if (userDoc.dietType !== undefined) {
-        normalized.dietType = normalizeDietType(userDoc.dietType);
-    }
-    if (userDoc.goal !== undefined) {
-        normalized.goal = normalizeGoal(userDoc.goal);
-    }
-
-    return normalized;
-}
+const {
+    normalizeWorkoutLocation,
+    normalizeDietType,
+    normalizeGoal,
+    normalizeUserEnums,
+} = require('../server/utils/enums');
 
 /**
  * Core migration logic, runnable in dry-run or execute mode.

@@ -15,8 +15,8 @@ const Onboarding = () => {
         age: user?.age || '',
         weight: user?.weight || '',
         height: user?.height || '',
-        goal: user?.goal || 'maintain',
-        dietType: user?.dietType || 'any',
+        goal: user?.goal === 'lose_weight' ? 'fat_loss' : (user?.goal || 'maintain'),
+        dietType: user?.dietType === 'Veg' ? 'vegetarian' : (user?.dietType === 'Non-veg' ? 'non-vegetarian' : (user?.dietType || 'any')),
         activityLevel: user?.activityLevel || 'light',
         isOnboarded: true
     });

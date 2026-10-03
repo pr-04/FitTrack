@@ -1,4 +1,9 @@
 const { z } = require('zod');
+const {
+    normalizeWorkoutLocation,
+    normalizeDietType,
+    normalizeGoal,
+} = require('../utils/enums');
 
 const mongoIdRegex = /^[0-9a-fA-F]{24}$/;
 
@@ -31,10 +36,10 @@ const updateProfileSchema = z.object({
         age: z.coerce.number().int().min(10, 'Age must be at least 10').max(120, 'Age must be less than 120').optional(),
         weight: z.coerce.number().positive('Weight must be positive').optional(),
         height: z.coerce.number().positive('Height must be positive').optional(),
-        goal: z.string().optional(),
-        dietType: z.string().optional(),
+        goal: z.string().optional().transform(val => val ? normalizeGoal(val) : val),
+        dietType: z.string().optional().transform(val => val ? normalizeDietType(val) : val),
         activityLevel: z.string().optional(),
-        workoutLocation: z.string().optional(),
+        workoutLocation: z.string().optional().transform(val => val ? normalizeWorkoutLocation(val) : val),
         isOnboarded: z.boolean().optional()
     }).passthrough()
 });
@@ -42,8 +47,8 @@ const updateProfileSchema = z.object({
 // Workout Schemas
 const generateWorkoutSchema = z.object({
     body: z.object({
-        fitnessGoal: z.string().optional(),
-        workoutLocation: z.string().optional(),
+        fitnessGoal: z.string().optional().transform(val => val ? normalizeGoal(val) : val),
+        workoutLocation: z.string().optional().transform(val => val ? normalizeWorkoutLocation(val) : val),
         daysPerWeek: z.union([z.number(), z.string()]).optional(),
         fitnessLevel: z.string().optional()
     }).passthrough().optional()
@@ -68,7 +73,7 @@ const deleteWorkoutSchema = z.object({
 // Diet Schemas
 const generateDietSchema = z.object({
     body: z.object({
-        dietType: z.string().optional(),
+        dietType: z.string().optional().transform(val => val ? normalizeDietType(val) : val),
         allergies: z.union([z.string(), z.array(z.string())]).optional(),
         targetCalories: z.coerce.number().optional()
     }).passthrough().optional()

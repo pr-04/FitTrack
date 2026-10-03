@@ -1,6 +1,7 @@
 const { ai, safetySettings, ThinkingLevel } = require('../config/gemini');
 const { workoutPlanSchema, dietPlanSchema } = require('../validators/planSchemas');
 const { NutritionCache, normalizeCacheKey } = require('../models/NutritionCache');
+const { normalizeGoal, normalizeDietType } = require('../utils/enums');
 
 // Helper to sleep with promise
 const sleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
@@ -245,7 +246,7 @@ async function generateWorkoutPlan({ goal, fitnessLevel }) {
     const primaryModel = process.env.GEMINI_MODEL || 'gemini-3.5-flash-lite';
     const fallbackModel = process.env.GEMINI_FALLBACK_MODEL || null;
 
-    const userGoal = goal || 'maintain';
+    const userGoal = normalizeGoal(goal) || 'maintain';
     const userLevel = fitnessLevel || 'moderate';
 
     const prompt = `
@@ -307,8 +308,8 @@ async function generateDietPlan({ goal, dietType }) {
     const primaryModel = process.env.GEMINI_MODEL || 'gemini-3.5-flash-lite';
     const fallbackModel = process.env.GEMINI_FALLBACK_MODEL || null;
 
-    const userGoal = goal || 'maintain';
-    const userDiet = dietType || 'any';
+    const userGoal = normalizeGoal(goal) || 'maintain';
+    const userDiet = normalizeDietType(dietType) || 'any';
 
     const prompt = `
 Create a professional daily nutrition blueprint for a user with the goal: ${userGoal.replace('_', ' ')}.

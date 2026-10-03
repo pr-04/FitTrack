@@ -1,5 +1,11 @@
 const mongoose = require('mongoose');
 const bcrypt = require('bcryptjs');
+const {
+    normalizeWorkoutLocation,
+    normalizeDietType,
+    normalizeGoal,
+    normalizeUserEnums,
+} = require('../utils/enums');
 
 const userSchema = new mongoose.Schema(
     {
@@ -41,11 +47,13 @@ const userSchema = new mongoose.Schema(
             type: String,
             enum: ['fat_loss', 'muscle_gain', 'body_recomposition', 'maintain', 'strength', 'endurance', 'general_fitness', 'flexibility', 'lose_weight'],
             default: 'maintain',
+            set: normalizeGoal,
         },
         dietType: {
             type: String,
             enum: ['vegetarian', 'non-vegetarian', 'vegan', 'pescatarian', 'any', 'Veg', 'Non-veg'],
             default: 'any',
+            set: normalizeDietType,
         },
         activityLevel: {
             type: String,
@@ -55,7 +63,8 @@ const userSchema = new mongoose.Schema(
         workoutLocation: {
             type: String,
             enum: ['Home', 'Gym', 'home', 'gym'],
-            default: 'Home',
+            default: 'home',
+            set: normalizeWorkoutLocation,
         },
         isOnboarded: {
             type: Boolean,
@@ -64,6 +73,13 @@ const userSchema = new mongoose.Schema(
     },
     { timestamps: true }
 );
+
+userSchema.set('toJSON', {
+    transform: (doc, ret) => normalizeUserEnums(ret),
+});
+userSchema.set('toObject', {
+    transform: (doc, ret) => normalizeUserEnums(ret),
+});
 
 // Hash password before saving (skip for OAuth users with no password)
 userSchema.pre('save', async function () {

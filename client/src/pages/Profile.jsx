@@ -40,10 +40,10 @@ const Profile = () => {
         age: user?.age || '',
         weight: user?.weight || '',
         height: user?.height || '',
-        goal: user?.goal || 'maintain',
-        dietType: user?.dietType || 'any',
+        goal: user?.goal === 'lose_weight' ? 'fat_loss' : (user?.goal || 'maintain'),
+        dietType: user?.dietType === 'Veg' ? 'vegetarian' : (user?.dietType === 'Non-veg' ? 'non-vegetarian' : (user?.dietType || 'any')),
         activityLevel: user?.activityLevel || 'moderate',
-        workoutLocation: user?.workoutLocation || 'Gym'
+        workoutLocation: user?.workoutLocation ? user.workoutLocation.toLowerCase() : 'gym'
     });
 
     const [bmi, setBmi] = useState('0.0');
@@ -388,13 +388,13 @@ const Profile = () => {
                                         onChange={handleChange}
                                         className={inputClasses}
                                     >
-                                        <option value="Home">Home</option>
-                                        <option value="Gym">Gym</option>
+                                        <option value="home">Home</option>
+                                        <option value="gym">Gym</option>
                                     </select>
                                 ) : (
                                     <div className="flex items-center gap-2 pl-1 bg-[#F9FAFB] p-3 rounded-xl border border-[#E5E7EB] font-bold text-[#111827]">
                                         <MapPin className="w-4 h-4 text-[#22C55E]" />
-                                        {user?.workoutLocation || 'Gym'}
+                                        {user?.workoutLocation || 'gym'}
                                     </div>
                                 )}
                             </div>
@@ -421,9 +421,10 @@ const Profile = () => {
                                     onChange={handleChange}
                                     className={inputClasses}
                                 >
-                                    <option value="Veg">Vegetarian</option>
-                                    <option value="Non-veg">Non-Vegetarian</option>
+                                    <option value="vegetarian">Vegetarian</option>
+                                    <option value="non-vegetarian">Non-Vegetarian</option>
                                     <option value="vegan">Vegan</option>
+                                    <option value="pescatarian">Pescatarian</option>
                                     <option value="any">Flexible</option>
                                 </select>
                             ) : (
