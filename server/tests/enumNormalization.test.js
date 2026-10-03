@@ -79,7 +79,28 @@ function testEnumNormalization() {
     assert.strictEqual(readNormalized.goal, 'fat_loss');
     assert.strictEqual(readNormalized.dietType, 'vegetarian');
     assert.strictEqual(readNormalized.workoutLocation, 'home');
-    console.log('✔ User schema setters & read-time transforms passed');
+
+    // Unknown value preservation verification (must NOT return null/undefined)
+    const unknownObject = {
+        goal: 'custom_marathon',
+        dietType: 'keto',
+        workoutLocation: 'outdoors',
+    };
+    const unknownNormalized = normalizeUserEnums(unknownObject);
+    assert.strictEqual(unknownNormalized.goal, 'custom_marathon', 'Unknown goal must remain unchanged');
+    assert.strictEqual(unknownNormalized.dietType, 'keto', 'Unknown dietType must remain unchanged');
+    assert.strictEqual(unknownNormalized.workoutLocation, 'outdoors', 'Unknown workoutLocation must remain unchanged');
+
+    // Document Instance Setter Verification (user.set() or user.goal = ...)
+    const docSetterUser = new User();
+    docSetterUser.goal = 'lose_weight';
+    docSetterUser.dietType = 'Veg';
+    docSetterUser.workoutLocation = 'Home';
+    assert.strictEqual(docSetterUser.goal, 'fat_loss', 'Instance setter must transform lose_weight to fat_loss');
+    assert.strictEqual(docSetterUser.dietType, 'vegetarian', 'Instance setter must transform Veg to vegetarian');
+    assert.strictEqual(docSetterUser.workoutLocation, 'home', 'Instance setter must transform Home to home');
+
+    console.log('✔ User schema instance setters, unknown value preservation & read-time transforms passed');
 
     console.log('\nAll unit tests for Step 4 passed successfully!');
 }
