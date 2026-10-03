@@ -100,7 +100,20 @@ function testEnumNormalization() {
     assert.strictEqual(docSetterUser.dietType, 'vegetarian', 'Instance setter must transform Veg to vegetarian');
     assert.strictEqual(docSetterUser.workoutLocation, 'home', 'Instance setter must transform Home to home');
 
-    console.log('✔ User schema instance setters, unknown value preservation & read-time transforms passed');
+    // 4. Mongoose Update Query Casting Test (runSettersOnQuery)
+    const updateQuery = User.updateOne({}, {
+        $set: {
+            goal: 'lose_weight',
+            dietType: 'Veg',
+            workoutLocation: 'Home'
+        }
+    });
+    const castedUpdate = updateQuery._castUpdate(updateQuery._update);
+    assert.strictEqual(castedUpdate.$set.goal, 'fat_loss', 'runSettersOnQuery must cast update query goal lose_weight to fat_loss');
+    assert.strictEqual(castedUpdate.$set.dietType, 'vegetarian', 'runSettersOnQuery must cast update query dietType Veg to vegetarian');
+    assert.strictEqual(castedUpdate.$set.workoutLocation, 'home', 'runSettersOnQuery must cast update query workoutLocation Home to home');
+
+    console.log('✔ User schema instance setters, unknown value preservation, read-time & update-query transforms passed');
 
     console.log('\nAll unit tests for Step 4 passed successfully!');
 }
