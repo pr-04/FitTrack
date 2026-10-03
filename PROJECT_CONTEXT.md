@@ -750,7 +750,17 @@ npm run build
 
 ---
 
-# 26. DEBUGGING GUIDE
+# 26. DEBUGGING GUIDE & DEPLOYMENT ENVIRONMENT VARIABLES
+
+### Required Deployment Environment Variables
+When deploying the FitTrack backend (e.g., on Render or Vercel), the following environment variables **must** be set:
+- `GEMINI_API_KEY`: Google Gemini API key.
+- `GEMINI_MODEL`: Primary AI model for workout and diet plan generation (e.g., `gemini-3.5-flash-lite` or `gemini-2.5-flash`).
+- `GEMINI_LOOKUP_MODEL`: Model dedicated for real-time nutrition lookups (e.g., `gemini-3.5-flash-lite`).
+- `GEMINI_FALLBACK_MODEL`: Fallback model used when the primary model returns 429 quota errors or 503 high demand (e.g., `gemini-3.1-flash-lite`).
+- `AI_GENERATE_TOTAL_LIMIT_PER_HOUR`: Outer hourly rate limit per user counting all generate attempts (default `30`).
+- `AI_LOOKUP_TOTAL_LIMIT_PER_HOUR`: Outer hourly rate limit per user counting all lookup attempts (default `300`).
+- `MONGO_URI`: MongoDB connection string (the application currently uses the default `test` database from `server/.env`).
 
 - **Backend Not Starting**: Check `server/.env` exists and contains valid `MONGO_URI`.
 - **AI Generation Failing**: Verify `GEMINI_API_KEY` in `server/.env` is valid and active.

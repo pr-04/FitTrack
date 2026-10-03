@@ -1,10 +1,9 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { X, Apple, Save, Loader2, History, Beef, Zap, LayoutGrid, Sparkles } from 'lucide-react';
+import { X, Apple, Save, Loader2, History, Zap, Sparkles, AlertTriangle, CheckCircle2 } from 'lucide-react';
 import { dietAPI } from '../../services/api';
 
 const LogFoodModal = ({ isOpen, onClose, onSuccess }) => {
-    const [mode, setMode] = useState('quick'); // 'quick' or 'detailed'
     const [formData, setFormData] = useState({
         name: '',
         weight: '',
@@ -19,6 +18,8 @@ const LogFoodModal = ({ isOpen, onClose, onSuccess }) => {
     const [loading, setLoading] = useState(false);
     const [suggestions, setSuggestions] = useState([]);
     const [error, setError] = useState(null);
+    const [needsConfirmation, setNeedsConfirmation] = useState(false);
+    const [isConfirmed, setIsConfirmed] = useState(false);
     const inputRef = useRef(null);
 
     useEffect(() => {
@@ -37,24 +38,14 @@ const LogFoodModal = ({ isOpen, onClose, onSuccess }) => {
         }
     };
 
-    useEffect(() => {
-        const timer = setTimeout(() => {
-            if (formData.name && formData.name.length > 2) {
-                handleLookup();
-            }
-        }, 1000);
-        return () => clearTimeout(timer);
-    }, [formData.name, formData.weight, formData.quantity]);
-
-    const handleLookup = async () => {
+    const handleLookup = async (nameVal, weightVal, quantityVal) => {
         try {
             setFetching(true);
             setError(null);
             
-            // Build query based on what the user entered
             let lookupQuery = '';
-            const quantity = Number(formData.quantity);
-            const weight = Number(formData.weight);
+            const quantity = Number(quantityVal);
+            const weight = Number(weightVal);
 
             if (quantity > 0) {
                 lookupQuery += `${quantity} `;
@@ -62,11 +53,10 @@ const LogFoodModal = ({ isOpen, onClose, onSuccess }) => {
             if (weight > 0 && weight !== 100) {
                 lookupQuery += `${weight}g `;
             } else if (quantity === 0 || !quantity) {
-                // If no quantity, use weight even if it's default
                 lookupQuery += `${weight}g `;
             }
             
-            lookupQuery += formData.name;
+            lookupQuery += nameVal;
 
             const res = await dietAPI.lookup(lookupQuery.trim());
             const data = res.data;
@@ -77,21 +67,54 @@ const LogFoodModal = ({ isOpen, onClose, onSuccess }) => {
                 carbs: data.carbs,
                 fats: data.fats
             }));
+
+            if (data.needsConfirmation || data.calories > 5000) {
+                setNeedsConfirmation(true);
+                setIsConfirmed(false);
+            } else {
+                setNeedsConfirmation(false);
+                setIsConfirmed(true);
+            }
         } catch (err) {
             console.error("Lookup failed", err);
-            setError(err.response?.data?.message || "Estimation failed. Try a different food name.");
+            setNeedsConfirmation(false);
+            setError(err.response?.data?.message || "Could not estimate nutrition. Please enter values manually.");
         } finally {
             setFetching(false);
         }
     };
 
+    useEffect(() => {
+        const timer = setTimeout(() => {
+            if (formData.name && formData.name.trim().length > 2) {
+                handleLookup(formData.name, formData.weight, formData.quantity);
+            }
+        }, 1000);
+        return () => clearTimeout(timer);
+    }, [formData.name, formData.weight, formData.quantity]);
+
     const handleChange = (e) => {
         const { name, value } = e.target;
         setFormData(prev => ({ ...prev, [name]: value }));
+        if (name === 'calories') {
+            const calNum = Number(value);
+            if (calNum > 5000) {
+                setNeedsConfirmation(true);
+                setIsConfirmed(false);
+            } else {
+                setNeedsConfirmation(false);
+                setIsConfirmed(true);
+            }
+        }
     };
 
     const handleSubmit = async (e) => {
         e.preventDefault();
+        if (needsConfirmation && !isConfirmed) {
+            setError("That's a very large amount (5,000+ kcal). Please confirm before saving.");
+            return;
+        }
+
         try {
             setLoading(true);
             setError(null);
@@ -136,7 +159,7 @@ const LogFoodModal = ({ isOpen, onClose, onSuccess }) => {
                 >
                     <div className="absolute top-0 left-0 w-32 h-32 bg-emerald-500/5 blur-3xl rounded-full -ml-16 -mt-16" />
                     
-                    <div className="flex items-center justify-between mb-8 relative z-10">
+                    <div className="flex items-center justify-between mb-6 relative z-10">
                         <div className="flex items-center gap-3">
                             <div className="w-12 h-12 bg-emerald-50 rounded-2xl flex items-center justify-center text-emerald-600 shadow-sm border border-emerald-100">
                                 <Apple className="w-6 h-6" />
@@ -145,7 +168,7 @@ const LogFoodModal = ({ isOpen, onClose, onSuccess }) => {
                                 <h3 className="text-xl font-bold text-slate-900 font-display italic">Log Nutrition</h3>
                                 <div className="flex gap-2 mt-1">
                                     <span className="text-[10px] font-black uppercase tracking-widest px-2 py-0.5 bg-indigo-50 text-indigo-600 rounded-md border border-indigo-100 flex items-center gap-1">
-                                        <Sparkles className="w-3 h-3" /> AI Powered
+                                        <Sparkles className="w-3 h-3" /> AI Estimate (Editable)
                                     </span>
                                 </div>
                             </div>
@@ -155,7 +178,7 @@ const LogFoodModal = ({ isOpen, onClose, onSuccess }) => {
                         </button>
                     </div>
 
-                    <form onSubmit={handleSubmit} className="space-y-6 relative z-10">
+                    <form onSubmit={handleSubmit} className="space-y-5 relative z-10">
                         <div className="space-y-2">
                             <label className="text-[10px] font-black text-slate-400 uppercase tracking-[0.15em] ml-1">Food Name</label>
                             <input 
@@ -164,7 +187,7 @@ const LogFoodModal = ({ isOpen, onClose, onSuccess }) => {
                                 value={formData.name}
                                 onChange={handleChange}
                                 placeholder="e.g. Scrambled Eggs"
-                                className="w-full bg-slate-50 border border-slate-100 rounded-2xl px-5 py-4 text-slate-900 font-bold focus:ring-4 focus:ring-emerald-500/5 focus:border-emerald-500 outline-none transition-all"
+                                className="w-full bg-slate-50 border border-slate-100 rounded-2xl px-5 py-3.5 text-slate-900 font-bold focus:ring-4 focus:ring-emerald-500/5 focus:border-emerald-500 outline-none transition-all"
                                 required
                             />
                             
@@ -196,8 +219,7 @@ const LogFoodModal = ({ isOpen, onClose, onSuccess }) => {
                                     value={formData.weight}
                                     onChange={handleChange}
                                     placeholder="100"
-                                    className="w-full bg-slate-50 border border-slate-100 rounded-2xl px-5 py-4 text-slate-900 font-bold focus:border-emerald-500 outline-none transition-all"
-                                    required
+                                    className="w-full bg-slate-50 border border-slate-100 rounded-2xl px-5 py-3.5 text-slate-900 font-bold focus:border-emerald-500 outline-none transition-all"
                                 />
                             </div>
                             <div className="space-y-2">
@@ -208,56 +230,99 @@ const LogFoodModal = ({ isOpen, onClose, onSuccess }) => {
                                     value={formData.quantity}
                                     onChange={handleChange}
                                     placeholder="1"
-                                    className="w-full bg-slate-50 border border-slate-100 rounded-2xl px-5 py-4 text-slate-900 font-bold focus:border-emerald-500 outline-none transition-all"
-                                    required
+                                    className="w-full bg-slate-50 border border-slate-100 rounded-2xl px-5 py-3.5 text-slate-900 font-bold focus:border-emerald-500 outline-none transition-all"
                                 />
                             </div>
                         </div>
 
                         <div className="space-y-2">
-                            <label className="text-[10px] font-black text-slate-400 uppercase tracking-[0.15em] ml-1">AI Estimated Calories</label>
+                            <div className="flex items-center justify-between ml-1">
+                                <label className="text-[10px] font-black text-slate-400 uppercase tracking-[0.15em]">Calories (kcal)</label>
+                                <span className="text-[10px] font-bold text-emerald-600 bg-emerald-50 px-2 py-0.5 rounded-full border border-emerald-100">
+                                    AI Estimate
+                                </span>
+                            </div>
                             <div className="relative">
                                 <Zap className={`absolute left-5 top-1/2 -translate-y-1/2 w-5 h-5 ${fetching ? 'text-indigo-400 animate-pulse' : 'text-emerald-400'}`} />
                                 <input 
                                     type="number"
                                     name="calories"
                                     value={formData.calories}
-                                    readOnly
+                                    onChange={handleChange}
                                     required
-                                    placeholder="Analyzing food..."
-                                    className="w-full bg-emerald-50/30 border border-emerald-100 rounded-2xl pl-12 pr-5 py-4 text-emerald-700 font-black focus:outline-none transition-all"
+                                    placeholder={fetching ? "Analyzing food..." : "0"}
+                                    className="w-full bg-emerald-50/30 border border-emerald-100 rounded-2xl pl-12 pr-5 py-3.5 text-emerald-700 font-black focus:ring-4 focus:ring-emerald-500/5 focus:border-emerald-500 outline-none transition-all"
                                 />
                                 {fetching && <Loader2 className="absolute right-5 top-1/2 -translate-y-1/2 w-4 h-4 animate-spin text-indigo-400" />}
                             </div>
                         </div>
 
-                        {mode === 'detailed' && (
-                            <motion.div 
-                                initial={{ opacity: 0, height: 0 }}
-                                animate={{ opacity: 1, height: 'auto' }}
-                                className="grid grid-cols-3 gap-3 pt-2"
-                            >
-                                <div className="space-y-2">
+                        <div className="space-y-2">
+                            <div className="flex items-center justify-between ml-1">
+                                <label className="text-[10px] font-black text-slate-400 uppercase tracking-[0.15em]">Macros (g) - Editable</label>
+                            </div>
+                            <div className="grid grid-cols-3 gap-3">
+                                <div className="space-y-1">
                                     <label className="text-[9px] font-black text-slate-400 uppercase tracking-widest pl-1">Protein</label>
-                                    <input type="number" name="protein" value={formData.protein} readOnly placeholder="0g" className="w-full bg-slate-50 border border-slate-100 rounded-xl px-4 py-3 text-sm font-bold focus:border-emerald-500 outline-none transition-all" />
+                                    <input 
+                                        type="number" 
+                                        step="0.1"
+                                        name="protein" 
+                                        value={formData.protein} 
+                                        onChange={handleChange}
+                                        placeholder="0g" 
+                                        className="w-full bg-slate-50 border border-slate-100 rounded-xl px-4 py-2.5 text-sm font-bold text-slate-800 focus:border-emerald-500 outline-none transition-all" 
+                                    />
                                 </div>
-                                <div className="space-y-2">
+                                <div className="space-y-1">
                                     <label className="text-[9px] font-black text-slate-400 uppercase tracking-widest pl-1">Carbs</label>
-                                    <input type="number" name="carbs" value={formData.carbs} readOnly placeholder="0g" className="w-full bg-slate-50 border border-slate-100 rounded-xl px-4 py-3 text-sm font-bold focus:border-emerald-500 outline-none transition-all" />
+                                    <input 
+                                        type="number" 
+                                        step="0.1"
+                                        name="carbs" 
+                                        value={formData.carbs} 
+                                        onChange={handleChange}
+                                        placeholder="0g" 
+                                        className="w-full bg-slate-50 border border-slate-100 rounded-xl px-4 py-2.5 text-sm font-bold text-slate-800 focus:border-emerald-500 outline-none transition-all" 
+                                    />
                                 </div>
-                                <div className="space-y-2">
+                                <div className="space-y-1">
                                     <label className="text-[9px] font-black text-slate-400 uppercase tracking-widest pl-1">Fats</label>
-                                    <input type="number" name="fats" value={formData.fats} readOnly placeholder="0g" className="w-full bg-slate-50 border border-slate-100 rounded-xl px-4 py-3 text-sm font-bold focus:border-emerald-500 outline-none transition-all" />
+                                    <input 
+                                        type="number" 
+                                        step="0.1"
+                                        name="fats" 
+                                        value={formData.fats} 
+                                        onChange={handleChange}
+                                        placeholder="0g" 
+                                        className="w-full bg-slate-50 border border-slate-100 rounded-xl px-4 py-2.5 text-sm font-bold text-slate-800 focus:border-emerald-500 outline-none transition-all" 
+                                    />
                                 </div>
-                            </motion.div>
+                            </div>
+                        </div>
+
+                        {needsConfirmation && (
+                            <div className="p-4 bg-amber-50 border border-amber-200 rounded-2xl space-y-2">
+                                <div className="flex items-center gap-2 text-amber-800 font-bold text-xs">
+                                    <AlertTriangle className="w-4 h-4 text-amber-600 shrink-0" />
+                                    <span>That's a very large amount (5,000+ kcal). Confirm?</span>
+                                </div>
+                                <button
+                                    type="button"
+                                    onClick={() => setIsConfirmed(true)}
+                                    className={`w-full py-2 px-3 rounded-xl font-bold text-xs transition-all flex items-center justify-center gap-2 ${isConfirmed ? 'bg-amber-600 text-white' : 'bg-white border border-amber-300 text-amber-700 hover:bg-amber-100'}`}
+                                >
+                                    {isConfirmed ? <><CheckCircle2 className="w-4 h-4" /> Confirmed Large Quantity</> : "Click to Confirm Large Amount"}
+                                </button>
+                            </div>
                         )}
 
-                        {error && <p className="text-xs font-bold text-red-500 ml-1">{error}</p>}
+                        {error && <p className="text-xs font-bold text-red-500 ml-1 bg-red-50 p-2.5 rounded-xl border border-red-100">{error}</p>}
 
                         <button 
                             type="submit" 
-                            disabled={loading || fetching || !formData.calories}
-                            className="w-full py-5 bg-emerald-600 text-white rounded-[24px] font-black text-lg shadow-xl shadow-emerald-200 hover:bg-emerald-700 hover:scale-[1.02] active:scale-[0.98] transition-all flex items-center justify-center gap-3 disabled:opacity-50 disabled:hover:scale-100"
+                            disabled={loading || fetching || formData.calories === '' || (needsConfirmation && !isConfirmed)}
+                            className="w-full py-4 bg-emerald-600 text-white rounded-[24px] font-black text-lg shadow-xl shadow-emerald-200 hover:bg-emerald-700 hover:scale-[1.02] active:scale-[0.98] transition-all flex items-center justify-center gap-3 disabled:opacity-50 disabled:hover:scale-100"
                         >
                             {loading ? <Loader2 className="w-6 h-6 animate-spin" /> : (
                                 <>

@@ -87,7 +87,6 @@ exports.getRecentFoods = async (req, res) => {
             .sort({ createdAt: -1 })
             .limit(50);
         
-        // Return unique food objects (latest one for each name to get recent macros/cals)
         const uniqueNames = new Set();
         const suggestions = [];
         
@@ -110,19 +109,23 @@ exports.getRecentFoods = async (req, res) => {
         res.status(500).json({ message: 'Failed to fetch suggestions' });
     }
 };
+
 // @desc Lookup nutrition data using AI (Gemini)
 // @route GET /api/diet/lookup
 exports.lookupNutrition = async (req, res) => {
     try {
         const { query } = req.query;
-        if (!query) {
-            return res.status(400).json({ message: 'Query is required' });
+        if (!query || !query.trim()) {
+            return res.status(400).json({ message: 'Could not estimate nutrition for empty query.' });
         }
 
         const nutritionData = await aiLookupNutrition(query);
         res.json(nutritionData);
     } catch (error) {
         console.error('AI_NUTRITION_LOOKUP_FAIL:', error.message);
+        if (error.message === 'COULD_NOT_ESTIMATE') {
+            return res.status(400).json({ message: `Could not estimate nutrition for "${req.query.query || ''}". Please specify a valid food item or enter values manually.` });
+        }
         if (error.message === 'SAFETY_FILTER_BLOCKED') {
             return res.status(400).json({ message: 'Food lookup was blocked by safety filters. Please try another query.' });
         }

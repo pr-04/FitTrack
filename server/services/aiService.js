@@ -1,17 +1,33 @@
 const { ai, safetySettings, ThinkingLevel } = require('../config/gemini');
+const { workoutPlanSchema, dietPlanSchema } = require('../validators/planSchemas');
 
 // Helper to sleep with promise
 const sleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
 
 /**
+ * Sanitizes a raw string by stripping PII and API keys, truncating to 500 characters.
+ */
+function sanitizeForLogging(str) {
+    if (typeof str !== 'string') str = String(str || '');
+    // Strip API keys (e.g. AIza...)
+    let sanitized = str.replace(/AIza[0-9A-Za-z-_]{35}/g, '[REDACTED_API_KEY]');
+    // Strip generic key query parameters
+    sanitized = sanitized.replace(/key=[a-zA-Z0-9_-]+/g, 'key=[REDACTED_KEY]');
+    // Strip user email addresses
+    sanitized = sanitized.replace(/[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}/g, '[REDACTED_EMAIL]');
+    return sanitized.slice(0, 500);
+}
+
+/**
  * Executes a Gemini request with:
  * - Shared total deadline across retries and fallbacks
  * - Per-attempt timeout using Promise.race
+ * - Schema validation & clamping with 1 retry on parse/validation failure
  * - 503: 1 jittered retry (1-3s) on same model if deadline allows, then fallback
  * - 429: immediate switch to fallback
  * - 400 thinking error: retry without thinkingConfig
  * - 404: loud log for model not found
- * - Logs which model and attempt served the request
+ * - Logs raw output truncated to 500 characters (sanitized) on final failure
  */
 async function executeWithResilience({
     primaryModel,
@@ -21,6 +37,7 @@ async function executeWithResilience({
     prompt,
     systemInstruction,
     requestType,
+    schema,
     initialThinkingLevel = ThinkingLevel.LOW,
     maxOutputTokens = 8192
 }) {
@@ -29,11 +46,16 @@ async function executeWithResilience({
     let currentModel = primaryModel;
     let attempt = 1;
     let hasRetriedSameModelOn503 = false;
+    let hasRetriedOnValidationFailure = false;
     let useThinking = initialThinkingLevel !== undefined && initialThinkingLevel !== null;
+    let lastRawText = '';
 
     while (Date.now() < deadline) {
         const remainingTime = deadline - Date.now();
         if (remainingTime <= 1000) {
+            if (lastRawText) {
+                console.error(`[AI CRITICAL] Final budget exhausted. Raw model output (truncated 500 chars):\n${sanitizeForLogging(lastRawText)}`);
+            }
             throw new Error(`AI_DEADLINE_EXCEEDED: Total budget of ${totalDeadlineMs}ms exhausted across ${attempt} attempt(s).`);
         }
 
@@ -73,9 +95,28 @@ async function executeWithResilience({
             }
 
             const rawText = response.text || '';
-            // Parse directly, removing markdown backticks if returned
+            lastRawText = rawText;
             const cleanText = rawText.replace(/```json|```/g, '').trim();
-            const parsedData = JSON.parse(cleanText);
+
+            let parsedData;
+            try {
+                parsedData = JSON.parse(cleanText);
+            } catch (parseErr) {
+                console.warn(`[AI Parse Warning] JSON parse failed on attempt ${attempt} from model '${currentModel}'.`);
+                throw new Error(`JSON_PARSE_ERROR: ${parseErr.message}`);
+            }
+
+            // Schema Validation & Value Clamping
+            if (schema) {
+                const targetObj = (parsedData && parsedData.plan) ? parsedData.plan : parsedData;
+                const valResult = schema.safeParse(targetObj);
+                if (!valResult.success) {
+                    const issuesMsg = valResult.error.issues.map(i => `${i.path.join('.')}: ${i.message}`).join('; ');
+                    console.warn(`[AI Validation Warning] Schema validation failed on attempt ${attempt}: ${issuesMsg}`);
+                    throw new Error(`VALIDATION_ERROR: ${issuesMsg}`);
+                }
+                parsedData = valResult.data;
+            }
 
             const totalLatency = Date.now() - startTime;
             const attemptLatency = Date.now() - attemptStart;
@@ -128,7 +169,25 @@ async function executeWithResilience({
                 throw new Error(`QUOTA_EXHAUSTED: Model '${currentModel}' rate limited and no fallback available.`);
             }
 
-            // 4. Check for 503 high demand or timeout
+            // 4. Check for JSON parse or Zod schema validation errors -> retry ONCE within total deadline
+            const isParseOrValidation = errMsg.includes('JSON_PARSE_ERROR') || errMsg.includes('VALIDATION_ERROR');
+            if (isParseOrValidation) {
+                if (!hasRetriedOnValidationFailure && (deadline - Date.now() > 2000)) {
+                    console.warn(`[AI] Retrying ${requestType} generation once due to output formatting/validation failure...`);
+                    hasRetriedOnValidationFailure = true;
+                    attempt++;
+                    // Try fallback model on retry if available
+                    if (fallbackModel && currentModel !== fallbackModel) {
+                        currentModel = fallbackModel;
+                    }
+                    continue;
+                }
+                // Final failure after retry: log raw output truncated to 500 chars (sanitized)
+                console.error(`[AI CRITICAL] ${requestType} output failed validation on final attempt. Raw model output (truncated 500 chars):\n${sanitizeForLogging(lastRawText)}`);
+                throw new Error(`PLAN_VALIDATION_FAILURE: Model generated invalid plan structure.`);
+            }
+
+            // 5. Check for 503 high demand or timeout
             const is503 = err.status === 503 || errMsg.includes('503') || errMsg.includes('UNAVAILABLE') || errMsg.includes('high demand');
             const isTimeout = errMsg.includes('ATTEMPT_TIMEOUT');
 
@@ -136,9 +195,8 @@ async function executeWithResilience({
                 const reason = isTimeout ? 'timeout' : '503 high demand';
                 const timeRemaining = deadline - Date.now();
 
-                // (a) Try 1 jittered retry on same model if time remains
                 if (!hasRetriedSameModelOn503 && timeRemaining > (perAttemptTimeoutMs + 1000)) {
-                    const jitter = Math.floor(1000 + Math.random() * 2000); // 1-3s jitter
+                    const jitter = Math.floor(1000 + Math.random() * 2000);
                     console.warn(`[AI] Model '${currentModel}' encountered ${reason} on attempt ${attempt}. Retrying same model in ${jitter}ms...`);
                     await sleep(jitter);
                     hasRetriedSameModelOn503 = true;
@@ -146,7 +204,6 @@ async function executeWithResilience({
                     continue;
                 }
 
-                // (b) Try fallback model if configured
                 if (fallbackModel && currentModel !== fallbackModel && timeRemaining > 2000) {
                     console.warn(`[AI] Model '${currentModel}' exhausted retry on attempt ${attempt}. Switching to fallback model '${fallbackModel}'...`);
                     currentModel = fallbackModel;
@@ -158,22 +215,9 @@ async function executeWithResilience({
                 throw new Error(`SERVICE_UNAVAILABLE: Model '${currentModel}' experiencing high demand or timed out.`);
             }
 
-            // 5. Safety filter
+            // 6. Safety filter
             if (errMsg === 'SAFETY_FILTER_BLOCKED') {
                 throw new Error('SAFETY_FILTER_BLOCKED');
-            }
-
-            // 6. JSON Parse failure
-            if (err instanceof SyntaxError) {
-                console.error(`[AI] JSON Parse Failure on attempt ${attempt} from model '${currentModel}':`, errMsg);
-                // If time allows and we have a fallback, try fallback
-                if (fallbackModel && currentModel !== fallbackModel && (deadline - Date.now() > 2000)) {
-                    console.log(`[AI] Retrying with fallback model '${fallbackModel}' due to JSON parse error...`);
-                    currentModel = fallbackModel;
-                    attempt++;
-                    continue;
-                }
-                throw new Error(`PARSE_FAILURE: Could not parse response from ${currentModel}.`);
             }
 
             // Any other error
@@ -187,6 +231,9 @@ async function executeWithResilience({
         }
     }
 
+    if (lastRawText) {
+        console.error(`[AI CRITICAL] All attempts exhausted. Raw model output (truncated 500 chars):\n${sanitizeForLogging(lastRawText)}`);
+    }
     throw new Error(`AI_DEADLINE_EXCEEDED: Completed all attempts within ${totalDeadlineMs}ms without success.`);
 }
 
@@ -230,10 +277,10 @@ JSON Schema:
     ]
   }
 }
-Ensure exactly 7 days are included.
+Ensure EXACTLY 7 days are included (Day 1 through Day 7).
 `;
 
-    const systemInstruction = 'You are an elite AI performance coach for FitTrack Premium. Your mission is to architect high-depth, strictly structured 7-day training programs. You must output ONLY valid JSON that conforms to the user requested schema. Never include conversational text before or after the JSON.';
+    const systemInstruction = 'You are an elite AI performance coach for FitTrack Premium. Your mission is to architect high-depth, strictly structured 7-day training programs. You must output ONLY valid JSON that conforms to the user requested schema with exactly 7 days. Never include conversational text before or after the JSON.';
 
     // Deadlines: 30s total budget, 15s per attempt
     const result = await executeWithResilience({
@@ -244,13 +291,12 @@ Ensure exactly 7 days are included.
         prompt,
         systemInstruction,
         requestType: 'Workout Plan',
+        schema: workoutPlanSchema,
         initialThinkingLevel: ThinkingLevel.LOW,
         maxOutputTokens: 8192
     });
 
-    const rawPlan = result.data.plan || result.data;
-    const finalPlan = Array.isArray(rawPlan) ? rawPlan[0] : rawPlan;
-    return { plan: finalPlan, model: result.model };
+    return { plan: result.data, model: result.model };
 }
 
 /**
@@ -302,27 +348,37 @@ ONLY include the 4 categories: "Breakfast", "Lunch", "Snacks", "Dinner".
         prompt,
         systemInstruction,
         requestType: 'Diet Blueprint',
+        schema: dietPlanSchema,
         initialThinkingLevel: ThinkingLevel.LOW,
         maxOutputTokens: 8192
     });
 
-    const rawPlan = result.data.plan || result.data;
-    const finalPlan = Array.isArray(rawPlan) ? rawPlan[0] : rawPlan;
-    return { plan: finalPlan, model: result.model };
+    return { plan: result.data, model: result.model };
 }
 
 /**
  * Real-time nutrition estimation for arbitrary food item
  */
 async function lookupNutrition(query) {
+    if (!query || typeof query !== 'string' || !query.trim()) {
+        throw new Error('COULD_NOT_ESTIMATE');
+    }
+    const cleanQuery = query.trim();
+
     const primaryModel = process.env.GEMINI_LOOKUP_MODEL || process.env.GEMINI_MODEL || 'gemini-3.5-flash-lite';
     const fallbackModel = process.env.GEMINI_FALLBACK_MODEL || null;
 
     const prompt = `
-Estimate the nutritional value for: ${query}
+Evaluate and estimate the nutritional value for: "${cleanQuery}"
 
-Return JSON in this format:
+Instructions:
+- Determine if "${cleanQuery}" represents a genuine edible food, beverage, ingredient, or dish (in any language).
+- If "${cleanQuery}" is non-food (e.g. "a brick", "wood"), gibberish (e.g. "asdf qwer"), empty, or un-estimatable, set "isFood" to false and all macros to 0.
+- If it is valid food, set "isFood" to true and estimate calories, protein, carbs, and fats.
+
+JSON Schema:
 {
+    "isFood": boolean,
     "calories": number,
     "protein": number,
     "carbs": number,
@@ -330,7 +386,7 @@ Return JSON in this format:
 }
 `;
 
-    const systemInstruction = 'You are a precise nutrition database for FitTrack Premium. Given a food name and amount (weight/quantity), provide estimated calories, protein, carbs, and fats. Output MUST be ONLY valid JSON matching the schema. No conversational text.';
+    const systemInstruction = 'You are a precise nutrition analyzer for FitTrack. Analyze whether input queries represent edible food or non-food/gibberish. Output MUST be strictly valid JSON matching the schema. No conversational text.';
 
     // Deadlines: 10s total budget, 6s per attempt
     const result = await executeWithResilience({
@@ -341,29 +397,39 @@ Return JSON in this format:
         prompt,
         systemInstruction,
         requestType: 'Nutrition Lookup',
-        initialThinkingLevel: undefined, // No thinking needed for instant lookups
+        initialThinkingLevel: undefined,
         maxOutputTokens: 1024
     });
 
     const d = result.data;
+    if (d.isFood === false) {
+        throw new Error('COULD_NOT_ESTIMATE');
+    }
+
     const calories = Math.round(Number(d.calories) || 0);
-    // Keep 1 decimal place for macros
     const protein = Math.round((Number(d.protein) || 0) * 10) / 10;
     const carbs = Math.round((Number(d.carbs) || 0) * 10) / 10;
     const fats = Math.round((Number(d.fats) || 0) * 10) / 10;
 
+    if (calories === 0 && protein === 0 && carbs === 0 && fats === 0) {
+        throw new Error('COULD_NOT_ESTIMATE');
+    }
+
     // Soft check: calories roughly match 4P + 4C + 9F
     const expectedCalories = (protein * 4) + (carbs * 4) + (fats * 9);
     if (calories > 0 && Math.abs(expectedCalories - calories) / calories > 0.15) {
-        console.warn(`[AI Warning] Macro calorie mismatch for '${query}': calories=${calories}, but 4P + 4C + 9F = ${expectedCalories.toFixed(1)} (difference > 15%).`);
+        console.warn(`[AI Warning] Macro calorie mismatch for '${cleanQuery}': calories=${calories}, but 4P + 4C + 9F = ${expectedCalories.toFixed(1)} (difference > 15%).`);
     }
 
+    const needsConfirmation = calories > 5000;
+
     return {
-        name: query,
+        name: cleanQuery,
         calories,
         protein,
         carbs,
         fats,
+        needsConfirmation,
         model: result.model
     };
 }
