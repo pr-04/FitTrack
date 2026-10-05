@@ -61,7 +61,6 @@
 | **Icons** | Lucide React | `^0.575.0` | Iconography | Clean SVG icons |
 | **Charts** | Recharts | `^3.7.0` | Caloric performance visualization | Responsive container bar/area charts |
 | **Notifications** | React Hot Toast | `^2.6.0` | Toast notifications | Feedback alerts |
-| **OAuth Client** | `@react-oauth/google` | `^0.13.4` | Google Auth component integration | Client-side OAuth helper |
 | **HTTP Client** | Axios | `^1.13.5` | API communication | Interceptors for JWT authorization |
 | **Backend Runtime** | Node.js | `>=18` | Server execution environment | CommonJS modules (`require`) |
 | **Backend Framework** | Express | `^4.21.2` | REST API Web Server | Middleware pipeline & routes |
@@ -72,7 +71,7 @@
 | **Password Hashing** | `bcryptjs` | `^2.4.3` | One-way password hashing | 10 salt rounds in pre-save hook |
 | **OAuth Strategy** | `passport-google-oauth20` | `^2.0.0` | Passport Google Strategy | Google login/signup callback handler |
 | **Security Headers** | `helmet` | `^8.1.0` | HTTP security headers & CSP | Configured CSP for Vite, Google Fonts & OAuth |
-| **Rate Limiting** | `express-rate-limit` | `^8.3.1` | API protection & cost control | General 200/15m, AI 10/15m by user, lookup 60/15m |
+| **Rate Limiting** | `express-rate-limit` | `^8.7.0` | API protection & cost control | Strict Auth (5/15m), General 200/15m, AI 10/15m, Lookup 60/15m |
 | **NoSQL Sanitization** | `express-mongo-sanitize` | `^2.2.0` | NoSQL injection prevention | Strips $ and . from body/query/params |
 | **AI Engine** | `@google/genai` | `^2.26.0` | Official Google GenAI SDK | Models `gemini-3.7-flash`, `gemini-3.5-flash`, `gemini-3.5-flash-lite` |
 | **Environment Config** | `dotenv` | `^16.4.7` | Env variable loading | Loaded from `server/.env` |
@@ -482,6 +481,7 @@ New user completes signup → Redirected to `/app/onboarding` → Submits height
 | `age` | `Number` | No | `null` | User age in years |
 | `weight` | `Number` | No | `null` | Weight in kg |
 | `height` | `Number` | No | `null` | Height in cm |
+| `sex` | `String` | No | `'unspecified'` | `'male'`, `'female'`, `'unspecified'` (Optional, used for Mifflin-St Jeor target calculation) |
 | `goal` | `String` | No | `'maintain'` | `'fat_loss'`, `'muscle_gain'`, `'body_recomposition'`, `'maintain'`, `'strength'`, `'endurance'`, `'general_fitness'`, `'flexibility'`, `'lose_weight'` |
 | `dietType` | `String` | No | `'any'` | `'vegetarian'`, `'non-vegetarian'`, `'vegan'`, `'pescatarian'`, `'any'`, `'Veg'`, `'Non-veg'` |
 | `activityLevel` | `String` | No | `'light'` | `'sedentary'`, `'light'`, `'moderate'`, `'active'`, `'very_active'` |
@@ -667,8 +667,23 @@ VITE_API_URL=http://localhost:5000/api
 1. **BMI Calculation**:
    $$\text{BMI} = \frac{\text{weight (kg)}}{(\text{height (m)})^2}$$
    - Status boundaries: `< 18.5`: Underweight | `18.5 - 24.9`: Healthy | `25.0 - 29.9`: Overweight | `>= 30.0`: Obese.
-2. **Streak Calculation**: Counts distinct calendar days (`Set` of `toDateString()`) with logged workouts in the trailing 30 days.
-3. **Calorie Performance Aggregation**: Groups trailing 7 days of diet logs by day of week (`Sun`–`Sat`) to construct chart arrays.
+2. **Calorie & Macro Target Calculation (Mifflin-St Jeor)**:
+   - **Basal Metabolic Rate (BMR)**:
+     $$\text{BMR} = (10 \times \text{weight in kg}) + (6.25 \times \text{height in cm}) - (5 \times \text{age}) + s$$
+     where $s = +5$ for male, $s = -161$ for female, and $s = -78$ for unspecified or missing sex (midpoint midpoint constant between male and female).
+   - **Total Daily Energy Expenditure (TDEE)**:
+     BMR multiplied by activity multiplier (`1.2` for sedentary, `1.375` for light, `1.55` for moderate, `1.725` for active, `1.9` for very_active).
+   - **Goal Adjustment**:
+     - `fat_loss` / `lose_weight`: TDEE - 500 kcal
+     - `muscle_gain`: TDEE + 300 kcal
+     - `maintain` / `body_recomposition` / `strength` / `endurance` / `general_fitness` / `flexibility`: TDEE + 0 kcal
+   - Calories clamped between `1200 kcal` (min) and `5000 kcal` (max).
+   - Macro splits calculated:
+     - Protein: 2.0g/kg for fat loss/muscle gain, 1.8g/kg for recomposition/strength/endurance, 1.6g/kg default.
+     - Fats: 25% of total calories (9 kcal/g).
+     - Carbs: Remainder calories / 4 (min 50g).
+3. **Streak Calculation**: Counts distinct consecutive calendar days with logged workouts in user's time zone (`X-Timezone` header).
+4. **Calorie Performance Aggregation**: Groups trailing 7 days of diet logs in user's time zone for performance charts.
 
 ---
 
