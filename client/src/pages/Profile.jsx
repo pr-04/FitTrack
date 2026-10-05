@@ -203,10 +203,6 @@ const Profile = () => {
                             {user?.email}
                         </p>
                         <div className="flex flex-wrap items-center justify-center md:justify-start gap-3 mt-4">
-                            <span className="px-3 py-1 bg-[#22C55E]/10 text-[#15803d] text-xs font-bold rounded-full border border-[#22C55E]/20 uppercase tracking-wider">
-                                {user?.isOnboarded ? 'Profile Verified' : 'Incomplete'}
-                            </span>
-                            <span className="text-gray-300 text-sm">•</span>
                             <span className="text-[#6B7280] text-sm font-medium">Joined {joinedDateFormatted}</span>
                         </div>
                     </div>

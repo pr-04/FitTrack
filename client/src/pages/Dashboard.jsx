@@ -29,7 +29,7 @@ const Dashboard = () => {
         fetchStats();
     }, []);
 
-    let recommendation = "Generate your elite plan";
+    let recommendation = "Generate your plan";
     if (stats?.workoutPlan?.days?.length > 0) {
         recommendation = `${stats.workoutPlan.days[0].type || "Full Body"} focus today`;
     }
@@ -44,7 +44,7 @@ const Dashboard = () => {
             <motion.header
                 initial={{ opacity: 0, y: -10 }}
                 animate={{ opacity: 1, y: 0 }}
-                className="flex flex-col md:flex-row md:items-end justify-between gap-6 bg-white/50 backdrop-blur-md p-7 rounded-[28px] border border-white/60 shadow-sm relative overflow-hidden"
+                className="bg-white/50 backdrop-blur-md p-7 rounded-[28px] border border-white/60 shadow-sm relative overflow-hidden"
             >
                 <div className="absolute top-0 right-0 w-56 h-56 bg-green-400/5 blur-[80px] -mr-24 -mt-24 rounded-full pointer-events-none" />
                 <div className="relative z-10">
@@ -57,15 +57,6 @@ const Dashboard = () => {
                             {user?.goal ? user.goal.replace('_', ' ') : 'your fitness goals'}
                         </span>.
                     </p>
-                </div>
-                <div className="flex items-center gap-3 bg-white p-3.5 rounded-2xl shadow-sm border border-gray-100 relative z-10">
-                    <div className="w-9 h-9 bg-blue-50 rounded-xl flex items-center justify-center text-blue-600">
-                        <Target className="w-5 h-5" />
-                    </div>
-                    <div>
-                        <p className="text-xs font-bold text-gray-400 uppercase tracking-widest">Current Plan</p>
-                        <p className="font-bold text-gray-900 capitalize text-sm">{user?.goal?.replace('_', ' ') || 'Elite Training'}</p>
-                    </div>
                 </div>
             </motion.header>
 
@@ -246,18 +237,18 @@ const Dashboard = () => {
                     transition={{ delay: 0.25 }}
                     className="flex flex-col gap-4"
                 >
-                    <h2 className="text-lg font-extrabold text-gray-800 font-display">Elite Hub</h2>
+                    <h2 className="text-lg font-extrabold text-gray-800 font-display">Quick links</h2>
 
                     {[
-                        { to: '/app/workout', icon: <Dumbbell className="w-5 h-5" />, title: 'Titan Training', desc: 'AI Workout Plans', color: 'blue' },
-                        { to: '/app/diet', icon: <Apple className="w-5 h-5" />, title: 'Elite Nutrition', desc: 'Custom Meal Roadmap', color: 'emerald' },
-                        { to: '/app/tracker', icon: <LineChart className="w-5 h-5" />, title: 'Progress DNA', desc: 'Advanced Biometrics', color: 'indigo' }
+                        { to: '/app/workout', icon: <Dumbbell className="w-5 h-5" />, title: 'Workout plan', desc: 'AI Workout Plans', color: 'blue' },
+                        { to: '/app/diet', icon: <Apple className="w-5 h-5" />, title: 'Diet plan', desc: 'Custom Meal Roadmap', color: 'emerald' },
+                        { to: '/app/tracker', icon: <LineChart className="w-5 h-5" />, title: 'Tracker', desc: 'Advanced Biometrics', color: 'indigo' }
                     ].map((item, idx) => (
                         <Link
                             key={idx}
                             to={item.to}
                             className="bg-white rounded-2xl p-5 flex items-center justify-between group cursor-pointer border border-gray-100 shadow-sm hover:shadow-md hover:-translate-y-0.5 transition-all duration-200 border-l-[5px]"
-                            style={{ borderLeftColor: `var(--${item.color}-500, #6366f1)` }}
+                            style={{ borderLeftColor: item.color === 'emerald' ? '#10b981' : item.color === 'blue' ? '#3b82f6' : '#6366f1' }}
                         >
                             <div className="flex items-center gap-4">
                                 <div className={`w-10 h-10 bg-${item.color}-50 rounded-xl flex items-center justify-center text-${item.color}-600 group-hover:scale-110 transition-transform`}>
@@ -273,18 +264,6 @@ const Dashboard = () => {
                             </div>
                         </Link>
                     ))}
-
-                    {/* Pro CTA */}
-                    <div className="rounded-2xl p-6 bg-gradient-to-br from-slate-900 to-gray-800 text-white relative overflow-hidden mt-1">
-                        <div className="absolute -bottom-8 -right-8 w-32 h-32 bg-white/5 rounded-full blur-2xl pointer-events-none" />
-                        <h4 className="text-base font-bold font-display relative z-10 mb-1">Upgrade to Pro Elite</h4>
-                        <p className="text-slate-400 text-xs relative z-10 mb-4 leading-relaxed">
-                            Unlimited AI generations & deep biometric analysis.
-                        </p>
-                        <button className="w-full py-3 bg-white text-black font-extrabold text-sm rounded-xl hover:scale-105 active:scale-95 transition-all shadow-lg relative z-10">
-                            Go Pro Now
-                        </button>
-                    </div>
                 </motion.div>
             </div>
 

@@ -103,7 +103,7 @@ const Workout = () => {
                 <div className="absolute top-0 right-0 w-64 h-64 bg-blue-400/5 blur-[80px] -mr-32 -mt-32 rounded-full"></div>
                 <div className="relative z-10">
                     <h1 className="text-4xl font-extrabold tracking-tight text-gray-900 font-display">
-                        Titan Training
+                        Workout Plan
                     </h1>
                     <p className="text-gray-500 mt-2 text-lg font-medium">
                         AI-optimized roadmap for <span className="text-blue-600 capitalize">{user?.goal?.replace('_', ' ')}</span> performance.
@@ -210,7 +210,7 @@ const Workout = () => {
                          <div className="absolute top-0 right-0 p-8 opacity-5">
                             <Activity className="w-48 h-48" />
                         </div>
-                        <h2 className="text-4xl font-black text-gray-900 font-display italic relative z-10">{plan.title || 'Elite Plan'}</h2>
+                        <h2 className="text-4xl font-black text-gray-900 font-display italic relative z-10">{plan.title || 'Your workout plan'}</h2>
                         <p className="text-gray-500 text-xl font-medium mt-6 leading-relaxed max-w-4xl relative z-10">{plan.overview}</p>
                     </div>
 

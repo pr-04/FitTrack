@@ -73,7 +73,7 @@ const Tracker = () => {
             <header className="flex flex-col md:flex-row justify-between items-start md:items-center gap-6">
                 <div>
                     <h1 className="text-4xl font-extrabold tracking-tight text-gray-900 font-display">Performance Analytics</h1>
-                    <p className="text-gray-500 mt-2 text-lg font-medium">Deep dive into your biometric evolution and activity DNA.</p>
+                    <p className="text-gray-500 mt-2 text-lg font-medium">Your weight, workouts and calories.</p>
                 </div>
                 <div className="flex flex-wrap gap-3">
                     <button onClick={() => setShowWeightModal(true)} className="btn-primary flex items-center gap-3 py-4 px-8 text-lg">
@@ -83,7 +83,7 @@ const Tracker = () => {
             </header>
 
             {/* Performance Level 0 → Overviews */}
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
                 <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className="card-elevated p-10 bg-gradient-to-br from-indigo-600 to-indigo-800 text-white border-none relative overflow-hidden">
                     <div className="absolute top-0 right-0 p-6 opacity-10">
                         <Ruler className="w-24 h-24" />
@@ -127,20 +127,6 @@ const Tracker = () => {
                     </div>
                     <p className="text-emerald-50 text-sm font-bold mt-4 uppercase tracking-tighter">Sessions logged in your current cycle</p>
                 </motion.div>
-
-                <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.2 }} className="card-elevated p-10 bg-white border border-gray-100 relative group overflow-hidden">
-                    <div className="absolute top-0 right-0 p-6 opacity-10 group-hover:opacity-20 transition-opacity">
-                        <Calendar className="w-24 h-24 text-gray-900" />
-                    </div>
-                    <h3 className="text-sm font-black text-gray-400 uppercase tracking-[0.2em] mb-10 relative z-10">Account Status</h3>
-                    <div className="relative z-10">
-                        <div className="flex items-center gap-3 mb-6">
-                            <div className="w-3 h-3 bg-primary rounded-full animate-pulse shadow-[0_0_10px_#22C55E]"></div>
-                            <span className="text-2xl font-black text-gray-900 font-display">Premium Active</span>
-                        </div>
-                        <p className="text-gray-500 font-medium leading-relaxed">Full access to Gemini AI architecture and deep body analysis enabled.</p>
-                    </div>
-                </motion.div>
             </div>
 
             {/* Performance Level 1 → History & Detail */}
@@ -149,7 +135,7 @@ const Tracker = () => {
                 {/* Calorie Analytics */}
                 <div className="card-elevated p-10 bg-white shadow-[0_45px_90px_-20px_rgba(0,0,0,0.06)] transform transition-all duration-500 hover:scale-[1.01]">
                     <div className="flex justify-between items-center mb-10">
-                        <h3 className="text-2xl font-extrabold text-gray-900 font-display italic">Fuel Velocity</h3>
+                        <h3 className="text-2xl font-extrabold text-gray-900 font-display italic">Calorie History</h3>
                         <span className="text-xs font-black text-gray-400 uppercase tracking-widest bg-gray-50 px-3 py-1 rounded-lg">Kcal Variance</span>
                     </div>
                     <div className="h-80 w-full min-w-0">
@@ -247,7 +233,7 @@ const Tracker = () => {
                                     </div>
                                     <span className="text-xs font-black text-gray-300 uppercase tracking-widest">{new Date(log.date).toLocaleDateString(undefined, { month: 'short', day: 'numeric' })}</span>
                                 </div>
-                                <h4 className="text-xl font-black text-gray-900 font-display mb-2">Elite {log.exercise}</h4>
+                                <h4 className="text-xl font-black text-gray-900 font-display mb-2">{log.exercise}</h4>
                                 <div className="flex items-center gap-3">
                                     <span className="bg-blue-50 text-blue-600 text-[10px] font-black px-2 py-0.5 rounded-md uppercase">{log.sets} Sets</span>
                                     <span className="bg-indigo-50 text-indigo-600 text-[10px] font-black px-2 py-0.5 rounded-md uppercase">{log.reps} Reps</span>

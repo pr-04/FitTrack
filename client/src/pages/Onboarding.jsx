@@ -211,7 +211,7 @@ const Onboarding = () => {
                                 { id: 'sedentary', label: 'Sedentary', desc: 'Mainly desk work, low activity' },
                                 { id: 'light', label: 'Lightly Active', desc: '1-3 days of light training' },
                                 { id: 'moderate', label: 'Moderate', desc: '3-5 days of consistent work' },
-                                { id: 'active', label: 'Elite / Highly Active', desc: 'Daily intensive training' }
+                                { id: 'active', label: 'Very active', desc: 'Daily intensive training' }
                             ].map(level => (
                                 <div key={level.id} onClick={() => setFormData({...formData, activityLevel: level.id})}
                                     className={`cursor-pointer p-6 border-2 rounded-[24px] flex flex-col gap-1 transition-all duration-200 ${formData.activityLevel === level.id ? 'border-indigo-500 bg-indigo-50 shadow-md' : 'border-gray-50 hover:bg-gray-50'}`}>
@@ -282,10 +282,6 @@ const Onboarding = () => {
                         {renderStepContent()}
                     </AnimatePresence>
                 </div>
-
-                <p className="mt-12 text-center text-sm text-gray-400 font-bold uppercase tracking-widest">
-                    Level Up Your Potential • SaaS Elite
-                </p>
             </div>
         </div>
     );
