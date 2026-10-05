@@ -1,7 +1,6 @@
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { Toaster } from 'react-hot-toast';
 import { AuthProvider, useAuth } from './context/AuthContext';
-import { ThemeProvider } from './context/ThemeContext';
 import Layout from './components/Layout';
 
 // Base Pages (we will create these)
@@ -80,14 +79,12 @@ function AppRoutes() {
 function App() {
   return (
     <BrowserRouter>
-      <ThemeProvider>
-        <AuthProvider>
-          <PageBackground>
-            <Toaster position="top-right" reverseOrder={false} />
-            <AppRoutes />
-          </PageBackground>
-        </AuthProvider>
-      </ThemeProvider>
+      <AuthProvider>
+        <PageBackground>
+          <Toaster position="top-right" reverseOrder={false} />
+          <AppRoutes />
+        </PageBackground>
+      </AuthProvider>
     </BrowserRouter>
   );
 }
