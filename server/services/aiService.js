@@ -395,9 +395,17 @@ async function lookupNutrition(query) {
     const cleanQuery = query.trim();
     const cacheKey = normalizeCacheKey(cleanQuery);
 
-    // 1. Cache Lookup
+    // 1. Cache Lookup (wrapped in 1500ms timeout to prevent DB connection stall)
+    const withTimeout = (promise, ms = 1500) => {
+        let timer;
+        const timeout = new Promise((_, reject) => {
+            timer = setTimeout(() => reject(new Error(`CACHE_TIMEOUT_${ms}ms`)), ms);
+        });
+        return Promise.race([promise, timeout]).finally(() => clearTimeout(timer));
+    };
+
     try {
-        const cachedDoc = await NutritionCache.findOne({ key: cacheKey });
+        const cachedDoc = await withTimeout(NutritionCache.findOne({ key: cacheKey }), 1500);
         if (cachedDoc && cachedDoc.result) {
             const c = cachedDoc.result;
             const calories = Math.round(Number(c.calories) || 0);
@@ -483,25 +491,28 @@ JSON Schema:
 
     const needsConfirmation = calories > 5000;
 
-    // 3. Upsert to Cache if valid food AND calories <= 5000
+    // 3. Upsert to Cache if valid food AND calories <= 5000 (wrapped in 1500ms timeout)
     if (!needsConfirmation && calories <= 5000) {
         try {
-            await NutritionCache.updateOne(
-                { key: cacheKey },
-                {
-                    $setOnInsert: {
-                        key: cacheKey,
-                        result: {
-                            name: cleanQuery,
-                            calories,
-                            protein,
-                            carbs,
-                            fats
-                        },
-                        model: result.model
-                    }
-                },
-                { upsert: true }
+            await withTimeout(
+                NutritionCache.updateOne(
+                    { key: cacheKey },
+                    {
+                        $setOnInsert: {
+                            key: cacheKey,
+                            result: {
+                                name: cleanQuery,
+                                calories,
+                                protein,
+                                carbs,
+                                fats
+                            },
+                            model: result.model
+                        }
+                    },
+                    { upsert: true }
+                ),
+                1500
             );
         } catch (writeErr) {
             if (!writeErr.message?.includes('E11000')) {

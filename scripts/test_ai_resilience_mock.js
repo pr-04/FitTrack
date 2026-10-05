@@ -162,6 +162,31 @@ async function runMockTests() {
         assert(false, `Scenario 3 failed with unexpected error: ${err.message}`);
     }
 
+    // Scenario 4: NutritionCache findOne hangs indefinitely -> expect 1500ms timeout degrade to AI lookup
+    try {
+        NutritionCache.findOne = () => new Promise(() => {}); // never resolves
+        geminiConfig.ai.models.generateContent = async () => {
+            const foodText = JSON.stringify({
+                isFood: true,
+                calories: 300,
+                protein: 20,
+                carbs: 40,
+                fats: 8
+            });
+            return {
+                candidates: [{ content: { parts: [{ text: foodText }] } }],
+                text: foodText
+            };
+        };
+
+        const res = await lookupNutrition('hanging cache test query');
+        assert(res && res.source === 'ai' && res.calories === 300, "Slow cache findOne (>1500ms) degrades gracefully to AI lookup");
+    } catch (err) {
+        assert(false, `Scenario 4 failed with unexpected error: ${err.message}`);
+    } finally {
+        NutritionCache.findOne = async () => null;
+    }
+
     // Restore original method
     geminiConfig.ai.models.generateContent = originalGenerateContent;
 

@@ -45,4 +45,28 @@ describe('AI Resilience Error Classification Unit Tests', () => {
         assert.ok(!sanitized.includes(longApiKey));
         assert.ok(!sanitized.includes(extraLongKey));
     });
+
+    it('degrades gracefully to AI lookup when NutritionCache findOne hangs indefinitely', async () => {
+        const { NutritionCache } = require('../models/NutritionCache');
+        const { lookupNutrition } = require('../services/aiService');
+        const geminiConfig = require('../config/gemini');
+
+        const originalFindOne = NutritionCache.findOne;
+        NutritionCache.findOne = () => new Promise(() => {}); // never resolves
+
+        const originalGenerateContent = geminiConfig.ai.models.generateContent;
+        geminiConfig.ai.models.generateContent = async () => ({
+            candidates: [{ content: { parts: [{ text: JSON.stringify({ isFood: true, calories: 150, protein: 5, carbs: 20, fats: 3 }) }] } }],
+            text: JSON.stringify({ isFood: true, calories: 150, protein: 5, carbs: 20, fats: 3 })
+        });
+
+        try {
+            const res = await lookupNutrition('hanging cache test query');
+            assert.equal(res.source, 'ai');
+            assert.equal(res.calories, 150);
+        } finally {
+            NutritionCache.findOne = originalFindOne;
+            geminiConfig.ai.models.generateContent = originalGenerateContent;
+        }
+    });
 });
