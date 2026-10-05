@@ -3,24 +3,28 @@ import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { userAPI } from '../services/api';
 import { calculateBMI, getBMIStatus } from '../utils/biometrics';
+import { 
+    getGoalLabel, 
+    getDietTypeLabel, 
+    getActivityLevelLabel, 
+    getWorkoutLocationLabel,
+    formatDate
+} from '../utils/labels';
 import { motion, AnimatePresence } from 'framer-motion';
 import { 
     User, 
     Mail, 
-    Calendar, 
     Weight, 
     Ruler, 
     Target, 
-    Zap, 
+    Activity, 
     MapPin, 
     Beef, 
-    Camera, 
     Edit2, 
     Save, 
     X, 
     CheckCircle2, 
     AlertCircle,
-    ChevronRight,
     Loader2,
     Trash2
 } from 'lucide-react';
@@ -47,10 +51,9 @@ const Profile = () => {
         workoutLocation: user?.workoutLocation ? user.workoutLocation.toLowerCase() : 'gym'
     });
 
-    const [bmi, setBmi] = useState('0.0');
+    const [bmi, setBmi] = useState('—');
     const [bmiStatus, setBmiStatus] = useState(getBMIStatus(0));
 
-    // Refetch profile on mount if fields are missing or stale
     useEffect(() => {
         const fetchProfile = async () => {
             try {
@@ -66,7 +69,6 @@ const Profile = () => {
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, []);
 
-    // Sync formData whenever user updates
     useEffect(() => {
         if (user) {
             setFormData({
@@ -88,6 +90,8 @@ const Profile = () => {
             const calculatedBmi = calculateBMI(formData.weight, formData.height);
             setBmi(calculatedBmi);
             setBmiStatus(getBMIStatus(calculatedBmi));
+        } else {
+            setBmi('—');
         }
     }, [formData.weight, formData.height]);
 
@@ -139,74 +143,44 @@ const Profile = () => {
         }
     };
 
-    const cardClasses = "bg-white border border-[#E5E7EB] rounded-[16px] p-6 shadow-[0_10px_25px_rgba(0,0,0,0.05)] transition-all duration-300 hover:-translate-y-1 hover:shadow-[0_15px_30px_rgba(0,0,0,0.08)]";
-    const inputClasses = "w-full bg-[#F9FAFB] border border-[#E5E7EB] rounded-xl px-4 py-3 text-[#111827] focus:ring-2 focus:ring-[#22C55E]/20 focus:border-[#22C55E] outline-none transition-all duration-200";
-    const labelClasses = "block text-sm font-semibold text-[#6B7280] mb-2 ml-1";
+    const cardClasses = "bg-white border border-slate-200 rounded-2xl p-6 shadow-sm";
+    const inputClasses = "w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-2.5 text-slate-900 focus:ring-2 focus:ring-green-600/20 focus:border-green-600 outline-none transition-all font-semibold";
+    const labelClasses = "block text-sm font-semibold text-slate-700 mb-1.5";
 
-    const containerVariants = {
-        hidden: { opacity: 0 },
-        visible: { 
-            opacity: 1, 
-            transition: { duration: 0.5, staggerChildren: 0.1 }
-        }
-    };
-
-    const itemVariants = {
-        hidden: { opacity: 0, y: 15 },
-        visible: { opacity: 1, y: 0 }
-    };
-
-    const joinedDateFormatted = user?.createdAt && !isNaN(new Date(user.createdAt).getTime())
-        ? new Date(user.createdAt).toLocaleDateString()
-        : 'Recently';
+    const joinedDateFormatted = formatDate(user?.createdAt);
 
     return (
-        <motion.div 
-            initial="hidden"
-            animate="visible"
-            variants={containerVariants}
-            className="max-w-5xl mx-auto space-y-8 pb-12"
-        >
-            {/* Subtle glow behind the page */}
-            <div className="absolute top-0 left-1/2 -translate-x-1/2 w-full max-w-4xl h-96 bg-[#22C55E]/5 blur-[120px] -z-10 rounded-full" />
-
+        <div className="max-w-5xl mx-auto space-y-8 pb-16">
             {/* Profile Header */}
-            <section className="bg-white border border-[#E5E7EB] rounded-[20px] p-8 shadow-[0_10px_30px_rgba(0,0,0,0.04)] relative overflow-hidden">
+            <section className="bg-white border border-slate-200 rounded-2xl p-6 shadow-sm relative">
                 <div className="absolute top-6 right-6 z-20">
                      <button 
                         onClick={() => setIsEditing(!isEditing)}
-                        className={`p-2.5 rounded-full transition-all duration-300 ${
+                        className={`p-2.5 rounded-xl transition-all ${
                             isEditing 
-                            ? 'bg-gray-100 text-gray-500 hover:bg-gray-200' 
-                            : 'bg-[#22C55E]/10 text-[#22C55E] hover:bg-[#22C55E]/20'
+                            ? 'bg-slate-100 text-slate-600 hover:bg-slate-200' 
+                            : 'bg-green-50 text-green-600 hover:bg-green-100'
                         }`}
+                        title={isEditing ? 'Cancel edit' : 'Edit profile'}
                     >
-                        {isEditing ? <X className="w-5 h-5 pointer-events-none" /> : <Edit2 className="w-5 h-5 pointer-events-none" />}
+                        {isEditing ? <X className="w-5 h-5" /> : <Edit2 className="w-5 h-5" />}
                     </button>
                 </div>
 
-                <div className="flex flex-col md:flex-row items-center gap-8 relative z-10">
-                    <div className="relative group">
-                        <div className="absolute inset-0 bg-[#22C55E]/20 blur-xl rounded-full opacity-50 group-hover:opacity-80 transition-opacity" />
-                        <div className="w-32 h-32 rounded-full bg-gradient-to-br from-[#22C55E] to-[#16a34a] flex items-center justify-center text-white text-4xl font-black shadow-xl shadow-[#22C55E]/20 border-4 border-white relative z-10">
-                            {user?.name?.charAt(0).toUpperCase()}
-                        </div>
-                        <button className="absolute bottom-1 right-1 p-2 bg-slate-900 text-white rounded-full border-2 border-white opacity-0 group-hover:opacity-100 transition-opacity z-20">
-                            <Camera className="w-4 h-4" />
-                        </button>
+                <div className="flex flex-col md:flex-row items-center gap-6">
+                    <div className="w-24 h-24 rounded-full bg-green-600 flex items-center justify-center text-white text-3xl font-bold shadow-sm border-2 border-white">
+                        {user?.name?.charAt(0).toUpperCase() || 'U'}
                     </div>
 
                     <div className="text-center md:text-left">
-                        <h1 className="text-3xl font-bold text-[#111827] tracking-tight">
+                        <h1 className="text-2xl font-bold text-slate-900">
                             {user?.name}
                         </h1>
-                        <p className="text-[#6B7280] font-medium flex items-center justify-center md:justify-start gap-2 mt-1">
-                            <Mail className="w-4 h-4 text-[#22C55E]" />
+                        <p className="text-slate-600 font-medium flex items-center justify-center md:justify-start gap-2 mt-1 text-sm">
+                            <Mail className="w-4 h-4 text-green-600" />
                             {user?.email}
                         </p>
-                        <div className="flex flex-wrap items-center justify-center md:justify-start gap-3 mt-4">
-                            <span className="text-[#6B7280] text-sm font-medium">Joined {joinedDateFormatted}</span>
-                        </div>
+                        <p className="text-slate-500 text-xs font-medium mt-2">Joined {joinedDateFormatted}</p>
                     </div>
                 </div>
             </section>
@@ -218,10 +192,10 @@ const Profile = () => {
                         initial={{ opacity: 0, scale: 0.95 }}
                         animate={{ opacity: 1, scale: 1 }}
                         exit={{ opacity: 0, scale: 0.95 }}
-                        className="bg-[#22C55E]/10 border border-[#22C55E]/20 text-[#15803d] px-6 py-4 rounded-2xl flex items-center gap-3 shadow-sm shadow-[#22C55E]/5"
+                        className="bg-green-50 border border-green-200 text-green-700 px-5 py-3 rounded-xl flex items-center gap-3 shadow-sm"
                     >
-                        <CheckCircle2 className="w-5 h-5 text-[#22C55E] shrink-0" />
-                        <p className="text-sm font-bold">{success}</p>
+                        <CheckCircle2 className="w-5 h-5 text-green-600 shrink-0" />
+                        <p className="text-sm font-semibold">{success}</p>
                     </motion.div>
                 )}
                 {error && (
@@ -229,25 +203,25 @@ const Profile = () => {
                         initial={{ opacity: 0, scale: 0.95 }}
                         animate={{ opacity: 1, scale: 1 }}
                         exit={{ opacity: 0, scale: 0.95 }}
-                        className="bg-red-50 border border-red-100 text-red-700 px-6 py-4 rounded-2xl flex items-center gap-3"
+                        className="bg-red-50 border border-red-200 text-red-700 px-5 py-3 rounded-xl flex items-center gap-3 shadow-sm"
                     >
-                        <AlertCircle className="w-5 h-5 text-red-500 shrink-0" />
-                        <p className="text-sm font-bold">{error}</p>
+                        <AlertCircle className="w-5 h-5 text-red-600 shrink-0" />
+                        <p className="text-sm font-semibold">{error}</p>
                     </motion.div>
                 )}
             </AnimatePresence>
 
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                 {/* Personal Info Card */}
-                <motion.div variants={itemVariants} className={cardClasses}>
-                    <div className="flex items-center gap-3 mb-6">
-                        <div className="p-2 bg-gray-50 text-[#6B7280] rounded-xl border border-gray-100">
+                <div className={cardClasses}>
+                    <div className="flex items-center gap-3 mb-5">
+                        <div className="p-2 bg-green-50 text-green-600 rounded-xl">
                             <User className="w-5 h-5" />
                         </div>
-                        <h3 className="text-lg font-bold text-[#111827]">Personal Info</h3>
+                        <h3 className="text-lg font-bold text-slate-900">Personal Info</h3>
                     </div>
                     
-                    <div className="space-y-5">
+                    <div className="space-y-4">
                         <div>
                             <label className={labelClasses}>Full Name</label>
                             {isEditing ? (
@@ -259,14 +233,13 @@ const Profile = () => {
                                     placeholder="Enter your name"
                                 />
                             ) : (
-                                <p className="text-[#111827] font-semibold text-lg pl-1">{user?.name}</p>
+                                <p className="text-slate-900 font-semibold text-base">{user?.name}</p>
                             )}
                         </div>
                         
                         <div>
                             <label className={labelClasses}>Email Address</label>
-                            <div className="flex items-center gap-2 text-[#6B7280] pl-1 font-medium bg-[#F9FAFB] p-3 rounded-xl border border-[#E5E7EB]">
-                                <Mail className="w-4 h-4" />
+                            <div className="text-slate-700 font-medium bg-slate-50 px-4 py-2.5 rounded-xl border border-slate-200 text-sm">
                                 {user?.email}
                             </div>
                         </div>
@@ -282,7 +255,7 @@ const Profile = () => {
                                     className={inputClasses}
                                 />
                             ) : (
-                                <p className="text-[#111827] font-semibold text-lg pl-1">{user?.age} <span className="text-[#6B7280] text-sm font-medium ml-1">years old</span></p>
+                                <p className="text-slate-900 font-semibold text-base">{user?.age || '—'} <span className="text-slate-500 text-sm font-normal">years old</span></p>
                             )}
                         </div>
 
@@ -300,34 +273,29 @@ const Profile = () => {
                                         <option value="male">Male</option>
                                         <option value="female">Female</option>
                                     </select>
-                                    <p className="text-xs text-[#6B7280] font-medium mt-1 ml-1">Used only to calculate your calorie target.</p>
+                                    <p className="text-xs text-slate-500 font-medium mt-1">Used only to calculate your calorie target.</p>
                                 </div>
                             ) : (
                                 <div>
-                                    <p className="text-[#111827] font-semibold text-lg pl-1 capitalize">
+                                    <p className="text-slate-900 font-semibold text-base">
                                         {user?.sex === 'male' ? 'Male' : (user?.sex === 'female' ? 'Female' : 'Prefer not to say')}
                                     </p>
-                                    {(!user?.sex || user?.sex === 'unspecified') && (
-                                        <p className="text-xs text-amber-600 font-medium mt-1 ml-1">
-                                            Add your sex for a more accurate calorie target.
-                                        </p>
-                                    )}
                                 </div>
                             )}
                         </div>
                     </div>
-                </motion.div>
+                </div>
 
                 {/* Body Metrics Card */}
-                <motion.div variants={itemVariants} className={cardClasses}>
-                    <div className="flex items-center gap-3 mb-6">
-                        <div className="p-2 bg-gray-50 text-[#6B7280] rounded-xl border border-gray-100">
-                            <Zap className="w-5 h-5" />
+                <div className={cardClasses}>
+                    <div className="flex items-center gap-3 mb-5">
+                        <div className="p-2 bg-green-50 text-green-600 rounded-xl">
+                            <Activity className="w-5 h-5" />
                         </div>
-                        <h3 className="text-lg font-bold text-[#111827]">Body Metrics</h3>
+                        <h3 className="text-lg font-bold text-slate-900">Body Metrics</h3>
                     </div>
 
-                    <div className="grid grid-cols-2 gap-4 mb-6">
+                    <div className="grid grid-cols-2 gap-4 mb-5">
                         <div>
                             <label className={labelClasses}>Weight (kg)</label>
                             {isEditing ? (
@@ -339,9 +307,9 @@ const Profile = () => {
                                     className={inputClasses}
                                 />
                             ) : (
-                                <div className="flex items-center gap-2 pl-1 bg-[#F9FAFB] p-3 rounded-xl border border-[#E5E7EB]">
-                                    <Weight className="w-4 h-4 text-[#22C55E]" />
-                                    <span className="font-bold text-[#111827]">{user?.weight} kg</span>
+                                <div className="flex items-center gap-2 bg-slate-50 p-3 rounded-xl border border-slate-200">
+                                    <Weight className="w-4 h-4 text-green-600" />
+                                    <span className="font-bold text-slate-900">{user?.weight || '—'} kg</span>
                                 </div>
                             )}
                         </div>
@@ -356,43 +324,36 @@ const Profile = () => {
                                     className={inputClasses}
                                 />
                             ) : (
-                                <div className="flex items-center gap-2 pl-1 bg-[#F9FAFB] p-3 rounded-xl border border-[#E5E7EB]">
-                                    <Ruler className="w-4 h-4 text-[#22C55E]" />
-                                    <span className="font-bold text-[#111827]">{user?.height} cm</span>
+                                <div className="flex items-center gap-2 bg-slate-50 p-3 rounded-xl border border-slate-200">
+                                    <Ruler className="w-4 h-4 text-green-600" />
+                                    <span className="font-bold text-slate-900">{user?.height || '—'} cm</span>
                                 </div>
                             )}
                         </div>
                     </div>
 
-                    <div className="mt-4 pt-6 border-t border-gray-100 bg-[#F9FAFB]/50 -mx-6 px-6 pb-2 rounded-b-[16px]">
+                    <div className="mt-4 pt-4 border-t border-slate-100">
                         <div className="flex items-center justify-between">
                             <div>
-                                <p className="text-[10px] font-black text-[#6B7280] uppercase tracking-[0.1em] mb-1">Body Mass Index</p>
+                                <p className="text-xs font-semibold text-slate-500 uppercase tracking-wider mb-1">Body Mass Index</p>
                                 <div className="flex items-baseline gap-2">
-                                    <span className="text-3xl font-black text-[#111827]">{bmi}</span>
-                                    <span className={`text-[10px] font-black px-2 py-0.5 rounded-full uppercase tracking-wider ${bmiStatus.color.replace('text-white', '')} border border-current bg-white shadow-sm`}>
-                                        {bmiStatus.label}
+                                    <span className="text-3xl font-bold text-slate-900">{bmi}</span>
+                                    <span className={`text-xs font-semibold px-2.5 py-1 rounded-md ${bmiStatus.color}`}>
+                                        {user?.weight && user?.height ? bmiStatus.label : 'Unspecified'}
                                     </span>
                                 </div>
                             </div>
-                            <div className="w-14 h-14 rounded-full border-4 border-white shadow-md flex items-center justify-center relative overflow-hidden bg-white">
-                                <div 
-                                    className={`absolute bottom-0 left-0 right-0 ${bmiStatus.color.split(' ')[0]} opacity-10`}
-                                    style={{ height: `${Math.min(parseFloat(bmi) * 2, 100)}%` }}
-                                />
-                                <Target className={`w-7 h-7 ${bmiStatus.textColor}`} />
-                            </div>
                         </div>
                     </div>
-                </motion.div>
+                </div>
 
                 {/* Fitness Preferences Card */}
-                <motion.div variants={itemVariants} className={cardClasses}>
-                    <div className="flex items-center gap-3 mb-6">
-                        <div className="p-2 bg-gray-50 text-[#6B7280] rounded-xl border border-gray-100">
+                <div className={cardClasses}>
+                    <div className="flex items-center gap-3 mb-5">
+                        <div className="p-2 bg-green-50 text-green-600 rounded-xl">
                             <Target className="w-5 h-5" />
                         </div>
-                        <h3 className="text-lg font-bold text-[#111827]">Fitness Preferences</h3>
+                        <h3 className="text-lg font-bold text-slate-900">Fitness Preferences</h3>
                     </div>
 
                     <div className="space-y-4">
@@ -405,19 +366,18 @@ const Profile = () => {
                                     onChange={handleChange}
                                     className={inputClasses}
                                 >
-                                    <option value="fat_loss">Fat Loss</option>
-                                    <option value="muscle_gain">Muscle Gain</option>
-                                    <option value="body_recomposition">Body Recomposition</option>
-                                    <option value="maintain">Maintain</option>
+                                    <option value="fat_loss">Fat loss</option>
+                                    <option value="muscle_gain">Muscle gain</option>
+                                    <option value="body_recomposition">Body recomposition</option>
+                                    <option value="maintain">Maintain weight</option>
                                     <option value="strength">Strength</option>
                                     <option value="endurance">Endurance</option>
-                                    <option value="general_fitness">General Fitness</option>
+                                    <option value="general_fitness">General fitness</option>
                                     <option value="flexibility">Flexibility</option>
                                 </select>
                             ) : (
-                                <div className="flex items-center gap-3 p-4 bg-[#F9FAFB] border border-[#E5E7EB] rounded-xl">
-                                    <div className="w-2.5 h-2.5 rounded-full bg-[#22C55E]" />
-                                    <p className="font-bold text-[#111827] capitalize">{user?.goal?.replace('_', ' ')}</p>
+                                <div className="p-3 bg-slate-50 border border-slate-200 rounded-xl font-bold text-slate-900">
+                                    {getGoalLabel(user?.goal)}
                                 </div>
                             )}
                         </div>
@@ -439,16 +399,8 @@ const Profile = () => {
                                         <option value="very_active">Very active</option>
                                     </select>
                                 ) : (
-                                    <p className="font-bold text-[#111827] pl-1 bg-[#F9FAFB] p-3 rounded-xl border border-[#E5E7EB]">
-                                        {
-                                            {
-                                                sedentary: 'Sedentary',
-                                                light: 'Lightly active',
-                                                moderate: 'Moderately active',
-                                                active: 'Active',
-                                                very_active: 'Very active'
-                                            }[user?.activityLevel] || user?.activityLevel || 'Moderately active'
-                                        }
+                                    <p className="font-bold text-slate-900 bg-slate-50 p-3 rounded-xl border border-slate-200">
+                                        {getActivityLevelLabel(user?.activityLevel)}
                                     </p>
                                 )}
                             </div>
@@ -465,23 +417,23 @@ const Profile = () => {
                                         <option value="gym">Gym</option>
                                     </select>
                                 ) : (
-                                    <div className="flex items-center gap-2 pl-1 bg-[#F9FAFB] p-3 rounded-xl border border-[#E5E7EB] font-bold text-[#111827]">
-                                        <MapPin className="w-4 h-4 text-[#22C55E]" />
-                                        {user?.workoutLocation || 'gym'}
+                                    <div className="flex items-center gap-2 bg-slate-50 p-3 rounded-xl border border-slate-200 font-bold text-slate-900">
+                                        <MapPin className="w-4 h-4 text-green-600" />
+                                        {getWorkoutLocationLabel(user?.workoutLocation)}
                                     </div>
                                 )}
                             </div>
                         </div>
                     </div>
-                </motion.div>
+                </div>
 
                 {/* Diet Preferences Card */}
-                <motion.div variants={itemVariants} className={cardClasses}>
-                    <div className="flex items-center gap-3 mb-6">
-                        <div className="p-2 bg-gray-50 text-[#6B7280] rounded-xl border border-gray-100">
+                <div className={cardClasses}>
+                    <div className="flex items-center gap-3 mb-5">
+                        <div className="p-2 bg-green-50 text-green-600 rounded-xl">
                             <Beef className="w-5 h-5" />
                         </div>
-                        <h3 className="text-lg font-bold text-[#111827]">Diet Preferences</h3>
+                        <h3 className="text-lg font-bold text-slate-900">Diet Preferences</h3>
                     </div>
 
                     <div className="space-y-4">
@@ -495,76 +447,62 @@ const Profile = () => {
                                     className={inputClasses}
                                 >
                                     <option value="vegetarian">Vegetarian</option>
-                                    <option value="non-vegetarian">Non-Vegetarian</option>
+                                    <option value="non-vegetarian">Non-vegetarian</option>
                                     <option value="vegan">Vegan</option>
                                     <option value="pescatarian">Pescatarian</option>
-                                    <option value="any">Flexible</option>
+                                    <option value="any">No preference</option>
                                 </select>
                             ) : (
-                                <div className="flex items-center justify-between bg-[#22C55E]/5 p-4 rounded-xl border border-[#22C55E]/10">
-                                    <span className="font-bold text-[#15803d] capitalize">{user?.dietType}</span>
-                                    <ChevronRight className="w-4 h-4 text-[#22C55E]" />
+                                <div className="bg-slate-50 p-3 rounded-xl border border-slate-200 font-bold text-slate-900">
+                                    {getDietTypeLabel(user?.dietType)}
                                 </div>
                             )}
                         </div>
                     </div>
-
-                    <div className="mt-8 p-4 bg-gray-50 rounded-xl border border-gray-100">
-                        <p className="text-xs text-[#6B7280] font-medium leading-relaxed">
-                            Our AI uses these preferences to tailor your daily nutrition blueprints for optimal results mapping to your {user?.goal?.replace('_', ' ')} goal.
-                        </p>
-                    </div>
-                </motion.div>
+                </div>
             </div>
 
             {/* Delete Account Button */}
-            <motion.div variants={itemVariants} className="pt-12 pb-6 flex justify-center">
+            <div className="pt-6 flex justify-center">
                 <button 
                     onClick={() => setConfirmDelete(true)}
-                    className="group px-8 py-3 rounded-xl font-bold bg-white text-red-500 border border-red-100 hover:bg-red-600 hover:text-white hover:border-red-600 transition-all shadow-sm flex items-center gap-2 active:scale-95"
+                    className="px-6 py-2.5 rounded-xl font-semibold bg-white text-red-600 border border-slate-200 hover:bg-red-50 hover:border-red-200 transition-colors shadow-sm flex items-center gap-2 text-sm"
                 >
-                    <Trash2 className="w-4 h-4 transition-transform group-hover:scale-110" />
-                    Delete Account
+                    <Trash2 className="w-4 h-4" />
+                    Delete account
                 </button>
-            </motion.div>
+            </div>
 
             {/* Delete Confirmation Modal */}
             <AnimatePresence>
                 {confirmDelete && (
-                    <div className="fixed inset-0 z-[100] flex items-center justify-center p-4">
+                    <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-slate-900/40 backdrop-blur-sm">
                         <motion.div 
-                            initial={{ opacity: 0 }}
-                            animate={{ opacity: 1 }}
-                            exit={{ opacity: 0 }}
-                            onClick={() => setConfirmDelete(false)}
-                            className="absolute inset-0 bg-slate-900/40 backdrop-blur-sm"
-                        />
-                        <motion.div 
-                            initial={{ opacity: 0, scale: 0.9, y: 20 }}
-                            animate={{ opacity: 1, scale: 1, y: 0 }}
-                            exit={{ opacity: 0, scale: 0.9, y: 20 }}
-                            className="relative bg-white rounded-3xl p-8 shadow-2xl max-w-sm w-full text-center space-y-6"
+                            initial={{ opacity: 0, scale: 0.95 }}
+                            animate={{ opacity: 1, scale: 1 }}
+                            exit={{ opacity: 0, scale: 0.95 }}
+                            className="bg-white rounded-2xl p-6 shadow-xl max-w-sm w-full text-center space-y-4 border border-slate-200"
                         >
-                            <div className="w-16 h-16 bg-red-50 rounded-full flex items-center justify-center mx-auto">
-                                <AlertCircle className="w-8 h-8 text-red-500" />
+                            <div className="w-12 h-12 bg-red-50 rounded-full flex items-center justify-center mx-auto text-red-600">
+                                <AlertCircle className="w-6 h-6" />
                             </div>
-                            <div className="space-y-2">
-                                <h3 className="text-xl font-bold text-slate-900">Are you sure?</h3>
-                                <p className="text-slate-500 font-medium">
-                                    If once deleted, it can't be undone. All your data will be permanently wiped.
+                            <div className="space-y-1">
+                                <h3 className="text-lg font-bold text-slate-900">Are you sure?</h3>
+                                <p className="text-slate-600 text-sm">
+                                    All your profile and log data will be permanently wiped.
                                 </p>
                             </div>
-                            <div className="flex gap-3">
+                            <div className="flex gap-3 pt-2">
                                 <button 
                                     onClick={() => setConfirmDelete(false)}
-                                    className="flex-1 py-3 px-4 rounded-xl font-bold bg-slate-100 text-slate-600 hover:bg-slate-200 transition-all font-sans"
+                                    className="flex-1 py-2.5 rounded-xl font-semibold bg-slate-100 text-slate-700 hover:bg-slate-200 transition-colors"
                                 >
                                     Cancel
                                 </button>
                                 <button 
                                     onClick={handleDeleteAccount}
                                     disabled={deleting}
-                                    className="flex-1 py-3 px-4 rounded-xl font-bold bg-red-600 text-white hover:bg-red-700 transition-all shadow-lg shadow-red-200 font-sans flex items-center justify-center gap-2"
+                                    className="flex-1 py-2.5 rounded-xl font-semibold bg-red-600 text-white hover:bg-red-700 transition-colors flex items-center justify-center gap-2 shadow-sm"
                                 >
                                     {deleting ? <Loader2 className="w-4 h-4 animate-spin" /> : "Delete"}
                                 </button>
@@ -574,35 +512,35 @@ const Profile = () => {
                 )}
             </AnimatePresence>
 
-            {/* Save Buttons */}
+            {/* Save Button */}
             <AnimatePresence>
                 {isEditing && (
                     <motion.div 
-                        initial={{ opacity: 0, y: 100 }}
+                        initial={{ opacity: 0, y: 50 }}
                         animate={{ opacity: 1, y: 0 }}
-                        exit={{ opacity: 0, y: 100 }}
-                        className="fixed bottom-8 left-1/2 -translate-x-1/2 w-[90%] max-w-xl z-[60]"
+                        exit={{ opacity: 0, y: 50 }}
+                        className="fixed bottom-6 left-1/2 -translate-x-1/2 w-[90%] max-w-md z-[60]"
                     >
-                        <div className="bg-white/80 backdrop-blur-2xl border border-white p-4 rounded-3xl shadow-[0_20px_50px_rgba(0,0,0,0.15)] flex items-center justify-between gap-4">
+                        <div className="bg-white border border-slate-200 p-3 rounded-2xl shadow-xl flex items-center justify-between gap-3">
                             <button 
                                 onClick={() => setIsEditing(false)}
-                                className="flex-1 py-3.5 px-6 rounded-2xl font-bold bg-gray-100 text-[#6B7280] hover:bg-gray-200 transition-all active:scale-95"
+                                className="flex-1 py-2.5 px-4 rounded-xl font-semibold bg-slate-100 text-slate-700 hover:bg-slate-200 transition-colors"
                             >
                                 Cancel
                             </button>
                             <Button 
                                 onClick={handleSave}
                                 loading={loading}
-                                className="flex-[2] py-3.5 px-6 rounded-2xl font-bold !bg-[#22C55E] !hover:bg-[#16a34a] shadow-lg shadow-[#22C55E]/20 flex items-center justify-center gap-2 active:scale-95"
+                                className="flex-[2] py-2.5 px-4 rounded-xl font-semibold !bg-green-600 hover:!bg-green-700 text-white shadow-sm flex items-center justify-center gap-2"
                             >
-                                <Save className="w-5 h-5 text-white" />
-                                <span className="text-white">Save Profile</span>
+                                <Save className="w-4 h-4" />
+                                <span>Save profile</span>
                             </Button>
                         </div>
                     </motion.div>
                 )}
             </AnimatePresence>
-        </motion.div>
+        </div>
     );
 };
 
