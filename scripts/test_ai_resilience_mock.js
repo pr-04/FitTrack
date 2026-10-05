@@ -5,6 +5,11 @@ require('dotenv').config({ path: path.join(__dirname, '../server/.env') });
 const geminiConfig = require('../server/config/gemini');
 const { executeWithResilience, lookupNutrition, generateWorkoutPlan } = require('../server/services/aiService');
 const { workoutPlanSchema, dietPlanSchema } = require('../server/validators/planSchemas');
+const { NutritionCache } = require('../server/models/NutritionCache');
+
+// Stub NutritionCache to prevent 10-second MongoDB buffering timeout in unit tests
+NutritionCache.findOne = async () => null;
+NutritionCache.updateOne = async () => ({});
 
 let passed = 0;
 let failed = 0;

@@ -13,7 +13,7 @@ const sleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
 function sanitizeForLogging(str) {
     if (typeof str !== 'string') str = String(str || '');
     // Strip API keys (e.g. AIza...)
-    let sanitized = str.replace(/AIza[0-9A-Za-z-_]{35}/g, '[REDACTED_API_KEY]');
+    let sanitized = str.replace(/AIza[0-9A-Za-z_-]{35,}/g, '[REDACTED_API_KEY]');
     // Strip generic key query parameters
     sanitized = sanitized.replace(/key=[a-zA-Z0-9_-]+/g, 'key=[REDACTED_KEY]');
     // Strip user email addresses
@@ -526,5 +526,6 @@ module.exports = {
     generateWorkoutPlan,
     generateDietPlan,
     lookupNutrition,
-    executeWithResilience
+    executeWithResilience,
+    sanitizeForLogging
 };

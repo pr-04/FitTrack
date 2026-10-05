@@ -1,6 +1,6 @@
 const { describe, it } = require('node:test');
 const assert = require('node:assert/strict');
-const { executeWithResilience } = require('../services/aiService');
+const { executeWithResilience, sanitizeForLogging } = require('../services/aiService');
 
 describe('AI Resilience Error Classification Unit Tests', () => {
     it('never treats ATTEMPT_TIMEOUT_14040ms as a 404 error', async () => {
@@ -30,5 +30,19 @@ describe('AI Resilience Error Classification Unit Tests', () => {
             caughtError.message.includes('SERVICE_UNAVAILABLE') ||
             caughtError.message.includes('AI_DEADLINE_EXCEEDED')
         );
+    });
+
+    it('redacts long AIza key-like strings (>35 chars) from logging output', () => {
+        const standardKey = 'AIzaSy' + 'A'.repeat(33); // 39 chars total
+        const longApiKey = 'AIzaSy' + 'A'.repeat(45);  // 51 chars total
+        const extraLongKey = 'AIzaSy' + 'B'.repeat(60); // 66 chars total
+
+        const testInput = `{"key1": "${standardKey}", "key2": "${longApiKey}", "key3": "${extraLongKey}"}`;
+        const sanitized = sanitizeForLogging(testInput);
+
+        assert.ok(sanitized.includes('[REDACTED_API_KEY]'));
+        assert.ok(!sanitized.includes(standardKey));
+        assert.ok(!sanitized.includes(longApiKey));
+        assert.ok(!sanitized.includes(extraLongKey));
     });
 });
