@@ -954,4 +954,18 @@ All endpoints writing `workoutLocation`, `dietType`, or `goal` pass through Zod 
    - Validator: `validate(signupSchema)`.
    - Result: Initializes User document with default schema fields (executing model setters).
 
+---
+
+## 4. Testing & Script Suite Overview
+
+### Unit & Integration Test Suite (Routine Runs)
+- **`server/tests/*.test.js`**: Lightweight unit tests (enum normalization, nutrition cache, plan schemas, resilience errors). Executed via `npm test --prefix server`.
+- **`scripts/test_ai_resilience_mock.js`**: Fully mocked AI resilience and cache timeout unit tests. Instant execution without live API calls or database connections.
+- **`scripts/test_clean_database.js`**, **`scripts/test_migrate_legacy_logs.js`**, **`scripts/test_normalize_enums.js`**: Dry-run verification scripts for maintenance tools.
+
+### Live Smoke Tests (Manual / Non-Routine)
+- **`scripts/live_commit1_integration.js`**: Live smoke test calling Google Gemini API to verify real workout/diet plan generation (~88s, consumes API quota).
+- **`scripts/live_lookup_edge_cases.js`**: Live smoke test validating real Gemini food nutrition lookups.
+> **Note**: `live_commit1_integration.js` and `live_lookup_edge_cases.js` interact with the live Gemini API and consume quota. They are intended strictly for manual smoke testing, NOT for routine automated test runs.
+
 
