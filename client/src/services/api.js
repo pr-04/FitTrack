@@ -7,12 +7,17 @@ const api = axios.create({
     },
 });
 
-// Request interceptor — attach JWT token
+// Request interceptor — attach JWT token and time zone
 api.interceptors.request.use(
     (config) => {
         const token = localStorage.getItem('fittrack_token');
         if (token) {
             config.headers.Authorization = `Bearer ${token}`;
+        }
+        try {
+            config.headers['X-Timezone'] = Intl.DateTimeFormat().resolvedOptions().timeZone || 'UTC';
+        } catch {
+            config.headers['X-Timezone'] = 'UTC';
         }
         return config;
     },
@@ -64,7 +69,7 @@ export const dietAPI = {
     log: (data) => api.post('/diet/log', data),
     getHistory: () => api.get('/diet/history'),
     getRecentFoods: () => api.get('/diet/recent-foods'),
-    lookup: (query) => api.get(`/diet/lookup?query=${query}`),
+    lookup: (query) => api.get('/diet/lookup', { params: { query } }),
 };
 
 // ─── Tracker ───

@@ -1,4 +1,10 @@
 const User = require('../models/User');
+const Workout = require('../models/Workout');
+const Diet = require('../models/Diet');
+const WorkoutLog = require('../models/WorkoutLog');
+const DietLog = require('../models/DietLog');
+const Log = require('../models/Log');
+const OAuthCode = require('../models/OAuthCode');
 const { formatUserResponse } = require('../utils/userResponse');
 
 // @desc    Get user profile
@@ -40,7 +46,9 @@ const updateProfile = async (req, res) => {
         const updatedUser = await user.save();
         res.json(formatUserResponse(updatedUser));
     } catch (error) {
-        res.status(500).json({ message: error.message });
+        console.error('Update Profile Error:', error);
+        const msg = process.env.NODE_ENV === 'production' ? 'Internal server error' : error.message;
+        res.status(500).json({ message: msg });
     }
 };
 
@@ -49,18 +57,26 @@ const updateProfile = async (req, res) => {
 // @access  Private
 const deleteProfile = async (req, res) => {
     try {
-        const user = await User.findById(req.user._id);
+        const userId = req.user._id;
+        const user = await User.findById(userId);
         if (!user) return res.status(404).json({ message: 'User not found' });
 
-        // Optionally delete related data like logs, workouts, diets here
-        // await Workout.deleteMany({ userId: user._id });
-        // await Diet.deleteMany({ userId: user._id });
-        // await Log.deleteMany({ userId: user._id });
+        // Delete user's Workout, Diet, WorkoutLog, DietLog, Log and OAuthCode documents first
+        await Promise.all([
+            Workout.deleteMany({ userId }),
+            Diet.deleteMany({ userId }),
+            WorkoutLog.deleteMany({ userId }),
+            DietLog.deleteMany({ userId }),
+            Log.deleteMany({ userId }),
+            OAuthCode.deleteMany({ userId })
+        ]);
 
         await user.deleteOne();
         res.json({ message: 'User deleted successfully' });
     } catch (error) {
-        res.status(500).json({ message: error.message });
+        console.error('Delete Profile Error:', error);
+        const msg = process.env.NODE_ENV === 'production' ? 'Internal server error' : error.message;
+        res.status(500).json({ message: msg });
     }
 };
 
