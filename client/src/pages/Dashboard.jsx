@@ -31,11 +31,23 @@ const Dashboard = () => {
 
     let recommendation = "Generate your plan";
     if (stats?.workoutPlan?.days?.length > 0) {
-        recommendation = `${stats.workoutPlan.days[0].type || "Full Body"} focus today`;
+        const createdAt = stats.workoutPlanCreatedAt || stats.workoutPlan.createdAt;
+        let dayIndex = 0;
+        if (createdAt && !isNaN(new Date(createdAt).getTime())) {
+            const createdDate = new Date(createdAt);
+            const now = new Date();
+            const diffMs = now.getTime() - createdDate.getTime();
+            const diffDays = Math.max(0, Math.floor(diffMs / (1000 * 60 * 60 * 24)));
+            dayIndex = diffDays % stats.workoutPlan.days.length;
+        }
+        const focusDay = stats.workoutPlan.days[dayIndex] || stats.workoutPlan.days[0];
+        recommendation = focusDay ? `${focusDay.day || focusDay.type || `Day ${dayIndex + 1}`}: ${focusDay.type || focusDay.title || 'Workout Focus'}` : "Generate your plan";
     }
 
     const bmi = calculateBMI(user?.weight, user?.height);
     const bmiStatus = getBMIStatus(bmi);
+
+    const firstName = (user?.name || 'User').split(' ')[0];
 
     return (
         <div className="space-y-8 max-w-7xl mx-auto px-4 sm:px-6 lg:px-0">
@@ -49,7 +61,7 @@ const Dashboard = () => {
                 <div className="absolute top-0 right-0 w-56 h-56 bg-green-400/5 blur-[80px] -mr-24 -mt-24 rounded-full pointer-events-none" />
                 <div className="relative z-10">
                     <h1 className="text-3xl font-extrabold tracking-tight text-gray-900 font-display">
-                        Welcome back, <span className="text-primary">{user?.name.split(' ')[0]}</span> 👋
+                        Welcome back, <span className="text-primary">{firstName}</span> 👋
                     </h1>
                     <p className="text-gray-500 mt-1.5 text-base font-medium">
                         You're on track to{' '}

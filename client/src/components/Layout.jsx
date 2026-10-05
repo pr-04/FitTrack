@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { Outlet, Link, useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
+import { userAPI } from '../services/api';
 import { LogOut, Dumbbell, Apple, LineChart, LayoutDashboard, User, Menu, X } from 'lucide-react';
 import ErrorBoundary from './ErrorBoundary';
 
@@ -156,6 +157,23 @@ const TopNav = () => {
 };
 
 const Layout = () => {
+    const { updateUser } = useAuth();
+
+    useEffect(() => {
+        const refreshProfile = async () => {
+            try {
+                const res = await userAPI.getProfile();
+                if (res.data) {
+                    updateUser(res.data);
+                }
+            } catch (err) {
+                console.error("Failed to refresh user profile on layout mount", err);
+            }
+        };
+        refreshProfile();
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, []);
+
     return (
         <div className="min-h-screen bg-[#F9FAFB] flex flex-col font-sans text-gray-900">
             <TopNav />

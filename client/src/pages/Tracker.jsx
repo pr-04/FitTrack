@@ -55,18 +55,16 @@ const Tracker = () => {
     const bmiValue = calculateBMI(user?.weight, user?.height);
     const bmiStatus = getBMIStatus(bmiValue);
 
-    
-    // Process calories over time
-    const dietLogs = stats?.recentLogs?.filter(l => l.type === 'diet') || [];
-    const calorieDataMap = {};
-    dietLogs.forEach(log => {
-        const d = new Date(log.date).toLocaleDateString();
-        calorieDataMap[d] = (calorieDataMap[d] || 0) + log.calories;
-    });
-    const calorieChartData = Object.keys(calorieDataMap).map(date => ({
-        date,
-        calories: calorieDataMap[date]
-    })).reverse();
+    // Calorie history for chart
+    const calorieChartData = stats?.calorieHistory?.length > 0
+        ? stats.calorieHistory
+        : (stats?.recentLogs?.filter(l => l.type === 'diet') || []).map(log => ({
+            date: new Date(log.date).toLocaleDateString(undefined, { month: 'short', day: 'numeric' }),
+            calories: log.calories || 0
+        })).reverse();
+
+    const foodLogs = stats?.recentFoods || stats?.recentLogs?.filter(l => l.type === 'diet') || [];
+    const workoutLogs = stats?.recentWorkouts || stats?.workoutHistory || stats?.recentLogs?.filter(l => l.type === 'workout') || [];
 
     return (
         <div className="space-y-12 max-w-7xl mx-auto px-4 sm:px-6 lg:px-0 pb-20">
@@ -77,7 +75,7 @@ const Tracker = () => {
                 </div>
                 <div className="flex flex-wrap gap-3">
                     <button onClick={() => setShowWeightModal(true)} className="btn-primary flex items-center gap-3 py-4 px-8 text-lg">
-                        <Plus className="w-6 h-6" /> Log Weight
+                        <Plus className="w-6 h-6" /> Update weight
                     </button>
                 </div>
             </header>
@@ -175,26 +173,24 @@ const Tracker = () => {
                     </div>
                     
                     <ul className="divide-y divide-gray-50 max-h-[400px] overflow-y-auto custom-scrollbar">
-                        {stats?.recentLogs?.filter(l => l.type === 'diet' || l.type === 'weight').length === 0 ? (
+                        {foodLogs.length === 0 ? (
                             <div className="p-20 text-center flex flex-col items-center gap-4 text-gray-300">
                                 <Plus className="w-12 h-12 opacity-50" />
                                 <p className="font-bold">No fuel entries logged.</p>
                             </div>
                         ) : (
-                            stats?.recentLogs?.filter(l => l.type === 'diet' || l.type === 'weight').map((log) => (
+                            foodLogs.map((log) => (
                                 <li key={log._id} className="p-8 flex items-center gap-6 hover:bg-gray-50 transition-all duration-300 group">
-                                    <div className={`w-14 h-14 rounded-2xl flex items-center justify-center flex-shrink-0 transition-transform group-hover:scale-110 ${
-                                        log.type === 'diet' ? 'bg-green-50 text-green-500' : 'bg-purple-50 text-purple-500'
-                                    }`}>
-                                        {log.type === 'diet' ? <Plus className="w-6 h-6" /> : <Activity className="w-6 h-6" />}
+                                    <div className="w-14 h-14 rounded-2xl flex items-center justify-center flex-shrink-0 transition-transform group-hover:scale-110 bg-green-50 text-green-500">
+                                        <Plus className="w-6 h-6" />
                                     </div>
                                     <div className="flex-1 min-w-0">
                                         <p className="text-lg font-extrabold text-gray-900 truncate font-display">
-                                            {log.type === 'diet' ? `Log: ${log.name || log.foodItem}` : `Biometric Sync`}
+                                            Log: {log.name || log.foodItem}
                                         </p>
                                         <div className="flex items-center gap-3 mt-1">
                                             <span className="text-sm font-bold text-gray-400 italic">
-                                                {log.type === 'diet' ? `${log.calories} kcal intake` : `${log.bodyWeight} kg update`}
+                                                {log.calories} kcal intake
                                             </span>
                                             <span className="w-1.5 h-1.5 bg-gray-200 rounded-full"></span>
                                             <span className="text-xs font-bold text-gray-300 uppercase tracking-widest">
@@ -218,34 +214,36 @@ const Tracker = () => {
                 </div>
 
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
-                    {stats?.recentLogs?.filter(l => l.type === 'workout').length === 0 ? (
+                    {workoutLogs.length === 0 ? (
                         <div className="col-span-full card-container p-20 text-center flex flex-col items-center gap-4 border-2 border-dashed border-gray-100 bg-transparent">
                             <Activity className="w-14 h-14 text-gray-200" />
                             <p className="text-gray-400 font-bold text-xl uppercase tracking-widest">No training sessions recorded</p>
-                            <button className="text-blue-500 font-black text-sm hover:underline cursor-pointer">Protocol: Initiate First Session</button>
                         </div>
                     ) : (
-                        stats?.recentLogs?.filter(l => l.type === 'workout').map((log) => (
-                            <motion.div key={log._id} whileHover={{ y: -8 }} className="card-elevated p-8 bg-white group border border-gray-100 shadow-sm hover:shadow-xl transition-all duration-300">
-                                <div className="flex justify-between items-start mb-6">
-                                    <div className="w-16 h-16 bg-blue-50 text-blue-500 rounded-3xl flex items-center justify-center transition-colors group-hover:bg-blue-500 group-hover:text-white">
-                                        <TrendingUp className="w-8 h-8" />
+                        workoutLogs.map((log) => {
+                            const weightVal = log.weight !== undefined ? log.weight : log.liftWeight;
+                            return (
+                                <motion.div key={log._id} whileHover={{ y: -8 }} className="card-elevated p-8 bg-white group border border-gray-100 shadow-sm hover:shadow-xl transition-all duration-300">
+                                    <div className="flex justify-between items-start mb-6">
+                                        <div className="w-16 h-16 bg-blue-50 text-blue-500 rounded-3xl flex items-center justify-center transition-colors group-hover:bg-blue-500 group-hover:text-white">
+                                            <TrendingUp className="w-8 h-8" />
+                                        </div>
+                                        <span className="text-xs font-black text-gray-300 uppercase tracking-widest">{new Date(log.date).toLocaleDateString(undefined, { month: 'short', day: 'numeric' })}</span>
                                     </div>
-                                    <span className="text-xs font-black text-gray-300 uppercase tracking-widest">{new Date(log.date).toLocaleDateString(undefined, { month: 'short', day: 'numeric' })}</span>
-                                </div>
-                                <h4 className="text-xl font-black text-gray-900 font-display mb-2">{log.exercise}</h4>
-                                <div className="flex items-center gap-3">
-                                    <span className="bg-blue-50 text-blue-600 text-[10px] font-black px-2 py-0.5 rounded-md uppercase">{log.sets} Sets</span>
-                                    <span className="bg-indigo-50 text-indigo-600 text-[10px] font-black px-2 py-0.5 rounded-md uppercase">{log.reps} Reps</span>
-                                    {log.liftWeight > 0 && <span className="bg-slate-50 text-slate-600 text-[10px] font-black px-2 py-0.5 rounded-md uppercase">{log.liftWeight} Kg</span>}
-                                </div>
-                            </motion.div>
-                        ))
+                                    <h4 className="text-xl font-black text-gray-900 font-display mb-2">{log.exercise}</h4>
+                                    <div className="flex items-center gap-3">
+                                        <span className="bg-blue-50 text-blue-600 text-[10px] font-black px-2 py-0.5 rounded-md uppercase">{log.sets} Sets</span>
+                                        <span className="bg-indigo-50 text-indigo-600 text-[10px] font-black px-2 py-0.5 rounded-md uppercase">{log.reps} Reps</span>
+                                        {weightVal > 0 && <span className="bg-slate-50 text-slate-600 text-[10px] font-black px-2 py-0.5 rounded-md uppercase">{weightVal} Kg</span>}
+                                    </div>
+                                </motion.div>
+                            );
+                        })
                     )}
                 </div>
             </div>
 
-            {/* Modal - Modern Scale */}
+            {/* Modal - Update Weight */}
             {showWeightModal && (
                 <div className="fixed inset-0 z-50 flex items-center justify-center p-6 bg-black/60 backdrop-blur-lg">
                     <motion.div initial={{ opacity:0, scale:0.9 }} animate={{ opacity:1, scale:1 }} className="bg-white rounded-[40px] p-12 w-full max-w-lg shadow-[0_50px_100px_rgba(0,0,0,0.3)] border border-gray-100">
@@ -253,11 +251,11 @@ const Tracker = () => {
                              <div className="w-14 h-14 bg-indigo-50 rounded-2xl flex items-center justify-center text-indigo-600">
                                 <Activity className="w-7 h-7" />
                             </div>
-                            <h3 className="text-3xl font-black font-display italic">Update Biometrics</h3>
+                            <h3 className="text-3xl font-black font-display italic">Update Weight</h3>
                         </div>
                         <form onSubmit={handleAddWeight} className="space-y-8">
                             <div className="space-y-4">
-                                <label className="block text-sm font-black text-gray-400 uppercase tracking-[0.2em] ml-1">New Body weight (kg)</label>
+                                <label className="block text-sm font-black text-gray-400 uppercase tracking-[0.2em] ml-1">New Body Weight (kg)</label>
                                 <input required type="number" min="30" max="250" value={newWeight} onChange={e => setNewWeight(e.target.value)} 
                                        className="w-full bg-gray-50 border-2 border-gray-100 rounded-[24px] px-8 py-5 text-2xl font-black focus:ring-4 focus:ring-indigo-500/10 focus:border-indigo-500 focus:bg-white transition-all outline-none" 
                                        placeholder="70.0" />

@@ -34,6 +34,26 @@ const Workout = () => {
         fetchHistory();
     }, []);
 
+    const getTodayKey = (pid) => `fittrack_completed_${pid}_${new Date().toISOString().slice(0, 10)}`;
+
+    useEffect(() => {
+        if (!planId) {
+            setCompletedExercises({});
+            return;
+        }
+        try {
+            const stored = localStorage.getItem(getTodayKey(planId));
+            if (stored) {
+                setCompletedExercises(JSON.parse(stored));
+            } else {
+                setCompletedExercises({});
+            }
+        } catch (e) {
+            console.error("Failed to read completed exercises from localStorage", e);
+            setCompletedExercises({});
+        }
+    }, [planId]);
+
     const handleGenerate = async () => {
         setLoading(true);
         setError(null);
@@ -41,7 +61,6 @@ const Workout = () => {
             const res = await workoutAPI.generate({ goal: user.goal, fitnessLevel: user.activityLevel });
             setPlan(res.data.plan);
             setPlanId(res.data._id);
-            // Refresh history to ensure synchronization
             fetchHistory();
         } catch (err) {
             console.error("Failed to generate plan", err);
@@ -62,9 +81,9 @@ const Workout = () => {
             setPlan(null);
             setPlanId(null);
             setCompletedExercises({});
-            fetchHistory();
         } catch (error) {
             console.error("Failed to delete plan", error);
+            toast.error(error.response?.data?.message || "Failed to discard plan");
         } finally {
             setLoading(false);
         }
@@ -75,15 +94,49 @@ const Workout = () => {
         fetchHistory();
     };
 
-    const handleLogWorkout = async (dayIndex, exerciseIndex, name, sets, reps) => {
+    const parseExercisePayload = (name, sets, repsStr) => {
+        const rawReps = String(repsStr || '').trim();
+        const isTimedOrDistance = /(sec|min|m|km|meters|miles)/i.test(rawReps);
+        
+        if (isTimedOrDistance) {
+            const exerciseName = name.includes(`(${rawReps})`) ? name : `${name} (${rawReps})`;
+            return {
+                exercise: exerciseName,
+                sets: Number(sets) || 1,
+                reps: 1
+            };
+        } else {
+            const match = rawReps.match(/\d+/);
+            const repCount = match ? parseInt(match[0], 10) : 10;
+            return {
+                exercise: name,
+                sets: Number(sets) || 3,
+                reps: repCount
+            };
+        }
+    };
+
+    const handleLogWorkout = async (dayIndex, exerciseIndex, name, sets, repsStr) => {
         const key = `${dayIndex}-${exerciseIndex}`;
         if (completedExercises[key]) return; 
 
+        const payload = parseExercisePayload(name, sets, repsStr);
+
         try {
-            await workoutAPI.log({ exercise: name, sets: Number(sets) || 3, reps: Number(reps) || 10, weight: 0 });
-            setCompletedExercises(prev => ({...prev, [key]: true}));
+            await workoutAPI.log({ ...payload, weight: 0 });
+            const updated = { ...completedExercises, [key]: true };
+            setCompletedExercises(updated);
+            if (planId) {
+                try {
+                    localStorage.setItem(getTodayKey(planId), JSON.stringify(updated));
+                } catch (e) {
+                    console.error("Failed to save completed exercises", e);
+                }
+            }
+            toast.success(`Logged ${payload.exercise}!`);
         } catch (error) {
             console.error("Failed to log workout", error);
+            toast.error(error.response?.data?.message || "Failed to log workout exercise");
         }
     };
 
