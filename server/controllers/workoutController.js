@@ -7,23 +7,31 @@ const { generateWorkoutPlan } = require('../services/aiService');
 // @route POST /api/workout/generate
 exports.generateWorkout = async (req, res) => {
     try {
-        const { goal, fitnessLevel } = req.body;
-        
         if (!req.user) {
             return res.status(401).json({ message: "User session expired. Please log in again." });
         }
 
-        const userGoal = goal || req.user.goal || 'maintain';
-        const userLevel = fitnessLevel || req.user.activityLevel || 'moderate';
+        const userProfile = {
+            age: req.user.age,
+            weight: req.user.weight,
+            height: req.user.height,
+            activityLevel: req.user.activityLevel,
+            workoutLocation: req.user.workoutLocation,
+            goal: req.user.goal,
+            dietType: req.user.dietType
+        };
 
-        const { plan: finalPlan } = await generateWorkoutPlan({
-            goal: userGoal,
-            fitnessLevel: userLevel
-        });
+        const { plan: finalPlan } = await generateWorkoutPlan(userProfile);
 
         const newWorkout = await Workout.create({
             userId: req.user._id,
             plan: finalPlan
+        });
+
+        // Delete older Workout documents so only the newest remains
+        await Workout.deleteMany({
+            userId: req.user._id,
+            _id: { $ne: newWorkout._id }
         });
 
         res.status(201).json(newWorkout);

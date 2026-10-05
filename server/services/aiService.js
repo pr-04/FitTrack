@@ -1,7 +1,8 @@
 const { ai, safetySettings, ThinkingLevel } = require('../config/gemini');
 const { workoutPlanSchema, dietPlanSchema } = require('../validators/planSchemas');
 const { NutritionCache, normalizeCacheKey } = require('../models/NutritionCache');
-const { normalizeGoal, normalizeDietType } = require('../utils/enums');
+const { normalizeGoal, normalizeDietType, normalizeWorkoutLocation } = require('../utils/enums');
+const { calculateTargets, buildProfileLines } = require('../utils/targets');
 
 // Helper to sleep with promise
 const sleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
@@ -135,8 +136,32 @@ async function executeWithResilience({
             const attemptLatency = Date.now() - attemptStart;
             const errMsg = err.message || '';
 
-            // 1. Check for 400 thinking config rejection
-            const is400Thinking = (err.status === 400 || errMsg.includes('400')) && useThinking;
+            // 1. Check internal sentinel errors first
+            const isSentinelTimeout = /^ATTEMPT_TIMEOUT_/.test(errMsg);
+            const isSentinelParse = /^JSON_PARSE_ERROR/.test(errMsg);
+            const isSentinelValidation = /^VALIDATION_ERROR/.test(errMsg);
+            const isSentinelSafety = errMsg === 'SAFETY_FILTER_BLOCKED';
+
+            if (isSentinelParse || isSentinelValidation) {
+                if (!hasRetriedOnValidationFailure && (deadline - Date.now() > 2000)) {
+                    console.warn(`[AI] Retrying ${requestType} generation once due to output formatting/validation failure...`);
+                    hasRetriedOnValidationFailure = true;
+                    attempt++;
+                    if (fallbackModel && currentModel !== fallbackModel) {
+                        currentModel = fallbackModel;
+                    }
+                    continue;
+                }
+                console.error(`[AI CRITICAL] ${requestType} output failed validation on final attempt. Raw model output (truncated 500 chars):\n${sanitizeForLogging(lastRawText)}`);
+                throw new Error(`PLAN_VALIDATION_FAILURE: Model generated invalid plan structure.`);
+            }
+
+            if (isSentinelSafety) {
+                throw new Error('SAFETY_FILTER_BLOCKED');
+            }
+
+            // 2. Check for 400 thinking config rejection
+            const is400Thinking = (err.status === 400 || (/\b400\b/.test(errMsg) && !isSentinelTimeout)) && useThinking;
             if (is400Thinking) {
                 console.warn(`[AI] Model '${currentModel}' rejected thinkingConfig with HTTP 400 on attempt ${attempt}. Retrying without thinkingConfig...`);
                 useThinking = false;
@@ -144,8 +169,8 @@ async function executeWithResilience({
                 continue;
             }
 
-            // 2. Check for 404 model not found
-            const is404 = err.status === 404 || errMsg.includes('404') || errMsg.includes('NOT_FOUND');
+            // 3. Check for 404 model not found (only if NOT a sentinel error)
+            const is404 = err.status === 404 || (/\b404\b/.test(errMsg) || /\bNOT_FOUND\b/.test(errMsg));
             if (is404) {
                 console.error(`[AI CRITICAL] Gemini model '${currentModel}' NOT FOUND or DEPRECATED. Please update GEMINI_MODEL in environment variables.`);
                 if (fallbackModel && currentModel !== fallbackModel && (deadline - Date.now() > 2000)) {
@@ -157,8 +182,8 @@ async function executeWithResilience({
                 throw new Error(`MODEL_NOT_FOUND: Gemini model '${currentModel}' is not available.`);
             }
 
-            // 3. Check for 429 quota / rate limit -> Switch immediately to fallback
-            const is429 = err.status === 429 || errMsg.includes('429') || errMsg.includes('RESOURCE_EXHAUSTED') || errMsg.includes('quota');
+            // 4. Check for 429 quota / rate limit -> Switch immediately to fallback
+            const is429 = err.status === 429 || (/\b429\b/.test(errMsg) || /RESOURCE_EXHAUSTED/.test(errMsg) || /\bquota\b/i.test(errMsg));
             if (is429) {
                 console.warn(`[AI] Model '${currentModel}' returned 429 (quota/rate limit) on attempt ${attempt} (${attemptLatency}ms).`);
                 if (fallbackModel && currentModel !== fallbackModel && (deadline - Date.now() > 2000)) {
@@ -171,27 +196,9 @@ async function executeWithResilience({
                 throw new Error(`QUOTA_EXHAUSTED: Model '${currentModel}' rate limited and no fallback available.`);
             }
 
-            // 4. Check for JSON parse or Zod schema validation errors -> retry ONCE within total deadline
-            const isParseOrValidation = errMsg.includes('JSON_PARSE_ERROR') || errMsg.includes('VALIDATION_ERROR');
-            if (isParseOrValidation) {
-                if (!hasRetriedOnValidationFailure && (deadline - Date.now() > 2000)) {
-                    console.warn(`[AI] Retrying ${requestType} generation once due to output formatting/validation failure...`);
-                    hasRetriedOnValidationFailure = true;
-                    attempt++;
-                    // Try fallback model on retry if available
-                    if (fallbackModel && currentModel !== fallbackModel) {
-                        currentModel = fallbackModel;
-                    }
-                    continue;
-                }
-                // Final failure after retry: log raw output truncated to 500 chars (sanitized)
-                console.error(`[AI CRITICAL] ${requestType} output failed validation on final attempt. Raw model output (truncated 500 chars):\n${sanitizeForLogging(lastRawText)}`);
-                throw new Error(`PLAN_VALIDATION_FAILURE: Model generated invalid plan structure.`);
-            }
-
             // 5. Check for 503 high demand or timeout
-            const is503 = err.status === 503 || errMsg.includes('503') || errMsg.includes('UNAVAILABLE') || errMsg.includes('high demand');
-            const isTimeout = errMsg.includes('ATTEMPT_TIMEOUT');
+            const is503 = err.status === 503 || (/\b503\b/.test(errMsg) || /UNAVAILABLE/.test(errMsg) || /high demand/i.test(errMsg));
+            const isTimeout = isSentinelTimeout || errMsg.includes('ATTEMPT_TIMEOUT');
 
             if (is503 || isTimeout) {
                 const reason = isTimeout ? 'timeout' : '503 high demand';
@@ -217,11 +224,6 @@ async function executeWithResilience({
                 throw new Error(`SERVICE_UNAVAILABLE: Model '${currentModel}' experiencing high demand or timed out.`);
             }
 
-            // 6. Safety filter
-            if (errMsg === 'SAFETY_FILTER_BLOCKED') {
-                throw new Error('SAFETY_FILTER_BLOCKED');
-            }
-
             // Any other error
             console.error(`[AI] Unexpected error on attempt ${attempt} (${currentModel}):`, errMsg);
             if (fallbackModel && currentModel !== fallbackModel && (deadline - Date.now() > 2000)) {
@@ -242,31 +244,44 @@ async function executeWithResilience({
 /**
  * Generate a 7-day workout plan
  */
-async function generateWorkoutPlan({ goal, fitnessLevel }) {
+async function generateWorkoutPlan(userProfile = {}) {
     const primaryModel = process.env.GEMINI_MODEL || 'gemini-3.5-flash-lite';
     const fallbackModel = process.env.GEMINI_FALLBACK_MODEL || null;
 
-    const userGoal = normalizeGoal(goal) || 'maintain';
-    const userLevel = fitnessLevel || 'moderate';
+    const profileLines = buildProfileLines(userProfile);
+    const profileSummary = profileLines.length > 0 ? profileLines.join('\n') : 'User Profile: Not specified';
+
+    const normLoc = normalizeWorkoutLocation(userProfile.workoutLocation) || 'gym';
+    const cleanActivity = typeof userProfile.activityLevel === 'string' ? userProfile.activityLevel.trim().toLowerCase() : 'moderate';
+
+    let equipmentRule = 'Equipment rules: Gym workout - full equipment available (barbells, dumbbells, machines, cables).';
+    if (normLoc === 'home') {
+        equipmentRule = 'Equipment rules: Home workout - bodyweight, dumbbells, and resistance bands only. Absolutely NO machines or heavy gym apparatus.';
+    }
+
+    let activityGuideline = '';
+    if (cleanActivity === 'sedentary' || cleanActivity === 'light') {
+        activityGuideline = 'Intensity & Volume: User has low activity level (sedentary/light). Provide lower training volume and low-impact exercise options to prevent overexertion or injury.';
+    }
 
     const prompt = `
-Create a professional 7-day workout plan for a user with the goal: ${userGoal.replace('_', ' ')}.
-Fitness Level: ${userLevel}
+Create a professional 7-day workout plan tailored to the user profile below.
 
-Special Instructions for Goals:
-- Flexibility: Focus on yoga, static stretching, and mobility routines.
-- Endurance: Focus on zone 2 cardio, long-distance running/cycling, and high-rep endurance circuits.
-- Strength: Focus on heavy compound lifts, low reps (1-5), and longer rest periods.
-- Body Recomposition: Balance resistance training with minimal cardio and focus on bodyweight/weighted movements.
-- Fat Loss: High-intensity interval training (HIIT) paired with steady-state cardio.
-- Muscle Gain: Hypertrophy focus (8-12 reps) with progressive overload.
-- General Fitness: A balanced mix of cardio and resistance training.
-- Maintain: Steady maintenance routine to keep current fitness levels.
+User Profile:
+${profileSummary}
+
+${equipmentRule}
+${activityGuideline}
+
+Special Reps Formatting Instructions:
+- For rep-based exercises, specify "reps" as a plain number or range (e.g., "12" or "8-10").
+- For timed/distance exercises, specify "reps" with a duration or distance descriptor (e.g., "45 sec", "30 min", or "500 m").
+- NEVER duplicate the unit (e.g., write "45 sec", NOT "45 sec sec").
 
 JSON Schema:
 {
   "plan": {
-    "title": "ELITE PERFORMANCE: [Title]",
+    "title": "[Title]",
     "overview": "[Strategy summary]",
     "days": [
       {
@@ -282,7 +297,7 @@ JSON Schema:
 Ensure EXACTLY 7 days are included (Day 1 through Day 7).
 `;
 
-    const systemInstruction = 'You are an elite AI performance coach for FitTrack Premium. Your mission is to architect high-depth, strictly structured 7-day training programs. You must output ONLY valid JSON that conforms to the user requested schema with exactly 7 days. Never include conversational text before or after the JSON.';
+    const systemInstruction = 'You are an AI performance coach for FitTrack. Your mission is to generate structured 7-day training programs. You must output ONLY valid JSON that conforms to the user requested schema with exactly 7 days. Never include conversational text before or after the JSON.';
 
     // Deadlines: 30s total budget, 15s per attempt
     const result = await executeWithResilience({
@@ -304,24 +319,30 @@ Ensure EXACTLY 7 days are included (Day 1 through Day 7).
 /**
  * Generate a personalized daily nutrition blueprint
  */
-async function generateDietPlan({ goal, dietType }) {
+async function generateDietPlan(userProfile = {}) {
     const primaryModel = process.env.GEMINI_MODEL || 'gemini-3.5-flash-lite';
     const fallbackModel = process.env.GEMINI_FALLBACK_MODEL || null;
 
-    const userGoal = normalizeGoal(goal) || 'maintain';
-    const userDiet = normalizeDietType(dietType) || 'any';
+    const profileLines = buildProfileLines(userProfile);
+    const profileSummary = profileLines.length > 0 ? profileLines.join('\n') : 'User Profile: Not specified';
+
+    const calculated = calculateTargets(userProfile);
+    let targetInstructions = '';
+    if (calculated) {
+        targetInstructions = `
+Exact Target Calories: ${calculated.dailyCalories} kcal
+Exact Target Macros: Protein ${calculated.macros.protein}, Carbs ${calculated.macros.carbs}, Fats ${calculated.macros.fats}
+Meal Sizing Requirement: Size the meal options so ONE option per meal category (Breakfast, Lunch, Snacks, Dinner) totals roughly the target daily calories (${calculated.dailyCalories} kcal) and strictly respects dietary preference.
+`;
+    }
 
     const prompt = `
-Create a professional daily nutrition blueprint for a user with the goal: ${userGoal.replace('_', ' ')}.
-Dietary Preference: ${userDiet}
+Create a professional daily nutrition blueprint tailored to the user profile below.
 
-Special Instructions for Goals:
-- Fat Loss: Focus on a caloric deficit, high volume low calorie foods, and high protein.
-- Muscle Gain: Focus on a caloric surplus with high protein (1.8g-2.2g per kg) and complex carbs.
-- Body Recomposition: Focus on maintenance calories with very high protein and timing carbs around workouts.
-- Strength & Endurance: Focus on high carbohydrate intake for glycogen replenishment.
-- Flexibility & General Fitness: Focus on micronutrient density, anti-inflammatory foods, and balanced macros.
-- Maintain: Focus on balanced macros to stay at current weight.
+User Profile:
+${profileSummary}
+
+${targetInstructions}
 
 JSON Schema:
 {
@@ -339,7 +360,7 @@ JSON Schema:
 ONLY include the 4 categories: "Breakfast", "Lunch", "Snacks", "Dinner".
 `;
 
-    const systemInstruction = 'You are an expert AI nutritionist for FitTrack Premium. Your mission is to architect high-depth, strictly structured daily nutrition blueprints. You must output ONLY valid JSON that conforms to the user requested schema. Never include conversational text before or after the JSON. Focus on macronutrient balance and premium, varied food suggestions.';
+    const systemInstruction = 'You are an AI nutritionist for FitTrack. Your mission is to generate structured daily nutrition blueprints. You must output ONLY valid JSON that conforms to the user requested schema. Never include conversational text before or after the JSON. Focus on macronutrient balance and varied food suggestions.';
 
     // Deadlines: 30s total budget, 15s per attempt
     const result = await executeWithResilience({
@@ -355,7 +376,13 @@ ONLY include the 4 categories: "Breakfast", "Lunch", "Snacks", "Dinner".
         maxOutputTokens: 8192
     });
 
-    return { plan: result.data, model: result.model };
+    const plan = result.data;
+    if (calculated) {
+        plan.dailyCalories = calculated.dailyCalories;
+        plan.macros = calculated.macros;
+    }
+
+    return { plan, model: result.model };
 }
 
 /**

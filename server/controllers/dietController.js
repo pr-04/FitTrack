@@ -7,23 +7,31 @@ const { generateDietPlan, lookupNutrition: aiLookupNutrition } = require('../ser
 // @route POST /api/diet/generate
 exports.generateDiet = async (req, res) => {
     try {
-        const { goal, dietType } = req.body;
-        
         if (!req.user) {
             return res.status(401).json({ message: "User session expired. Please log in again." });
         }
 
-        const userGoal = goal || req.user.goal || 'maintain';
-        const userDiet = dietType || req.user.dietType || 'any';
+        const userProfile = {
+            age: req.user.age,
+            weight: req.user.weight,
+            height: req.user.height,
+            activityLevel: req.user.activityLevel,
+            workoutLocation: req.user.workoutLocation,
+            goal: req.user.goal,
+            dietType: req.user.dietType
+        };
 
-        const { plan: finalPlan } = await generateDietPlan({
-            goal: userGoal,
-            dietType: userDiet
-        });
+        const { plan: finalPlan } = await generateDietPlan(userProfile);
 
         const newDiet = await Diet.create({
             userId: req.user._id,
             plan: finalPlan
+        });
+
+        // Delete older Diet documents so only the newest remains
+        await Diet.deleteMany({
+            userId: req.user._id,
+            _id: { $ne: newDiet._id }
         });
 
         res.status(201).json(newDiet);
