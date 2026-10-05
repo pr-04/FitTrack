@@ -83,7 +83,7 @@ const LogWorkoutModal = ({ isOpen, onClose, onSuccess }) => {
                             </div>
                             <div>
                                 <h3 className="text-xl font-bold text-slate-900">Log Workout</h3>
-                                <p className="text-xs font-medium text-slate-400 uppercase tracking-widest">Protocol Entry</p>
+                                <p className="text-xs font-medium text-slate-400 uppercase tracking-widest">Workout log</p>
                             </div>
                         </div>
                         <button onClick={onClose} className="p-2 hover:bg-slate-50 rounded-xl transition-colors">

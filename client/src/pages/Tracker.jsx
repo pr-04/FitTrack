@@ -1,12 +1,13 @@
 import { useState, useEffect } from 'react';
+import { Link } from 'react-router-dom';
 import { trackerAPI, userAPI } from '../services/api';
-import { Loader2, TrendingUp, Activity, CheckCircle2, Plus, Target, Ruler, Calendar } from 'lucide-react';
+import { Loader2, TrendingUp, Activity, CheckCircle2, Plus, Target, Ruler } from 'lucide-react';
 import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
 import { useAuth } from '../context/AuthContext';
 import { motion } from 'framer-motion';
 import { calculateBMI, getBMIStatus } from '../utils/biometrics';
+import { formatDate } from '../utils/labels';
 import { toast } from 'react-hot-toast';
-
 
 const Tracker = () => {
     const { user, updateUser } = useAuth();
@@ -47,19 +48,23 @@ const Tracker = () => {
     if (loading) {
         return (
             <div className="min-h-[500px] flex items-center justify-center">
-                <Loader2 className="w-12 h-12 text-primary animate-spin" />
+                <Loader2 className="w-10 h-10 text-green-600 animate-spin" />
             </div>
         );
     }
 
-    const bmiValue = calculateBMI(user?.weight, user?.height);
-    const bmiStatus = getBMIStatus(bmiValue);
+    const hasBiometrics = user?.weight && user?.height;
+    const bmiValue = hasBiometrics ? calculateBMI(user.weight, user.height) : '—';
+    const bmiStatus = hasBiometrics ? getBMIStatus(bmiValue) : { label: 'Unspecified', color: 'bg-slate-100 text-slate-600', textColor: 'text-slate-600' };
 
     // Calorie history for chart
     const calorieChartData = stats?.calorieHistory?.length > 0
-        ? stats.calorieHistory
+        ? stats.calorieHistory.map(item => ({
+            ...item,
+            date: formatDate(item.date)
+        }))
         : (stats?.recentLogs?.filter(l => l.type === 'diet') || []).map(log => ({
-            date: new Date(log.date).toLocaleDateString(undefined, { month: 'short', day: 'numeric' }),
+            date: formatDate(log.date),
             calories: log.calories || 0
         })).reverse();
 
@@ -67,74 +72,63 @@ const Tracker = () => {
     const workoutLogs = stats?.recentWorkouts || stats?.workoutHistory || stats?.recentLogs?.filter(l => l.type === 'workout') || [];
 
     return (
-        <div className="space-y-12 max-w-7xl mx-auto px-4 sm:px-6 lg:px-0 pb-20">
-            <header className="flex flex-col md:flex-row justify-between items-start md:items-center gap-6">
+        <div className="space-y-8 max-w-7xl mx-auto px-4 sm:px-6 lg:px-0 pb-16">
+            <header className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
                 <div>
-                    <h1 className="text-4xl font-extrabold tracking-tight text-gray-900 font-display">Performance Analytics</h1>
-                    <p className="text-gray-500 mt-2 text-lg font-medium">Your weight, workouts and calories.</p>
+                    <h1 className="text-3xl font-bold tracking-tight text-slate-900">Tracker</h1>
+                    <p className="text-slate-600 mt-1 font-medium">Track your weight, workouts, and food logs.</p>
                 </div>
                 <div className="flex flex-wrap gap-3">
-                    <button onClick={() => setShowWeightModal(true)} className="btn-primary flex items-center gap-3 py-4 px-8 text-lg">
-                        <Plus className="w-6 h-6" /> Update weight
+                    <button onClick={() => setShowWeightModal(true)} className="px-5 py-2.5 rounded-xl bg-green-600 hover:bg-green-700 text-white font-semibold transition-all shadow-sm flex items-center gap-2">
+                        <Plus className="w-5 h-5" /> Weight update
                     </button>
                 </div>
             </header>
 
-            {/* Performance Level 0 → Overviews */}
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-                <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className="card-elevated p-10 bg-gradient-to-br from-indigo-600 to-indigo-800 text-white border-none relative overflow-hidden">
-                    <div className="absolute top-0 right-0 p-6 opacity-10">
-                        <Ruler className="w-24 h-24" />
-                    </div>
-                    <div className="flex justify-between items-start mb-10 relative z-10">
+            {/* Overviews */}
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <div className="bg-white rounded-2xl p-6 border border-slate-200 shadow-sm relative overflow-hidden">
+                    <div className="flex justify-between items-start mb-6">
                         <div>
-                            <p className="text-indigo-100 font-bold uppercase tracking-widest text-xs">Body Mass Index</p>
-                            <h2 className="text-6xl font-black mt-2 font-display">{bmiValue}</h2>
+                            <p className="text-slate-500 font-semibold uppercase tracking-wider text-xs">Body Mass Index</p>
+                            <h2 className="text-4xl font-bold mt-1 text-slate-900">{bmiValue}</h2>
                         </div>
-                        <div className="w-16 h-16 bg-white/20 rounded-2xl flex items-center justify-center backdrop-blur-md">
-                            <Activity className="w-8 h-8 text-white" />
-                        </div>
-                    </div>
-                    <div className="space-y-4 relative z-10">
-                        <div className="w-full bg-white/20 h-3 rounded-full overflow-hidden">
-                             <div className="bg-white h-full rounded-full" style={{ width: `${Math.min((parseFloat(bmiValue)/40)*100, 100)}%` }}></div>
-                        </div>
-                        <div className="flex flex-col gap-1">
-                            <p className="text-indigo-100 text-sm font-bold flex items-center gap-2 italic">
-                                <CheckCircle2 className="w-4 h-4" /> Validated for {user?.weight}kg profile
-                            </p>
-                            <span className="text-[10px] font-black uppercase tracking-[0.2em] bg-white/20 w-fit px-2 py-0.5 rounded">
-                                Status: {bmiStatus.label}
-                            </span>
+                        <div className="w-12 h-12 bg-green-50 rounded-xl flex items-center justify-center text-green-600">
+                            <Activity className="w-6 h-6" />
                         </div>
                     </div>
-                </motion.div>
+                    <div className="space-y-3">
+                        <div className="flex items-center gap-2 text-slate-600 text-sm font-medium">
+                            <CheckCircle2 className="w-4 h-4 text-green-600" />
+                            <span>{user?.weight ? `Validated for ${user.weight} kg profile` : 'Add weight and height in profile'}</span>
+                        </div>
+                        <span className={`text-xs font-semibold px-2.5 py-1 rounded-md inline-block ${bmiStatus.color}`}>
+                            {bmiStatus.label}
+                        </span>
+                    </div>
+                </div>
 
-                <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.1 }} className="card-elevated p-10 bg-gradient-to-br from-emerald-500 to-teal-600 text-white border-none relative overflow-hidden">
-                    <div className="absolute top-0 right-0 p-6 opacity-10">
-                        <Target className="w-24 h-24" />
-                    </div>
-                    <div className="flex justify-between items-start mb-10 relative z-10">
+                <div className="bg-white rounded-2xl p-6 border border-slate-200 shadow-sm relative overflow-hidden">
+                    <div className="flex justify-between items-start mb-6">
                         <div>
-                            <p className="text-emerald-50 font-bold uppercase tracking-widest text-xs">Training Impact</p>
-                            <h2 className="text-6xl font-black mt-2 font-display">{stats?.totalWorkouts || 0}</h2>
+                            <p className="text-slate-500 font-semibold uppercase tracking-wider text-xs">Workouts Completed</p>
+                            <h2 className="text-4xl font-bold mt-1 text-slate-900">{stats?.totalWorkouts || 0}</h2>
                         </div>
-                        <div className="w-16 h-16 bg-white/20 rounded-2xl flex items-center justify-center backdrop-blur-md">
-                            <TrendingUp className="w-8 h-8 text-white" />
+                        <div className="w-12 h-12 bg-green-50 rounded-xl flex items-center justify-center text-green-600">
+                            <TrendingUp className="w-6 h-6" />
                         </div>
                     </div>
-                    <p className="text-emerald-50 text-sm font-bold mt-4 uppercase tracking-tighter">Sessions logged in your current cycle</p>
-                </motion.div>
+                    <p className="text-slate-600 text-sm font-medium">Sessions logged in your current tracking history</p>
+                </div>
             </div>
 
-            {/* Performance Level 1 → History & Detail */}
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-10">
+            {/* Calorie History & Food Log */}
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
                 
                 {/* Calorie Analytics */}
-                <div className="card-elevated p-10 bg-white shadow-[0_45px_90px_-20px_rgba(0,0,0,0.06)] transform transition-all duration-500 hover:scale-[1.01]">
-                    <div className="flex justify-between items-center mb-10">
-                        <h3 className="text-2xl font-extrabold text-gray-900 font-display italic">Calorie History</h3>
-                        <span className="text-xs font-black text-gray-400 uppercase tracking-widest bg-gray-50 px-3 py-1 rounded-lg">Kcal Variance</span>
+                <div className="bg-white rounded-2xl p-6 border border-slate-200 shadow-sm">
+                    <div className="flex justify-between items-center mb-6">
+                        <h2 className="text-xl font-bold text-slate-900">Calorie history</h2>
                     </div>
                     <div className="h-80 w-full min-w-0">
                         {calorieChartData.length > 0 ? (
@@ -142,60 +136,55 @@ const Tracker = () => {
                                 <AreaChart data={calorieChartData}>
                                     <defs>
                                         <linearGradient id="colorCal" x1="0" y1="0" x2="0" y2="1">
-                                            <stop offset="5%" stopColor="#22C55E" stopOpacity={0.3}/>
-                                            <stop offset="95%" stopColor="#22C55E" stopOpacity={0}/>
+                                            <stop offset="5%" stopColor="#16a34a" stopOpacity={0.2}/>
+                                            <stop offset="95%" stopColor="#16a34a" stopOpacity={0}/>
                                         </linearGradient>
                                     </defs>
-                                    <CartesianGrid strokeDasharray="6 6" vertical={false} stroke="#F1F5F9" />
-                                    <XAxis dataKey="date" tickLine={false} axisLine={false} tick={{fill: '#94A3B8', fontSize: 12, fontWeight: 700}} dy={10} />
-                                    <YAxis tickLine={false} axisLine={false} tick={{fill: '#94A3B8', fontSize: 12, fontWeight: 700}} dx={-10} />
+                                    <CartesianGrid strokeDasharray="4 4" vertical={false} stroke="#e2e8f0" />
+                                    <XAxis dataKey="date" tickLine={false} axisLine={false} tick={{fill: '#64748b', fontSize: 12, fontWeight: 600}} dy={8} />
+                                    <YAxis tickLine={false} axisLine={false} tick={{fill: '#64748b', fontSize: 12, fontWeight: 600}} dx={-8} />
                                     <Tooltip 
-                                        contentStyle={{ borderRadius: '24px', border: 'none', boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.15)', padding: '20px' }}
-                                        cursor={{ stroke: '#22C55E', strokeWidth: 2 }}
+                                        contentStyle={{ borderRadius: '12px', border: '1px solid #e2e8f0', boxShadow: '0 4px 12px rgba(0, 0, 0, 0.05)', padding: '12px 16px' }}
+                                        cursor={{ stroke: '#16a34a', strokeWidth: 1.5 }}
                                     />
-                                    <Area type="monotone" dataKey="calories" stroke="#22C55E" fillOpacity={1} fill="url(#colorCal)" strokeWidth={4} />
+                                    <Area type="monotone" dataKey="calories" stroke="#16a34a" fillOpacity={1} fill="url(#colorCal)" strokeWidth={3} />
                                 </AreaChart>
                             </ResponsiveContainer>
                         ) : (
-                            <div className="h-full flex flex-col items-center justify-center text-gray-400 gap-2 border-2 border-dashed border-gray-100 rounded-[32px]">
-                                <Activity className="w-10 h-10 opacity-20" />
-                                <p className="font-bold">Awaiting historical data...</p>
+                            <div className="h-full flex flex-col items-center justify-center text-slate-500 gap-2 border border-dashed border-slate-200 rounded-2xl p-8">
+                                <Activity className="w-8 h-8 text-slate-400" />
+                                <p className="font-semibold text-slate-600">No data yet</p>
                             </div>
                         )}
                     </div>
                 </div>
 
-                {/* Nutrition Records */}
-                <div className="card-container overflow-hidden bg-white shadow-[0_45px_90px_-20px_rgba(0,0,0,0.06)] border-l-4 border-emerald-500">
-                    <div className="p-8 border-b border-gray-50 flex justify-between items-center bg-emerald-50/20">
-                        <h2 className="text-2xl font-extrabold text-gray-900 font-display italic">Nutrition Records</h2>
-                        <span className="text-xs font-black text-emerald-600 uppercase tracking-widest bg-emerald-100/50 px-3 py-1 rounded-full">Fuel Logs</span>
+                {/* Food Log */}
+                <div className="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden flex flex-col">
+                    <div className="p-6 border-b border-slate-100 flex justify-between items-center">
+                        <h2 className="text-xl font-bold text-slate-900">Food log</h2>
                     </div>
                     
-                    <ul className="divide-y divide-gray-50 max-h-[400px] overflow-y-auto custom-scrollbar">
+                    <ul className="divide-y divide-slate-100 max-h-[380px] overflow-y-auto flex-1">
                         {foodLogs.length === 0 ? (
-                            <div className="p-20 text-center flex flex-col items-center gap-4 text-gray-300">
-                                <Plus className="w-12 h-12 opacity-50" />
-                                <p className="font-bold">No fuel entries logged.</p>
+                            <div className="p-12 text-center flex flex-col items-center gap-3 text-slate-400">
+                                <Plus className="w-10 h-10 text-slate-300" />
+                                <p className="font-semibold text-slate-500">No food entries logged.</p>
                             </div>
                         ) : (
                             foodLogs.map((log) => (
-                                <li key={log._id} className="p-8 flex items-center gap-6 hover:bg-gray-50 transition-all duration-300 group">
-                                    <div className="w-14 h-14 rounded-2xl flex items-center justify-center flex-shrink-0 transition-transform group-hover:scale-110 bg-green-50 text-green-500">
-                                        <Plus className="w-6 h-6" />
+                                <li key={log._id} className="p-5 flex items-center gap-4 hover:bg-slate-50 transition-colors">
+                                    <div className="w-10 h-10 rounded-xl bg-green-50 text-green-600 flex items-center justify-center flex-shrink-0">
+                                        <Plus className="w-5 h-5" />
                                     </div>
                                     <div className="flex-1 min-w-0">
-                                        <p className="text-lg font-extrabold text-gray-900 truncate font-display">
-                                            Log: {log.name || log.foodItem}
+                                        <p className="text-base font-semibold text-slate-900 truncate">
+                                            {log.name || log.foodItem}
                                         </p>
-                                        <div className="flex items-center gap-3 mt-1">
-                                            <span className="text-sm font-bold text-gray-400 italic">
-                                                {log.calories} kcal intake
-                                            </span>
-                                            <span className="w-1.5 h-1.5 bg-gray-200 rounded-full"></span>
-                                            <span className="text-xs font-bold text-gray-300 uppercase tracking-widest">
-                                                {new Date(log.date).toLocaleDateString(undefined, { month: 'short', day: 'numeric' })}
-                                            </span>
+                                        <div className="flex items-center gap-2 mt-0.5 text-xs text-slate-500 font-medium">
+                                            <span>{log.calories} kcal</span>
+                                            <span>•</span>
+                                            <span>{formatDate(log.date)}</span>
                                         </div>
                                     </div>
                                 </li>
@@ -205,38 +194,39 @@ const Tracker = () => {
                 </div>
             </div>
 
-            {/* Performance Level 2 → Training History */}
-            <div className="space-y-6">
-                <div className="flex items-center gap-4">
-                    <h2 className="text-3xl font-extrabold text-gray-900 font-display italic">Training History</h2>
-                    <div className="h-px bg-gray-100 flex-1"></div>
-                    <span className="text-xs font-black text-blue-500 uppercase tracking-[0.2em] bg-blue-50 px-4 py-2 rounded-full">Session Archive</span>
+            {/* Workout History */}
+            <div className="space-y-4">
+                <div className="flex items-center justify-between">
+                    <h2 className="text-2xl font-bold text-slate-900">Workout history</h2>
                 </div>
 
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                     {workoutLogs.length === 0 ? (
-                        <div className="col-span-full card-container p-20 text-center flex flex-col items-center gap-4 border-2 border-dashed border-gray-100 bg-transparent">
-                            <Activity className="w-14 h-14 text-gray-200" />
-                            <p className="text-gray-400 font-bold text-xl uppercase tracking-widest">No training sessions recorded</p>
+                        <div className="col-span-full bg-white rounded-2xl p-10 text-center flex flex-col items-center gap-4 border border-slate-200 shadow-sm">
+                            <Activity className="w-10 h-10 text-slate-400" />
+                            <p className="text-slate-600 font-semibold text-lg">No workouts logged yet.</p>
+                            <Link to="/app/workout" className="inline-flex items-center justify-center px-5 py-2.5 rounded-xl bg-green-600 text-white font-semibold hover:bg-green-700 transition-colors shadow-sm">
+                                Log your first workout
+                            </Link>
                         </div>
                     ) : (
                         workoutLogs.map((log) => {
                             const weightVal = log.weight !== undefined ? log.weight : log.liftWeight;
                             return (
-                                <motion.div key={log._id} whileHover={{ y: -8 }} className="card-elevated p-8 bg-white group border border-gray-100 shadow-sm hover:shadow-xl transition-all duration-300">
-                                    <div className="flex justify-between items-start mb-6">
-                                        <div className="w-16 h-16 bg-blue-50 text-blue-500 rounded-3xl flex items-center justify-center transition-colors group-hover:bg-blue-500 group-hover:text-white">
-                                            <TrendingUp className="w-8 h-8" />
+                                <div key={log._id} className="bg-white rounded-2xl p-6 border border-slate-200 shadow-sm hover:border-slate-300 transition-all">
+                                    <div className="flex justify-between items-start mb-4">
+                                        <div className="w-10 h-10 bg-green-50 text-green-600 rounded-xl flex items-center justify-center">
+                                            <TrendingUp className="w-5 h-5" />
                                         </div>
-                                        <span className="text-xs font-black text-gray-300 uppercase tracking-widest">{new Date(log.date).toLocaleDateString(undefined, { month: 'short', day: 'numeric' })}</span>
+                                        <span className="text-xs font-medium text-slate-500">{formatDate(log.date)}</span>
                                     </div>
-                                    <h4 className="text-xl font-black text-gray-900 font-display mb-2">{log.exercise}</h4>
-                                    <div className="flex items-center gap-3">
-                                        <span className="bg-blue-50 text-blue-600 text-[10px] font-black px-2 py-0.5 rounded-md uppercase">{log.sets} Sets</span>
-                                        <span className="bg-indigo-50 text-indigo-600 text-[10px] font-black px-2 py-0.5 rounded-md uppercase">{log.reps} Reps</span>
-                                        {weightVal > 0 && <span className="bg-slate-50 text-slate-600 text-[10px] font-black px-2 py-0.5 rounded-md uppercase">{weightVal} Kg</span>}
+                                    <h4 className="text-lg font-bold text-slate-900 mb-2">{log.exercise}</h4>
+                                    <div className="flex flex-wrap items-center gap-2 text-xs font-semibold text-slate-600">
+                                        <span className="bg-slate-100 px-2.5 py-1 rounded-md">{log.sets} sets</span>
+                                        <span className="bg-slate-100 px-2.5 py-1 rounded-md">{log.reps} reps</span>
+                                        {weightVal > 0 && <span className="bg-slate-100 px-2.5 py-1 rounded-md">{weightVal} kg</span>}
                                     </div>
-                                </motion.div>
+                                </div>
                             );
                         })
                     )}
@@ -245,24 +235,32 @@ const Tracker = () => {
 
             {/* Modal - Update Weight */}
             {showWeightModal && (
-                <div className="fixed inset-0 z-50 flex items-center justify-center p-6 bg-black/60 backdrop-blur-lg">
-                    <motion.div initial={{ opacity:0, scale:0.9 }} animate={{ opacity:1, scale:1 }} className="bg-white rounded-[40px] p-12 w-full max-w-lg shadow-[0_50px_100px_rgba(0,0,0,0.3)] border border-gray-100">
-                        <div className="flex items-center gap-4 mb-8">
-                             <div className="w-14 h-14 bg-indigo-50 rounded-2xl flex items-center justify-center text-indigo-600">
-                                <Activity className="w-7 h-7" />
+                <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/40 backdrop-blur-sm">
+                    <motion.div initial={{ opacity:0, scale:0.95 }} animate={{ opacity:1, scale:1 }} className="bg-white rounded-2xl p-6 w-full max-w-md shadow-xl border border-slate-200">
+                        <div className="flex items-center gap-3 mb-6">
+                            <div className="w-10 h-10 bg-green-50 rounded-xl flex items-center justify-center text-green-600">
+                                <Activity className="w-5 h-5" />
                             </div>
-                            <h3 className="text-3xl font-black font-display italic">Update Weight</h3>
+                            <h3 className="text-xl font-bold text-slate-900">Update Weight</h3>
                         </div>
-                        <form onSubmit={handleAddWeight} className="space-y-8">
-                            <div className="space-y-4">
-                                <label className="block text-sm font-black text-gray-400 uppercase tracking-[0.2em] ml-1">New Body Weight (kg)</label>
-                                <input required type="number" min="30" max="250" value={newWeight} onChange={e => setNewWeight(e.target.value)} 
-                                       className="w-full bg-gray-50 border-2 border-gray-100 rounded-[24px] px-8 py-5 text-2xl font-black focus:ring-4 focus:ring-indigo-500/10 focus:border-indigo-500 focus:bg-white transition-all outline-none" 
-                                       placeholder="70.0" />
+                        <form onSubmit={handleAddWeight} className="space-y-5">
+                            <div className="space-y-2">
+                                <label className="block text-sm font-semibold text-slate-700">Body weight (kg)</label>
+                                <input 
+                                    required 
+                                    type="number" 
+                                    min="30" 
+                                    max="250" 
+                                    step="0.1"
+                                    value={newWeight} 
+                                    onChange={e => setNewWeight(e.target.value)} 
+                                    className="w-full bg-slate-50 border border-slate-200 rounded-xl px-4 py-3 text-slate-900 font-bold focus:ring-2 focus:ring-green-600/20 focus:border-green-600 outline-none transition-all" 
+                                    placeholder="70.0" 
+                                />
                             </div>
-                            <div className="flex gap-4 pt-4">
-                                <button type="button" onClick={() => setShowWeightModal(false)} className="flex-1 py-5 text-gray-400 font-bold hover:bg-gray-50 rounded-[20px] transition-all">Discard</button>
-                                <button type="submit" className="flex-[2] btn-primary py-5 text-xl font-black shadow-[0_20px_40px_rgba(34,197,94,0.3)]">Update Records</button>
+                            <div className="flex gap-3 pt-2">
+                                <button type="button" onClick={() => setShowWeightModal(false)} className="flex-1 py-3 text-slate-600 font-semibold hover:bg-slate-100 rounded-xl transition-all">Cancel</button>
+                                <button type="submit" className="flex-[2] py-3 bg-green-600 hover:bg-green-700 text-white font-semibold rounded-xl transition-all shadow-sm">Save weight</button>
                             </div>
                         </form>
                     </motion.div>
