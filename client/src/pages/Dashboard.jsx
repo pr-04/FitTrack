@@ -2,11 +2,11 @@ import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { dashboardAPI } from '../services/api';
-import { Dumbbell, Apple, LineChart, Flame, ChevronRight, Activity, Target, Zap, Clock, Plus } from 'lucide-react';
-import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
+import { Dumbbell, Apple, LineChart, Flame, ChevronRight, Activity, Clock } from 'lucide-react';
+import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
 import { motion } from 'framer-motion';
 import { calculateBMI, getBMIStatus } from '../utils/biometrics';
-
+import { getGoalLabel } from '../utils/labels';
 
 const Dashboard = () => {
     const { user } = useAuth();
@@ -44,66 +44,52 @@ const Dashboard = () => {
         recommendation = focusDay ? `${focusDay.day || focusDay.type || `Day ${dayIndex + 1}`}: ${focusDay.type || focusDay.title || 'Workout Focus'}` : "Generate your plan";
     }
 
-    const bmi = calculateBMI(user?.weight, user?.height);
-    const bmiStatus = getBMIStatus(bmi);
+    const hasBiometrics = user?.weight && user?.height;
+    const bmi = hasBiometrics ? calculateBMI(user.weight, user.height) : '—';
+    const bmiStatus = hasBiometrics ? getBMIStatus(bmi) : { label: 'Unspecified', color: 'bg-slate-100 text-slate-600' };
 
     const firstName = (user?.name || 'User').split(' ')[0];
 
     return (
-        <div className="space-y-8 max-w-7xl mx-auto px-4 sm:px-6 lg:px-0">
+        <div className="space-y-8 max-w-7xl mx-auto px-4 sm:px-6 lg:px-0 pb-16">
 
             {/* Top Greeting */}
             <motion.header
                 initial={{ opacity: 0, y: -10 }}
                 animate={{ opacity: 1, y: 0 }}
-                className="bg-white/50 backdrop-blur-md p-7 rounded-[28px] border border-white/60 shadow-sm relative overflow-hidden"
+                className="bg-white p-6 rounded-2xl border border-slate-200 shadow-sm"
             >
-                <div className="absolute top-0 right-0 w-56 h-56 bg-green-400/5 blur-[80px] -mr-24 -mt-24 rounded-full pointer-events-none" />
-                <div className="relative z-10">
-                    <h1 className="text-3xl font-extrabold tracking-tight text-gray-900 font-display">
-                        Welcome back, <span className="text-primary">{firstName}</span> 👋
-                    </h1>
-                    <p className="text-gray-500 mt-1.5 text-base font-medium">
-                        You're on track to{' '}
-                        <span className="text-gray-900 font-bold capitalize underline decoration-primary/30 underline-offset-4">
-                            {user?.goal ? user.goal.replace('_', ' ') : 'your fitness goals'}
-                        </span>.
-                    </p>
-                </div>
+                <h1 className="text-3xl font-bold tracking-tight text-slate-900 font-display">
+                    Welcome back, <span className="text-green-600">{firstName}</span> 👋
+                </h1>
+                <p className="text-slate-600 mt-1 text-base font-medium">
+                    You're on track to <span className="font-semibold text-slate-900">{getGoalLabel(user?.goal)}</span>.
+                </p>
             </motion.header>
 
-
-
-            {/* Stats Cards — slightly smaller, secondary hierarchy */}
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-5">
+            {/* Stats Cards */}
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
                 {/* Streak */}
                 <motion.div
                     initial={{ opacity: 0, y: 16 }}
                     animate={{ opacity: 1, y: 0 }}
                     transition={{ delay: 0.05 }}
-                    className="bg-white rounded-2xl p-6 border border-gray-100 shadow-md relative group overflow-hidden"
+                    className="bg-white rounded-2xl p-6 border border-slate-200 shadow-sm"
                 >
-                    <div className="absolute top-0 right-0 p-3 opacity-10 group-hover:opacity-20 transition-opacity">
-                        <Flame className="w-14 h-14 text-orange-500" />
-                    </div>
                     <div className="flex items-center gap-2.5 mb-4">
-                        <div className="w-9 h-9 bg-orange-50 rounded-xl flex items-center justify-center text-orange-500">
-                            <Flame className="w-4 h-4" />
+                        <div className="w-10 h-10 bg-green-50 rounded-xl flex items-center justify-center text-green-600">
+                            <Flame className="w-5 h-5" />
                         </div>
-                        <h3 className="text-xs font-bold text-gray-500 uppercase tracking-widest">Active Streak</h3>
+                        <h3 className="text-xs font-bold text-slate-500 uppercase tracking-wider">Active Streak</h3>
                     </div>
                     <div className="flex items-baseline gap-2">
-                        <p className="text-4xl font-extrabold text-gray-900 font-display">
-                            {loading ? '---' : stats?.streak || 0}
+                        <p className="text-4xl font-bold text-slate-900">
+                            {loading ? '—' : stats?.streak || 0}
                         </p>
-                        <span className="text-base font-bold text-gray-400 uppercase tracking-widest">Days</span>
+                        <span className="text-base font-semibold text-slate-500">Days</span>
                     </div>
-                    <div className="mt-3 w-full bg-gray-100 h-1.5 rounded-full overflow-hidden">
-                        <div className="bg-orange-500 h-full rounded-full transition-all duration-700"
-                            style={{ width: `${Math.min(((stats?.streak || 0) / 7) * 100, 100)}%` }} />
-                    </div>
-                    <p className="text-xs text-orange-600 font-bold mt-2.5 uppercase tracking-tighter italic">
-                        Keep it burning. Don't break the chain.
+                    <p className="text-xs text-slate-500 font-medium mt-3">
+                        Consistent daily workout and food tracking.
                     </p>
                 </motion.div>
 
@@ -112,23 +98,17 @@ const Dashboard = () => {
                     initial={{ opacity: 0, y: 16 }}
                     animate={{ opacity: 1, y: 0 }}
                     transition={{ delay: 0.1 }}
-                    className="bg-white rounded-2xl p-6 border border-gray-100 shadow-md group relative overflow-hidden"
+                    className="bg-white rounded-2xl p-6 border border-slate-200 shadow-sm"
                 >
-                    <div className="absolute top-0 right-0 p-3 opacity-10 group-hover:opacity-20 transition-opacity">
-                        <Zap className="w-14 h-14 text-primary" />
-                    </div>
                     <div className="flex items-center gap-2.5 mb-4">
-                        <div className="w-9 h-9 bg-green-50 rounded-xl flex items-center justify-center text-primary">
-                            <Activity className="w-4 h-4" />
+                        <div className="w-10 h-10 bg-green-50 rounded-xl flex items-center justify-center text-green-600">
+                            <Activity className="w-5 h-5" />
                         </div>
-                        <h3 className="text-xs font-bold text-gray-500 uppercase tracking-widest">Today's Focus</h3>
+                        <h3 className="text-xs font-bold text-slate-500 uppercase tracking-wider">Today's Focus</h3>
                     </div>
-                    <p className="text-xl font-extrabold text-gray-900 font-display leading-tight">
-                        {loading ? 'Scanning...' : recommendation}
+                    <p className="text-xl font-bold text-slate-900 leading-snug">
+                        {loading ? 'Loading...' : recommendation}
                     </p>
-                    <div className="mt-4 flex items-center gap-2 text-xs font-bold text-primary uppercase tracking-widest bg-green-50 w-fit px-3 py-1.5 rounded-lg border border-green-100">
-                        <Zap className="w-3 h-3" /> AI Optimized Plan
-                    </div>
                 </motion.div>
 
                 {/* BMI */}
@@ -136,150 +116,124 @@ const Dashboard = () => {
                     initial={{ opacity: 0, y: 16 }}
                     animate={{ opacity: 1, y: 0 }}
                     transition={{ delay: 0.15 }}
-                    className="bg-white rounded-2xl p-6 border border-gray-100 shadow-md group relative overflow-hidden"
+                    className="bg-white rounded-2xl p-6 border border-slate-200 shadow-sm"
                 >
-                    <div className="absolute top-0 right-0 p-3 opacity-10 group-hover:opacity-20 transition-opacity">
-                        <LineChart className="w-14 h-14 text-indigo-500" />
-                    </div>
                     <div className="flex items-center gap-2.5 mb-4">
-                        <div className="w-9 h-9 bg-indigo-50 rounded-xl flex items-center justify-center text-indigo-600">
-                            <Clock className="w-4 h-4" />
+                        <div className="w-10 h-10 bg-green-50 rounded-xl flex items-center justify-center text-green-600">
+                            <Clock className="w-5 h-5" />
                         </div>
-                        <h3 className="text-xs font-bold text-gray-500 uppercase tracking-widest">Current BMI</h3>
+                        <h3 className="text-xs font-bold text-slate-500 uppercase tracking-wider">Current BMI</h3>
                     </div>
                     <div className="flex items-baseline gap-2">
-                        <p className="text-4xl font-extrabold text-gray-900 font-display">{bmi}</p>
-                        <span className={`text-xs font-bold uppercase tracking-widest px-2 py-1 rounded ${bmiStatus.color}`}>
+                        <p className="text-4xl font-bold text-slate-900">{bmi}</p>
+                        <span className={`text-xs font-semibold px-2.5 py-1 rounded-md ${bmiStatus.color}`}>
                             {bmiStatus.label}
                         </span>
                     </div>
-                    <p className="text-xs text-gray-400 font-semibold mt-3">
-                        Synced with your {user?.weight || 0}kg weight profile.
+                    <p className="text-xs text-slate-500 font-medium mt-3">
+                        {user?.weight ? `Synced with your ${user.weight} kg profile.` : 'Add weight to sync BMI.'}
                     </p>
                 </motion.div>
             </div>
 
-            {/* MAIN: Chart (hero) + Side Panel */}
-            <div className="grid grid-cols-1 lg:grid-cols-[1fr_320px] gap-7">
+            {/* Chart + Quick links */}
+            <div className="grid grid-cols-1 lg:grid-cols-[1fr_300px] gap-6">
 
-                {/* ★ Weekly Progress Chart — HIGHEST ELEVATION */}
+                {/* Bar Chart — Weekly Caloric Performance */}
                 <motion.div
                     initial={{ opacity: 0, y: 20 }}
                     animate={{ opacity: 1, y: 0 }}
                     transition={{ delay: 0.2 }}
-                    className="bg-white rounded-3xl p-8 shadow-[0_24px_80px_-16px_rgba(34,197,94,0.18)] border border-gray-100/80 relative overflow-hidden"
+                    className="bg-white rounded-2xl p-6 border border-slate-200 shadow-sm"
                 >
-                    {/* Subtle corner glow */}
-                    <div className="absolute -top-16 -right-16 w-64 h-64 bg-green-400/8 blur-[80px] rounded-full pointer-events-none" />
-
-                    <div className="flex justify-between items-start mb-8">
+                    <div className="flex justify-between items-center mb-6">
                         <div>
-                            <h2 className="text-2xl font-extrabold text-gray-900 font-display">Weekly Caloric Performance</h2>
-                            <p className="text-gray-400 text-sm font-medium mt-1 uppercase tracking-wider">Historical intake overview</p>
-                        </div>
-                        <div className="flex items-center gap-2 bg-green-50 px-3 py-1.5 rounded-xl border border-green-100">
-                            <div className="w-2.5 h-2.5 bg-primary rounded-full animate-pulse" />
-                            <span className="text-xs font-bold text-gray-500 uppercase tracking-widest">Daily kcal</span>
+                            <h2 className="text-xl font-bold text-slate-900">Weekly Caloric Performance</h2>
+                            <p className="text-slate-500 text-sm font-medium mt-0.5">Historical daily intake overview</p>
                         </div>
                     </div>
 
-                    <div className="h-[420px] w-full min-w-0">
+                    <div className="h-[320px] w-full min-w-0">
                         {stats?.weekData?.length > 0 ? (
                             <ResponsiveContainer width="100%" height="100%" minWidth={0} minHeight={0}>
-                                <AreaChart data={stats.weekData} margin={{ top: 16, right: 16, left: -8, bottom: 0 }}>
-                                    <defs>
-                                        <linearGradient id="premiumGradient" x1="0" y1="0" x2="0" y2="1">
-                                            <stop offset="0%" stopColor="#22C55E" stopOpacity={0.28} />
-                                            <stop offset="60%" stopColor="#22C55E" stopOpacity={0.06} />
-                                            <stop offset="100%" stopColor="#22C55E" stopOpacity={0} />
-                                        </linearGradient>
-                                    </defs>
-                                    <CartesianGrid strokeDasharray="6 6" vertical={false} stroke="#F1F5F9" />
+                                <BarChart data={stats.weekData} margin={{ top: 10, right: 10, left: -10, bottom: 0 }}>
+                                    <CartesianGrid strokeDasharray="4 4" vertical={false} stroke="#e2e8f0" />
                                     <XAxis
                                         dataKey="name"
                                         axisLine={false}
                                         tickLine={false}
-                                        tick={{ fill: '#94A3B8', fontSize: 12, fontWeight: 600 }}
-                                        dy={12}
+                                        tick={{ fill: '#64748b', fontSize: 12, fontWeight: 600 }}
+                                        dy={8}
                                     />
                                     <YAxis
                                         axisLine={false}
                                         tickLine={false}
-                                        tick={{ fill: '#94A3B8', fontSize: 12, fontWeight: 600 }}
+                                        tick={{ fill: '#64748b', fontSize: 12, fontWeight: 600 }}
                                         dx={-8}
                                     />
                                     <Tooltip
-                                        cursor={{ stroke: '#22C55E', strokeWidth: 1.5, strokeDasharray: '4 2' }}
+                                        cursor={{ fill: '#f1f5f9' }}
                                         contentStyle={{
-                                            borderRadius: '16px',
-                                            border: 'none',
-                                            boxShadow: '0 20px 40px -8px rgba(0,0,0,0.18)',
-                                            padding: '16px 20px',
-                                            backgroundColor: '#0F172A',
-                                            color: '#fff'
+                                            borderRadius: '12px',
+                                            border: '1px solid #e2e8f0',
+                                            boxShadow: '0 4px 12px rgba(0,0,0,0.05)',
+                                            padding: '12px 16px',
+                                            backgroundColor: '#ffffff',
+                                            color: '#0f172a'
                                         }}
-                                        itemStyle={{ color: '#22C55E', fontWeight: 800, fontSize: '16px' }}
-                                        labelStyle={{ color: '#94A3B8', marginBottom: '6px', fontWeight: 700, fontSize: '12px' }}
+                                        itemStyle={{ color: '#16a34a', fontWeight: 700 }}
                                     />
-                                    <Area
-                                        type="monotone"
+                                    <Bar
                                         dataKey="calories"
-                                        stroke="#22C55E"
-                                        strokeWidth={3}
-                                        fillOpacity={1}
-                                        fill="url(#premiumGradient)"
-                                        activeDot={{ r: 7, fill: '#0F172A', stroke: '#22C55E', strokeWidth: 2.5 }}
+                                        fill="#16a34a"
+                                        radius={[6, 6, 0, 0]}
+                                        maxBarSize={48}
                                     />
-                                </AreaChart>
+                                </BarChart>
                             </ResponsiveContainer>
                         ) : (
-                            <div className="h-full flex flex-col items-center justify-center text-gray-400 gap-4 bg-gray-50/60 rounded-2xl border-2 border-dashed border-gray-200">
-                                <Activity className="w-10 h-10 opacity-20" />
-                                <p className="font-bold text-base">{loading ? 'Initializing charts...' : 'No data yet.'}</p>
-                                <p className="text-sm">Log your first meal to see progress.</p>
+                            <div className="h-full flex flex-col items-center justify-center text-slate-500 gap-2 bg-slate-50 rounded-xl border border-dashed border-slate-200">
+                                <Activity className="w-8 h-8 text-slate-400" />
+                                <p className="font-semibold text-slate-600">{loading ? 'Initializing...' : 'No data yet.'}</p>
+                                <p className="text-xs text-slate-500">Log your meals to see progress.</p>
                             </div>
                         )}
                     </div>
                 </motion.div>
 
-                {/* Side Panel — less dominant */}
+                {/* Quick links */}
                 <motion.div
                     initial={{ opacity: 0, x: 16 }}
                     animate={{ opacity: 1, x: 0 }}
                     transition={{ delay: 0.25 }}
                     className="flex flex-col gap-4"
                 >
-                    <h2 className="text-lg font-extrabold text-gray-800 font-display">Quick links</h2>
+                    <h2 className="text-lg font-bold text-slate-900">Quick links</h2>
 
                     {[
-                        { to: '/app/workout', icon: <Dumbbell className="w-5 h-5" />, title: 'Workout plan', desc: 'AI Workout Plans', color: 'blue' },
-                        { to: '/app/diet', icon: <Apple className="w-5 h-5" />, title: 'Diet plan', desc: 'Custom Meal Roadmap', color: 'emerald' },
-                        { to: '/app/tracker', icon: <LineChart className="w-5 h-5" />, title: 'Tracker', desc: 'Advanced Biometrics', color: 'indigo' }
+                        { to: '/app/workout', icon: <Dumbbell className="w-5 h-5" />, title: 'Workout plan', desc: 'Weekly training roadmap' },
+                        { to: '/app/diet', icon: <Apple className="w-5 h-5" />, title: 'Diet plan', desc: 'Custom nutrition plan' },
+                        { to: '/app/tracker', icon: <LineChart className="w-5 h-5" />, title: 'Tracker', desc: 'Biometrics & log history' }
                     ].map((item, idx) => (
                         <Link
                             key={idx}
                             to={item.to}
-                            className="bg-white rounded-2xl p-5 flex items-center justify-between group cursor-pointer border border-gray-100 shadow-sm hover:shadow-md hover:-translate-y-0.5 transition-all duration-200 border-l-[5px]"
-                            style={{ borderLeftColor: item.color === 'emerald' ? '#10b981' : item.color === 'blue' ? '#3b82f6' : '#6366f1' }}
+                            className="bg-white rounded-2xl p-4 flex items-center justify-between group cursor-pointer border border-slate-200 shadow-sm hover:border-slate-300 transition-all"
                         >
-                            <div className="flex items-center gap-4">
-                                <div className={`w-10 h-10 bg-${item.color}-50 rounded-xl flex items-center justify-center text-${item.color}-600 group-hover:scale-110 transition-transform`}>
+                            <div className="flex items-center gap-3">
+                                <div className="w-10 h-10 bg-green-50 rounded-xl flex items-center justify-center text-green-600 group-hover:bg-green-600 group-hover:text-white transition-colors">
                                     {item.icon}
                                 </div>
                                 <div>
-                                    <p className="font-extrabold text-gray-900 font-display text-sm">{item.title}</p>
-                                    <p className="text-xs text-gray-500 font-medium">{item.desc}</p>
+                                    <p className="font-bold text-slate-900 text-sm">{item.title}</p>
+                                    <p className="text-xs text-slate-500 font-medium">{item.desc}</p>
                                 </div>
                             </div>
-                            <div className="w-8 h-8 rounded-full bg-gray-50 flex items-center justify-center group-hover:bg-primary group-hover:text-white transition-all">
-                                <ChevronRight className="w-4 h-4" />
-                            </div>
+                            <ChevronRight className="w-4 h-4 text-slate-400 group-hover:text-slate-600 transition-colors" />
                         </Link>
                     ))}
                 </motion.div>
             </div>
-
-            <div className="h-4" /> {/* Spacer */}
         </div>
     );
 };

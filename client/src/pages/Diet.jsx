@@ -1,9 +1,10 @@
 import { useState, useEffect } from 'react';
 import { useAuth } from '../context/AuthContext';
 import { dietAPI, trackerAPI } from '../services/api';
-import { Loader2, Plus, Sparkles, CheckCircle, Flame } from 'lucide-react';
-import { motion, AnimatePresence } from 'framer-motion';
+import { Loader2, Plus, Sparkles, Apple } from 'lucide-react';
+import { motion } from 'framer-motion';
 import LogFoodModal from '../components/modals/LogFoodModal';
+import { getGoalLabel, getDietTypeLabel } from '../utils/labels';
 import { toast } from 'react-hot-toast';
 
 const Diet = () => {
@@ -43,7 +44,7 @@ const Diet = () => {
         } catch (error) {
             console.error("Failed to fetch today stats", error);
         }
-    }
+    };
 
     useEffect(() => {
         fetchHistory();
@@ -59,7 +60,7 @@ const Diet = () => {
             fetchHistory();
         } catch (err) {
             console.error("Failed to generate diet plan", err);
-            const errorMsg = err.response?.data?.message || err.message || "Failed to generate nutrition blueprint.";
+            const errorMsg = err.response?.data?.message || err.message || "Failed to generate nutrition plan.";
             setError(errorMsg);
         } finally {
             setLoading(false);
@@ -73,23 +74,30 @@ const Diet = () => {
 
     const targetCalories = plan?.dailyCalories || 2000;
     const progressPercent = Math.min((dailyCalories / targetCalories) * 100, 100);
+    const isOverTarget = dailyCalories > targetCalories;
+    const calorieDifference = Math.abs(targetCalories - dailyCalories);
+    const calorieSubtext = isOverTarget
+        ? `Over by ${calorieDifference} kcal`
+        : `${calorieDifference} kcal left`;
 
     return (
-        <div className="space-y-8 max-w-5xl mx-auto">
+        <div className="space-y-8 max-w-5xl mx-auto pb-16">
             <header className="flex flex-col md:flex-row md:items-center justify-between gap-4">
                 <div>
-                    <h1 className="text-3xl font-bold tracking-tight text-gray-900">Daily Nutrition Blueprint</h1>
-                    <p className="text-gray-500 mt-2">Customized for {user?.dietType} / {user?.goal?.replace('_', ' ')}</p>
+                    <h1 className="text-3xl font-bold tracking-tight text-slate-900">Daily Nutrition Plan</h1>
+                    <p className="text-slate-600 mt-1 font-medium">
+                        Customized for {getDietTypeLabel(user?.dietType)} · {getGoalLabel(user?.goal)}
+                    </p>
                 </div>
                 <div className="flex gap-3">
-                    <button onClick={() => handleOpenLogModal(null)} className="bg-white border text-gray-700 hover:bg-gray-50 hover:scale-105 px-4 py-2.5 rounded-lg flex items-center transition-all duration-200 shadow-sm font-medium">
-                        <Plus className="w-4 h-4 mr-2" /> Log Food
+                    <button onClick={() => handleOpenLogModal(null)} className="bg-white border border-slate-200 text-slate-700 hover:bg-slate-50 px-4 py-2.5 rounded-xl flex items-center transition-colors shadow-sm font-semibold">
+                        <Plus className="w-4 h-4 mr-2" /> Log food
                     </button>
                     <button onClick={handleGenerate} disabled={loading}
-                        className="bg-emerald-500 hover:bg-emerald-600 hover:scale-105 shadow-md text-white px-6 py-2.5 rounded-lg font-medium flex items-center justify-center transition-all duration-200 disabled:opacity-50"
+                        className="bg-green-600 hover:bg-green-700 text-white px-5 py-2.5 rounded-xl font-semibold flex items-center justify-center transition-colors shadow-sm disabled:opacity-50"
                     >
-                        {loading ? <Loader2 className="w-5 h-5 mr-2 animate-spin" /> : <Sparkles className="w-5 h-5 mr-2" />}
-                        {plan ? "Regenerate Blueprint" : "Generate Blueprint"}
+                        {loading ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : <Sparkles className="w-4 h-4 mr-2" />}
+                        {plan ? "Regenerate plan" : "Generate plan"}
                     </button>
                 </div>
             </header>
@@ -100,91 +108,100 @@ const Diet = () => {
                         <p className="font-semibold">{error}</p>
                         <p className="text-sm text-red-600 mt-0.5">The AI Nutritionist is experiencing high demand. Please try again.</p>
                     </div>
-                    <button onClick={handleGenerate} className="bg-red-600 hover:bg-red-700 text-white px-4 py-2 rounded-lg font-medium text-sm transition-colors flex items-center shadow-sm">
-                        <Sparkles className="w-4 h-4 mr-2" /> Retry Generation
+                    <button onClick={handleGenerate} className="bg-red-600 hover:bg-red-700 text-white px-4 py-2 rounded-xl font-semibold text-sm transition-colors flex items-center shadow-sm">
+                        <Sparkles className="w-4 h-4 mr-2" /> Retry generation
                     </button>
                 </div>
             )}
 
             {/* Daily Progress Bar */}
-            <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} className="card-container p-6 bg-white shadow-xl border border-gray-100">
+            <div className="bg-white rounded-2xl p-6 border border-slate-200 shadow-sm">
                 <div className="flex justify-between items-end mb-2">
                     <div>
-                        <h3 className="text-lg font-bold text-gray-900">Today's Macros</h3>
-                        <p className="text-sm text-gray-500">Keep up the good work!</p>
+                        <h3 className="text-lg font-bold text-slate-900">Today's Macros</h3>
+                        <p className={`text-sm font-semibold ${isOverTarget ? 'text-red-600' : 'text-slate-600'}`}>
+                            {calorieSubtext}
+                        </p>
                     </div>
                     <div className="text-right">
-                        <p className="text-3xl font-bold text-gray-900 flex items-center gap-2">
-                            {dailyCalories} <span className="text-sm font-medium text-gray-400">/ {targetCalories} kcal</span>
+                        <p className="text-3xl font-bold text-slate-900 flex items-center gap-1.5">
+                            {dailyCalories} <span className="text-sm font-medium text-slate-500">/ {targetCalories} kcal</span>
                         </p>
                     </div>
                 </div>
-                <div className="w-full bg-gray-100 rounded-full h-3 mt-4">
+                <div className="w-full bg-slate-100 rounded-full h-3 mt-4 overflow-hidden">
                     <motion.div 
                         initial={{ width: 0 }} 
                         animate={{ width: `${progressPercent}%` }} 
-                        transition={{ duration: 1, ease: 'easeOut' }}
-                        className={`h-3 rounded-full ${progressPercent >= 100 ? 'bg-red-500' : 'bg-emerald-500'}`}
+                        transition={{ duration: 0.8, ease: 'easeOut' }}
+                        className={`h-3 rounded-full ${isOverTarget ? 'bg-red-600' : 'bg-green-600'}`}
                     />
                 </div>
-            </motion.div>
+            </div>
 
             {!plan && !loading && (
-                <div className="card-container p-12 text-center flex flex-col items-center">
-                    <Sparkles className="w-12 h-12 text-gray-300 mb-4" />
-                    <h3 className="text-xl font-bold text-gray-900 mb-2">No nutrition blueprint generated yet</h3>
-                    <p className="text-gray-500 max-w-sm mb-6">Let our AI act as your personal nutritionist and generate a daily nutrition blueprint today.</p>
-                    <button onClick={handleGenerate} className="bg-gray-900 text-white px-6 py-3 rounded-lg font-medium hover:bg-black transition-colors shadow-md">
-                        Create Nutrition Blueprint
+                <div className="bg-white rounded-2xl p-12 text-center flex flex-col items-center border border-slate-200 shadow-sm">
+                    <div className="w-16 h-16 bg-green-50 rounded-2xl flex items-center justify-center mb-4 text-green-600">
+                        <Apple className="w-8 h-8" />
+                    </div>
+                    <h3 className="text-2xl font-bold text-slate-900 mb-2">No nutrition plan</h3>
+                    <p className="text-slate-600 max-w-md text-base font-medium mb-6">
+                        Generate a daily nutrition plan with calorie and macro targets.
+                    </p>
+                    <button onClick={handleGenerate} className="bg-green-600 hover:bg-green-700 text-white px-6 py-3 rounded-xl font-semibold shadow-sm transition-colors">
+                        Generate plan
                     </button>
                 </div>
             )}
 
             {loading && (
-                <div className="card-container p-20 flex flex-col items-center justify-center text-center">
-                    <Loader2 className="w-10 h-10 text-emerald-500 animate-spin mb-4" />
-                    <p className="text-gray-900 font-semibold text-lg">Architecting nutrition blueprint...</p>
-                    <p className="text-gray-500 text-sm mt-1 animate-pulse">Generating macro profiles, this can take up to 30s</p>
+                <div className="bg-white rounded-2xl p-16 flex flex-col items-center justify-center text-center border border-slate-200 shadow-sm space-y-4">
+                    <Loader2 className="w-10 h-10 text-green-600 animate-spin" />
+                    <div>
+                        <p className="text-lg font-bold text-slate-900">Generating your nutrition plan...</p>
+                        <p className="text-slate-500 text-sm mt-1">This can take up to 30s</p>
+                    </div>
                 </div>
             )}
 
             {plan && !loading && (
                 <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="space-y-8">
-                    <div className="grid grid-cols-2 md:grid-cols-4 gap-4 md:gap-6">
-                        <div className="card-container p-4 md:p-6 flex flex-col justify-center items-center text-center bg-gray-50">
-                            <h3 className="text-sm font-medium text-gray-500 mb-1">Target</h3>
-                            <p className="text-2xl md:text-3xl font-bold text-gray-900">{plan.dailyCalories || 2000}</p>
+                    {/* Macro Cards */}
+                    <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                        <div className="bg-white rounded-2xl p-5 border border-slate-200 border-t-2 border-t-slate-400 shadow-sm flex flex-col items-center text-center">
+                            <h3 className="text-xs font-semibold text-slate-500 uppercase tracking-wider mb-1">Target</h3>
+                            <p className="text-2xl font-bold text-slate-900">{plan.dailyCalories || 2000} kcal</p>
                         </div>
-                        <div className="card-container p-4 md:p-6 border-t-4 border-red-400 flex flex-col justify-center items-center text-center">
-                            <h3 className="text-sm font-medium text-gray-500 mb-1">Protein</h3>
-                            <p className="text-xl md:text-2xl font-bold text-gray-900">{plan.macros?.protein}</p>
+                        <div className="bg-white rounded-2xl p-5 border border-slate-200 border-t-2 border-t-red-400 shadow-sm flex flex-col items-center text-center">
+                            <h3 className="text-xs font-semibold text-slate-500 uppercase tracking-wider mb-1">Protein</h3>
+                            <p className="text-2xl font-bold text-slate-900">{plan.macros?.protein || '—'}</p>
                         </div>
-                        <div className="card-container p-4 md:p-6 border-t-4 border-blue-400 flex flex-col justify-center items-center text-center">
-                            <h3 className="text-sm font-medium text-gray-500 mb-1">Carbs</h3>
-                            <p className="text-xl md:text-2xl font-bold text-gray-900">{plan.macros?.carbs}</p>
+                        <div className="bg-white rounded-2xl p-5 border border-slate-200 border-t-2 border-t-emerald-400 shadow-sm flex flex-col items-center text-center">
+                            <h3 className="text-xs font-semibold text-slate-500 uppercase tracking-wider mb-1">Carbs</h3>
+                            <p className="text-2xl font-bold text-slate-900">{plan.macros?.carbs || '—'}</p>
                         </div>
-                        <div className="card-container p-4 md:p-6 border-t-4 border-yellow-400 flex flex-col justify-center items-center text-center">
-                            <h3 className="text-sm font-medium text-gray-500 mb-1">Fats</h3>
-                            <p className="text-xl md:text-2xl font-bold text-gray-900">{plan.macros?.fats}</p>
+                        <div className="bg-white rounded-2xl p-5 border border-slate-200 border-t-2 border-t-amber-400 shadow-sm flex flex-col items-center text-center">
+                            <h3 className="text-xs font-semibold text-slate-500 uppercase tracking-wider mb-1">Fats</h3>
+                            <p className="text-2xl font-bold text-slate-900">{plan.macros?.fats || '—'}</p>
                         </div>
                     </div>
 
-                    <div className="space-y-6">
-                        <h2 className="text-2xl font-bold text-gray-900">Meal Suggestions</h2>
+                    <div className="space-y-4">
+                        <h2 className="text-2xl font-bold text-slate-900">Meal suggestions</h2>
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                             {plan.meals && Array.isArray(plan.meals) ? plan.meals.map((mealObj, i) => (
-                                <div key={i} className="card-container hover:-translate-y-1 transition-transform duration-300 flex flex-col shadow-sm">
-                                    <div className="p-4 border-b border-gray-100 bg-emerald-50/30">
-                                        <h3 className="font-bold text-gray-900 capitalize">{mealObj.category || mealObj.name}</h3>
+                                <div key={i} className="bg-white rounded-2xl border border-slate-200 shadow-sm flex flex-col overflow-hidden">
+                                    <div className="p-4 border-b border-slate-100 bg-slate-50">
+                                        <h3 className="font-bold text-slate-900 capitalize">{mealObj.category || mealObj.name}</h3>
                                     </div>
                                     <div className="p-4 flex-1">
                                         <ul className="space-y-3">
                                             {mealObj.options?.map((opt, j) => (
-                                                <li key={j} className="flex justify-between items-start gap-4 text-gray-700 text-sm border-b border-gray-50 pb-2 last:border-0 last:pb-0">
-                                                    <span className="leading-relaxed">• {opt}</span>
+                                                <li key={j} className="flex justify-between items-start gap-3 text-slate-700 text-sm border-b border-slate-100 pb-2 last:border-0 last:pb-0">
+                                                    <span className="leading-relaxed font-medium">• {opt}</span>
                                                     <button onClick={() => handleOpenLogModal({ name: opt, category: mealObj.category || mealObj.name })}
-                                                        className="flex-shrink-0 text-emerald-600 hover:bg-emerald-50 p-1.5 rounded transition-colors" title="Log this meal" >
-                                                        <Plus className="w-5 h-5" />
+                                                        className="flex-shrink-0 text-green-600 hover:bg-green-50 p-1.5 rounded-lg transition-colors" title="Log this meal" >
+                                                        <Plus className="w-4 h-4" />
                                                     </button>
                                                 </li>
                                             ))}
@@ -193,18 +210,18 @@ const Diet = () => {
                                 </div>
                             )) : (
                                 Object.keys(plan.meals || {}).map((category, i) => (
-                                    <div key={i} className="card-container flex flex-col">
-                                        <div className="p-4 border-b border-gray-100 bg-emerald-50/30">
-                                            <h3 className="font-bold text-gray-900 capitalize">{category}</h3>
+                                    <div key={i} className="bg-white rounded-2xl border border-slate-200 shadow-sm flex flex-col overflow-hidden">
+                                        <div className="p-4 border-b border-slate-100 bg-slate-50">
+                                            <h3 className="font-bold text-slate-900 capitalize">{category}</h3>
                                         </div>
                                         <div className="p-4 flex-1">
                                             <ul className="space-y-3">
                                                 {plan.meals[category]?.map((opt, j) => (
-                                                    <li key={j} className="flex justify-between items-start gap-4 text-gray-700 text-sm border-b border-gray-50 pb-2 last:border-0 last:pb-0">
-                                                        <span>• {opt}</span>
+                                                    <li key={j} className="flex justify-between items-start gap-3 text-slate-700 text-sm border-b border-slate-100 pb-2 last:border-0 last:pb-0">
+                                                        <span className="leading-relaxed font-medium">• {opt}</span>
                                                         <button onClick={() => handleOpenLogModal({ name: opt, category })}
-                                                            className="flex-shrink-0 text-emerald-600 hover:bg-emerald-50 p-1.5 rounded transition-colors" title="Log this meal" >
-                                                            <Plus className="w-5 h-5" />
+                                                            className="flex-shrink-0 text-green-600 hover:bg-green-50 p-1.5 rounded-lg transition-colors" title="Log this meal" >
+                                                            <Plus className="w-4 h-4" />
                                                         </button>
                                                     </li>
                                                 ))}
