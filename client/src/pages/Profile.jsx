@@ -424,7 +424,7 @@ const Profile = () => {
 
                         <div className="grid grid-cols-2 gap-4">
                             <div>
-                                <label className={labelClasses}>Activity Level</label>
+                                 <label className={labelClasses}>Activity Level</label>
                                 {isEditing ? (
                                     <select 
                                         name="activityLevel"
@@ -433,14 +433,22 @@ const Profile = () => {
                                         className={inputClasses}
                                     >
                                         <option value="sedentary">Sedentary</option>
-                                        <option value="light">Light</option>
-                                        <option value="moderate">Moderate</option>
+                                        <option value="light">Lightly active</option>
+                                        <option value="moderate">Moderately active</option>
                                         <option value="active">Active</option>
-                                        <option value="very_active">Very Active</option>
+                                        <option value="very_active">Very active</option>
                                     </select>
                                 ) : (
-                                    <p className="font-bold text-[#111827] capitalize pl-1 bg-[#F9FAFB] p-3 rounded-xl border border-[#E5E7EB]">
-                                        {user?.activityLevel}
+                                    <p className="font-bold text-[#111827] pl-1 bg-[#F9FAFB] p-3 rounded-xl border border-[#E5E7EB]">
+                                        {
+                                            {
+                                                sedentary: 'Sedentary',
+                                                light: 'Lightly active',
+                                                moderate: 'Moderately active',
+                                                active: 'Active',
+                                                very_active: 'Very active'
+                                            }[user?.activityLevel] || user?.activityLevel || 'Moderately active'
+                                        }
                                     </p>
                                 )}
                             </div>
