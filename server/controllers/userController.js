@@ -26,7 +26,7 @@ const updateProfile = async (req, res) => {
         const user = await User.findById(req.user._id);
         if (!user) return res.status(404).json({ message: 'User not found' });
 
-        const { name, age, weight, height, goal, dietType, activityLevel, workoutLocation } = req.body;
+        const { name, age, weight, height, goal, dietType, activityLevel, workoutLocation, sex } = req.body;
 
         if (name) user.name = name;
         if (age) user.age = age;
@@ -36,6 +36,7 @@ const updateProfile = async (req, res) => {
         if (dietType) user.dietType = dietType;
         if (activityLevel) user.activityLevel = activityLevel;
         if (workoutLocation) user.workoutLocation = workoutLocation;
+        if (sex !== undefined) user.sex = sex;
         
         if (req.body.isOnboarded !== undefined) user.isOnboarded = req.body.isOnboarded;
 

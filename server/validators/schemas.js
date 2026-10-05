@@ -61,6 +61,12 @@ const ALLOWED_WORKOUT_LOCATIONS = [
     'gym'
 ];
 
+const ALLOWED_SEX_VALUES = [
+    'male',
+    'female',
+    'unspecified'
+];
+
 // User Profile Schemas
 const updateProfileSchema = z.object({
     body: z.object({
@@ -68,6 +74,9 @@ const updateProfileSchema = z.object({
         age: z.coerce.number().int().min(10, 'Age must be at least 10').max(120, 'Age must be less than 120').optional(),
         weight: z.coerce.number().positive('Weight must be positive').optional(),
         height: z.coerce.number().positive('Height must be positive').optional(),
+        sex: z.string().optional()
+            .transform(val => val ? val.trim().toLowerCase() : val)
+            .refine(val => !val || ALLOWED_SEX_VALUES.includes(val), { message: 'Invalid sex' }),
         goal: z.string().optional()
             .transform(val => val ? normalizeGoal(val) : val)
             .refine(val => !val || ALLOWED_GOALS.includes(val), { message: 'Invalid goal' }),

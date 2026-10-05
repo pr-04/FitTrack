@@ -15,6 +15,7 @@ exports.generateDiet = async (req, res) => {
             age: req.user.age,
             weight: req.user.weight,
             height: req.user.height,
+            sex: req.user.sex,
             activityLevel: req.user.activityLevel,
             workoutLocation: req.user.workoutLocation,
             goal: req.user.goal,
@@ -83,7 +84,9 @@ exports.logDiet = async (req, res) => {
 
         res.status(201).json(log);
     } catch (error) {
-        res.status(500).json({ message: error.message });
+        console.error('Log diet error:', error);
+        const msg = process.env.NODE_ENV === 'production' ? 'Internal server error' : error.message;
+        res.status(500).json({ message: msg });
     }
 };
 

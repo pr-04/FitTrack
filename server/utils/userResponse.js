@@ -32,6 +32,7 @@ function formatUserResponse(user, token = null) {
         dietType: rawObj.dietType ? normalizeDietType(rawObj.dietType) : rawObj.dietType,
         activityLevel: rawObj.activityLevel !== undefined ? rawObj.activityLevel : null,
         workoutLocation: rawObj.workoutLocation ? normalizeWorkoutLocation(rawObj.workoutLocation) : rawObj.workoutLocation,
+        sex: rawObj.sex !== undefined && rawObj.sex !== null ? String(rawObj.sex).toLowerCase() : 'unspecified',
         isOnboarded,
         createdAt: rawObj.createdAt !== undefined ? rawObj.createdAt : null,
     };

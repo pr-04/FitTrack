@@ -42,6 +42,7 @@ const Profile = () => {
         height: user?.height || '',
         goal: user?.goal === 'lose_weight' ? 'fat_loss' : (user?.goal || 'maintain'),
         dietType: user?.dietType === 'Veg' ? 'vegetarian' : (user?.dietType === 'Non-veg' ? 'non-vegetarian' : (user?.dietType || 'any')),
+        sex: user?.sex || 'unspecified',
         activityLevel: user?.activityLevel || 'moderate',
         workoutLocation: user?.workoutLocation ? user.workoutLocation.toLowerCase() : 'gym'
     });
@@ -73,6 +74,7 @@ const Profile = () => {
                 age: user.age || '',
                 weight: user.weight || '',
                 height: user.height || '',
+                sex: user.sex || 'unspecified',
                 goal: user.goal === 'lose_weight' ? 'fat_loss' : (user.goal || 'maintain'),
                 dietType: user.dietType === 'Veg' ? 'vegetarian' : (user.dietType === 'Non-veg' ? 'non-vegetarian' : (user.dietType || 'any')),
                 activityLevel: user.activityLevel || 'moderate',
@@ -283,6 +285,36 @@ const Profile = () => {
                                 <p className="text-[#111827] font-semibold text-lg pl-1">{user?.age} <span className="text-[#6B7280] text-sm font-medium ml-1">years old</span></p>
                             )}
                         </div>
+
+                        <div>
+                            <label className={labelClasses}>Sex (Optional)</label>
+                            {isEditing ? (
+                                <div>
+                                    <select 
+                                        name="sex"
+                                        value={formData.sex}
+                                        onChange={handleChange}
+                                        className={inputClasses}
+                                    >
+                                        <option value="unspecified">Prefer not to say</option>
+                                        <option value="male">Male</option>
+                                        <option value="female">Female</option>
+                                    </select>
+                                    <p className="text-xs text-[#6B7280] font-medium mt-1 ml-1">Used only to calculate your calorie target.</p>
+                                </div>
+                            ) : (
+                                <div>
+                                    <p className="text-[#111827] font-semibold text-lg pl-1 capitalize">
+                                        {user?.sex === 'male' ? 'Male' : (user?.sex === 'female' ? 'Female' : 'Prefer not to say')}
+                                    </p>
+                                    {(!user?.sex || user?.sex === 'unspecified') && (
+                                        <p className="text-xs text-amber-600 font-medium mt-1 ml-1">
+                                            Add your sex for a more accurate calorie target.
+                                        </p>
+                                    )}
+                                </div>
+                            )}
+                        </div>
                     </div>
                 </motion.div>
 
@@ -404,6 +436,7 @@ const Profile = () => {
                                         <option value="light">Light</option>
                                         <option value="moderate">Moderate</option>
                                         <option value="active">Active</option>
+                                        <option value="very_active">Very Active</option>
                                     </select>
                                 ) : (
                                     <p className="font-bold text-[#111827] capitalize pl-1 bg-[#F9FAFB] p-3 rounded-xl border border-[#E5E7EB]">

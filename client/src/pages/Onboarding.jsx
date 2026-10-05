@@ -15,6 +15,7 @@ const Onboarding = () => {
         age: user?.age || '',
         weight: user?.weight || '',
         height: user?.height || '',
+        sex: user?.sex || 'unspecified',
         goal: user?.goal === 'lose_weight' ? 'fat_loss' : (user?.goal || 'maintain'),
         dietType: user?.dietType === 'Veg' ? 'vegetarian' : (user?.dietType === 'Non-veg' ? 'non-vegetarian' : (user?.dietType || 'any')),
         activityLevel: user?.activityLevel || 'light',
@@ -87,6 +88,18 @@ const Onboarding = () => {
                                         className="block w-full px-5 py-4 bg-gray-50 border border-gray-200 rounded-2xl focus:ring-2 focus:ring-primary focus:border-primary focus:bg-white transition-all text-lg font-medium"
                                         value={formData.height} onChange={(e) => setFormData({...formData, height: Number(e.target.value)})} />
                                 </div>
+                            </div>
+                            <div>
+                                <label className="block text-sm font-semibold text-gray-700 mb-2 ml-1">Sex (Optional)</label>
+                                <select
+                                    className="block w-full px-5 py-4 bg-gray-50 border border-gray-200 rounded-2xl focus:ring-2 focus:ring-primary focus:border-primary focus:bg-white transition-all text-lg font-medium"
+                                    value={formData.sex} onChange={(e) => setFormData({...formData, sex: e.target.value})}
+                                >
+                                    <option value="unspecified">Prefer not to say</option>
+                                    <option value="male">Male</option>
+                                    <option value="female">Female</option>
+                                </select>
+                                <p className="text-xs text-gray-400 mt-1 ml-1 font-medium">Used only to calculate your calorie target.</p>
                             </div>
                         </div>
                         <button onClick={handleNext} disabled={!isStep1Valid}
@@ -167,7 +180,7 @@ const Onboarding = () => {
                                 { id: 'vegetarian', label: 'Vegetarian', desc: 'Plant-based with dairy' },
                                 { id: 'vegan', label: 'Vegan', desc: 'Strictly plant-based' },
                                 { id: 'pescatarian', label: 'Pescatarian', desc: 'Vegetarian plus seafood' },
-                                { id: 'non-vegetarian', label: 'High Protein', desc: 'Focus on lean meats' }
+                                { id: 'non-vegetarian', label: 'Non-vegetarian', desc: 'Includes poultry, meats & fish' }
                             ].map(diet => (
                                 <div key={diet.id} onClick={() => setFormData({...formData, dietType: diet.id})}
                                     className={`cursor-pointer p-5 border-2 rounded-[20px] flex items-center justify-between transition-all duration-200 ${formData.dietType === diet.id ? 'border-amber-500 bg-amber-50/30' : 'border-gray-50 hover:bg-gray-50'}`}>
@@ -209,9 +222,10 @@ const Onboarding = () => {
                         <div className="grid grid-cols-1 gap-4">
                             {[
                                 { id: 'sedentary', label: 'Sedentary', desc: 'Mainly desk work, low activity' },
-                                { id: 'light', label: 'Lightly Active', desc: '1-3 days of light training' },
+                                { id: 'light', label: 'Light', desc: '1-3 days of light training' },
                                 { id: 'moderate', label: 'Moderate', desc: '3-5 days of consistent work' },
-                                { id: 'active', label: 'Very active', desc: 'Daily intensive training' }
+                                { id: 'active', label: 'Active', desc: '6-7 days of active work' },
+                                { id: 'very_active', label: 'Very active', desc: 'Daily intensive training or physical labor' }
                             ].map(level => (
                                 <div key={level.id} onClick={() => setFormData({...formData, activityLevel: level.id})}
                                     className={`cursor-pointer p-6 border-2 rounded-[24px] flex flex-col gap-1 transition-all duration-200 ${formData.activityLevel === level.id ? 'border-indigo-500 bg-indigo-50 shadow-md' : 'border-gray-50 hover:bg-gray-50'}`}>

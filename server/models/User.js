@@ -66,6 +66,11 @@ const userSchema = new mongoose.Schema(
             default: 'home',
             set: normalizeWorkoutLocation,
         },
+        sex: {
+            type: String,
+            enum: ['male', 'female', 'unspecified'],
+            default: 'unspecified',
+        },
         isOnboarded: {
             type: Boolean,
             default: false,

@@ -2,10 +2,10 @@ const { normalizeWorkoutLocation, normalizeDietType, normalizeGoal } = require('
 
 /**
  * Computes calorie target and macros using Mifflin-St Jeor formula.
- * s = -78 is the midpoint of male (+5) and female (-161) constants because sex is not collected.
+ * s constant: +5 for male, -161 for female, -78 for unspecified/missing (midpoint of +5 and -161 constants).
  */
 function calculateTargets(profile = {}) {
-    const { weight, height, age, activityLevel, goal } = profile;
+    const { weight, height, age, activityLevel, goal, sex } = profile;
 
     const numWeight = Number(weight);
     const numHeight = Number(height);
@@ -15,8 +15,16 @@ function calculateTargets(profile = {}) {
         return null; // missing or invalid biometrics -> keep model-chosen behavior
     }
 
-    // Mifflin-St Jeor: 10*kg + 6.25*cm - 5*age + s (s = -78 midpoint)
-    const s = -78;
+    // Mifflin-St Jeor: 10*kg + 6.25*cm - 5*age + s
+    // s = +5 for male, -161 for female, -78 for unspecified or missing (midpoint of male +5 and female -161)
+    const cleanSex = typeof sex === 'string' ? sex.trim().toLowerCase() : 'unspecified';
+    let s = -78; // default midpoint
+    if (cleanSex === 'male') {
+        s = 5;
+    } else if (cleanSex === 'female') {
+        s = -161;
+    }
+
     const bmr = (10 * numWeight) + (6.25 * numHeight) - (5 * numAge) + s;
 
     // Activity Multiplier
@@ -84,6 +92,9 @@ function buildProfileLines(profile = {}) {
     }
     if (profile.height !== undefined && profile.height !== null && profile.height !== '') {
         lines.push(`Height: ${profile.height} cm`);
+    }
+    if (profile.sex && profile.sex !== 'unspecified') {
+        lines.push(`Sex: ${profile.sex}`);
     }
     if (profile.activityLevel) {
         lines.push(`Activity Level: ${profile.activityLevel}`);

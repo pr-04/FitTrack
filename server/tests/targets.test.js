@@ -28,6 +28,31 @@ describe('Targets & Profile Lines Unit Tests', () => {
         assert.equal(typeof result.macros.fats, 'string');
     });
 
+    it('calculateTargets calculates correct calories and macros for sex male, female, unspecified (check 8)', () => {
+        const baseProfile = {
+            age: 22,
+            weight: 70,
+            height: 168,
+            activityLevel: 'moderate',
+            goal: 'fat_loss'
+        };
+
+        // Unspecified / omitted sex -> s = -78 -> 1950 kcal, 140g protein, 54g fats, 226g carbs
+        const unspecifiedResult = calculateTargets({ ...baseProfile, sex: 'unspecified' });
+        assert.equal(unspecifiedResult.dailyCalories, 1950);
+        assert.equal(unspecifiedResult.macros.protein, '140g');
+        assert.equal(unspecifiedResult.macros.fats, '54g');
+        assert.equal(unspecifiedResult.macros.carbs, '226g');
+
+        // Male -> s = +5 -> 2050 kcal
+        const maleResult = calculateTargets({ ...baseProfile, sex: 'male' });
+        assert.equal(maleResult.dailyCalories, 2050);
+
+        // Female -> s = -161 -> 1850 kcal
+        const femaleResult = calculateTargets({ ...baseProfile, sex: 'female' });
+        assert.equal(femaleResult.dailyCalories, 1850);
+    });
+
     it('calculateTargets clamps calories to 1200 minimum for low requirements', () => {
         const result = calculateTargets({
             weight: 35,

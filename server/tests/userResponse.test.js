@@ -37,6 +37,7 @@ function runUserResponseTests() {
     assert.strictEqual(serialized.weight, 65, 'weight must be included');
     assert.strictEqual(serialized.height, 170, 'height must be included');
     assert.strictEqual(serialized.activityLevel, 'moderate', 'activityLevel must be included');
+    assert.strictEqual(serialized.sex, 'unspecified', 'sex defaults to unspecified when not set');
     assert.strictEqual(serialized.isOnboarded, true, 'isOnboarded must be included');
     assert.strictEqual(serialized.createdAt, '2026-01-15T10:00:00.000Z', 'createdAt must be included');
     assert.strictEqual(serialized.token, token, 'token must be included when provided');

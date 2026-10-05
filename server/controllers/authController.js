@@ -32,7 +32,9 @@ const signup = async (req, res) => {
             res.status(400).json({ message: 'Invalid user data' });
         }
     } catch (error) {
-        res.status(500).json({ message: error.message });
+        console.error('Signup error:', error);
+        const msg = process.env.NODE_ENV === 'production' ? 'Internal server error' : error.message;
+        res.status(500).json({ message: msg });
     }
 };
 
@@ -53,7 +55,9 @@ const login = async (req, res) => {
             res.status(401).json({ message: 'Invalid email or password' });
         }
     } catch (error) {
-        res.status(500).json({ message: error.message });
+        console.error('Login error:', error);
+        const msg = process.env.NODE_ENV === 'production' ? 'Internal server error' : error.message;
+        res.status(500).json({ message: msg });
     }
 };
 
@@ -99,7 +103,9 @@ const exchangeOAuthCode = async (req, res) => {
         const token = generateToken(user._id);
         res.json(formatUserResponse(user, token));
     } catch (error) {
-        res.status(500).json({ message: error.message });
+        console.error('Exchange OAuth Code error:', error);
+        const msg = process.env.NODE_ENV === 'production' ? 'Internal server error' : error.message;
+        res.status(500).json({ message: msg });
     }
 };
 
