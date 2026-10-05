@@ -63,10 +63,21 @@ const dietLookupLimiter = rateLimit({
     message: { message: 'Nutrition lookup limit reached. Please wait a few minutes before trying again.' }
 });
 
+// Auth rate limiter: 20 attempts per 15 minutes per IP (successes do not count)
+const authLimiter = rateLimit({
+    windowMs: 15 * 60 * 1000,
+    max: process.env.AUTH_RATE_LIMIT_MAX ? parseInt(process.env.AUTH_RATE_LIMIT_MAX, 10) : 20,
+    standardHeaders: true,
+    legacyHeaders: false,
+    skipSuccessfulRequests: true,
+    message: { message: 'Too many authentication attempts. Please try again after 15 minutes.' }
+});
+
 module.exports = {
     apiLimiter,
     aiGenerateTotalLimiter,
     aiGenerateLimiter,
     dietLookupTotalLimiter,
-    dietLookupLimiter
+    dietLookupLimiter,
+    authLimiter
 };

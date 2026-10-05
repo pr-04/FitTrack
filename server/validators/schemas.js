@@ -29,6 +29,38 @@ const exchangeOAuthSchema = z.object({
     })
 });
 
+const ALLOWED_GOALS = [
+    'fat_loss',
+    'muscle_gain',
+    'body_recomposition',
+    'maintain',
+    'strength',
+    'endurance',
+    'general_fitness',
+    'flexibility'
+];
+
+const ALLOWED_DIET_TYPES = [
+    'vegetarian',
+    'non-vegetarian',
+    'vegan',
+    'pescatarian',
+    'any'
+];
+
+const ALLOWED_ACTIVITY_LEVELS = [
+    'sedentary',
+    'light',
+    'moderate',
+    'active',
+    'very_active'
+];
+
+const ALLOWED_WORKOUT_LOCATIONS = [
+    'home',
+    'gym'
+];
+
 // User Profile Schemas
 const updateProfileSchema = z.object({
     body: z.object({
@@ -36,10 +68,18 @@ const updateProfileSchema = z.object({
         age: z.coerce.number().int().min(10, 'Age must be at least 10').max(120, 'Age must be less than 120').optional(),
         weight: z.coerce.number().positive('Weight must be positive').optional(),
         height: z.coerce.number().positive('Height must be positive').optional(),
-        goal: z.string().optional().transform(val => val ? normalizeGoal(val) : val),
-        dietType: z.string().optional().transform(val => val ? normalizeDietType(val) : val),
-        activityLevel: z.string().optional(),
-        workoutLocation: z.string().optional().transform(val => val ? normalizeWorkoutLocation(val) : val),
+        goal: z.string().optional()
+            .transform(val => val ? normalizeGoal(val) : val)
+            .refine(val => !val || ALLOWED_GOALS.includes(val), { message: 'Invalid goal' }),
+        dietType: z.string().optional()
+            .transform(val => val ? normalizeDietType(val) : val)
+            .refine(val => !val || ALLOWED_DIET_TYPES.includes(val), { message: 'Invalid dietType' }),
+        activityLevel: z.string().optional()
+            .transform(val => val ? val.trim().toLowerCase() : val)
+            .refine(val => !val || ALLOWED_ACTIVITY_LEVELS.includes(val), { message: 'Invalid activityLevel' }),
+        workoutLocation: z.string().optional()
+            .transform(val => val ? normalizeWorkoutLocation(val) : val)
+            .refine(val => !val || ALLOWED_WORKOUT_LOCATIONS.includes(val), { message: 'Invalid workoutLocation' }),
         isOnboarded: z.boolean().optional()
     }).passthrough()
 });

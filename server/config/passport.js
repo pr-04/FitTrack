@@ -11,8 +11,12 @@ passport.use(
         },
         async (accessToken, refreshToken, profile, done) => {
             try {
+                const isEmailVerified = profile._json && (profile._json.email_verified === true || profile._json.email_verified === 'true');
+                if (!isEmailVerified) {
+                    return done(new Error('Google email is not verified'), null);
+                }
+
                 const email = profile.emails?.[0]?.value;
-                const avatar = profile.photos?.[0]?.value;
                 const name = profile.displayName;
 
                 // Try to find existing user by googleId
@@ -25,7 +29,6 @@ passport.use(
                     if (user) {
                         // Link Google account to existing email account
                         user.googleId = profile.id;
-                        user.avatar = user.avatar || avatar;
                         await user.save();
                     } else {
                         // Brand new user via Google
@@ -33,7 +36,6 @@ passport.use(
                             name,
                             email,
                             googleId: profile.id,
-                            avatar,
                             password: null,
                         });
                     }
