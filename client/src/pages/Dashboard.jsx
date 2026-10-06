@@ -34,10 +34,24 @@ const Dashboard = () => {
         const createdAt = stats.workoutPlanCreatedAt || stats.workoutPlan.createdAt;
         let dayIndex = 0;
         if (createdAt && !isNaN(new Date(createdAt).getTime())) {
-            const createdDate = new Date(createdAt);
-            const now = new Date();
-            const diffMs = now.getTime() - createdDate.getTime();
-            const diffDays = Math.max(0, Math.floor(diffMs / (1000 * 60 * 60 * 24)));
+            const userTZ = user?.timezone || Intl.DateTimeFormat().resolvedOptions().timeZone || 'UTC';
+            const getCalendarDayUTC = (dInput) => {
+                const d = new Date(dInput);
+                try {
+                    const formatter = new Intl.DateTimeFormat('en-US', { timeZone: userTZ, year: 'numeric', month: 'numeric', day: 'numeric' });
+                    const parts = formatter.formatToParts(d);
+                    const y = parseInt(parts.find(p => p.type === 'year').value, 10);
+                    const m = parseInt(parts.find(p => p.type === 'month').value, 10);
+                    const day = parseInt(parts.find(p => p.type === 'day').value, 10);
+                    return Date.UTC(y, m - 1, day);
+                } catch {
+                    return Date.UTC(d.getFullYear(), d.getMonth(), d.getDate());
+                }
+            };
+
+            const createdStartUtc = getCalendarDayUTC(createdAt);
+            const todayStartUtc = getCalendarDayUTC(new Date());
+            const diffDays = Math.max(0, Math.round((todayStartUtc - createdStartUtc) / (1000 * 60 * 60 * 24)));
             dayIndex = diffDays % stats.workoutPlan.days.length;
         }
         const focusDay = stats.workoutPlan.days[dayIndex] || stats.workoutPlan.days[0];
@@ -131,7 +145,7 @@ const Dashboard = () => {
                         </span>
                     </div>
                     <p className="text-xs text-slate-500 font-medium mt-3">
-                        {user?.weight ? `Synced with your ${user.weight} kg profile.` : 'Add weight to sync BMI.'}
+                        {user?.weight ? `Based on your ${user.weight} kg weight.` : 'Add weight to sync BMI.'}
                     </p>
                 </motion.div>
             </div>
@@ -211,7 +225,7 @@ const Dashboard = () => {
                     <h2 className="text-lg font-bold text-slate-900">Quick links</h2>
 
                     {[
-                        { to: '/app/workout', icon: <Dumbbell className="w-5 h-5" />, title: 'Workout plan', desc: 'Weekly training roadmap' },
+                        { to: '/app/workout', icon: <Dumbbell className="w-5 h-5" />, title: 'Workout plan', desc: 'Weekly workout plan' },
                         { to: '/app/diet', icon: <Apple className="w-5 h-5" />, title: 'Diet plan', desc: 'Custom nutrition plan' },
                         { to: '/app/tracker', icon: <LineChart className="w-5 h-5" />, title: 'Tracker', desc: 'Biometrics & log history' }
                     ].map((item, idx) => (

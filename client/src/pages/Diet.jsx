@@ -106,7 +106,7 @@ const Diet = () => {
                 <div className="bg-red-50 border border-red-200 text-red-700 px-6 py-4 rounded-xl flex flex-col sm:flex-row items-center justify-between gap-4 shadow-sm">
                     <div>
                         <p className="font-semibold">{error}</p>
-                        <p className="text-sm text-red-600 mt-0.5">The AI Nutritionist is experiencing high demand. Please try again.</p>
+                        <p className="text-sm text-red-600 mt-0.5">The AI service is busy. Please try again.</p>
                     </div>
                     <button onClick={handleGenerate} className="bg-red-600 hover:bg-red-700 text-white px-4 py-2 rounded-xl font-semibold text-sm transition-colors flex items-center shadow-sm">
                         <Sparkles className="w-4 h-4 mr-2" /> Retry generation
