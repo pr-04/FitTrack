@@ -1,21 +1,22 @@
-import { createContext, useContext, useState, useEffect } from 'react';
+import { createContext, useContext, useState } from 'react';
 import { authAPI } from '../services/api';
 
 const AuthContext = createContext(null);
 
 export const AuthProvider = ({ children }) => {
-    const [user, setUser] = useState(null);
-    const [loading, setLoading] = useState(true);
-
-    // On mount, restore user from localStorage
-    useEffect(() => {
+    const [user, setUser] = useState(() => {
         const token = localStorage.getItem('fittrack_token');
         const storedUser = localStorage.getItem('fittrack_user');
         if (token && storedUser) {
-            setUser(JSON.parse(storedUser));
+            try {
+                return JSON.parse(storedUser);
+            } catch {
+                return null;
+            }
         }
-        setLoading(false);
-    }, []);
+        return null;
+    });
+    const [loading] = useState(false);
 
     // Sign up
     const signup = async (data) => {
