@@ -45,11 +45,11 @@ const OAuthCallback = () => {
     }, [navigate, loginWithToken]);
 
     return (
-        <div className="min-h-screen flex flex-col items-center justify-center gap-4 bg-dark-900">
-            <div className="inline-flex items-center justify-center w-14 h-14 rounded-2xl bg-gradient-brand shadow-lg shadow-accent-blue/30 animate-pulse">
+        <div className="min-h-screen flex flex-col items-center justify-center gap-4 bg-slate-50">
+            <div className="inline-flex items-center justify-center w-14 h-14 rounded-2xl bg-green-600 shadow-sm animate-pulse">
                 <Zap size={28} className="text-white" />
             </div>
-            <p className="text-slate-400 text-lg">Signing you in with Google…</p>
+            <p className="text-slate-600 text-lg font-medium">Signing you in with Google…</p>
         </div>
     );
 };

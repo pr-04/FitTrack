@@ -29,21 +29,18 @@ const Login = () => {
     };
 
     return (
-        <div className="min-h-screen flex flex-col justify-center py-12 sm:px-6 lg:px-8 relative overflow-hidden" style={{ background: 'linear-gradient(180deg, #F9FAFB 0%, #EEF2F7 100%)' }}>
-            {/* Radial glows */}
-            <div className="absolute top-[-10%] left-[-10%] w-[40%] h-[40%] bg-green-200/30 rounded-full blur-[100px] pointer-events-none"></div>
-            <div className="absolute bottom-[-10%] right-[-10%] w-[35%] h-[35%] bg-blue-200/20 rounded-full blur-[100px] pointer-events-none"></div>
+        <div className="min-h-screen flex flex-col justify-center py-12 sm:px-6 lg:px-8 bg-slate-50 relative overflow-hidden">
             <div className="sm:mx-auto sm:w-full sm:max-w-md">
                 <Link to="/" className="flex justify-center items-center gap-2 mb-6 cursor-pointer">
-                    <div className="w-10 h-10 bg-green-500 rounded-xl flex items-center justify-center shadow-lg shadow-green-500/30">
+                    <div className="w-10 h-10 bg-green-600 rounded-xl flex items-center justify-center shadow-sm">
                         <Dumbbell className="w-6 h-6 text-white" />
                     </div>
                 </Link>
-                <h2 className="text-center text-3xl font-extrabold text-gray-900 tracking-tight">
+                <h2 className="text-center text-3xl font-extrabold text-slate-900 tracking-tight font-display">
                     Welcome back
                 </h2>
-                <p className="mt-2 text-center text-sm text-gray-600">
-                    Or <Link to="/signup" className="font-medium text-green-600 hover:text-green-500 transition-colors">create an account today</Link>
+                <p className="mt-2 text-center text-sm text-slate-600 font-medium">
+                    Or <Link to="/signup" className="font-semibold text-green-600 hover:text-green-700 transition-colors">create an account today</Link>
                 </p>
             </div>
 
@@ -52,21 +49,21 @@ const Login = () => {
                 animate={{ opacity: 1, y: 0 }}
                 className="mt-8 sm:mx-auto sm:w-full sm:max-w-md"
             >
-                <div className="bg-white py-8 px-4 shadow-xl shadow-gray-200/50 border border-gray-100 sm:rounded-2xl sm:px-10 relative z-10">
+                <div className="bg-white py-8 px-6 border border-slate-200 rounded-2xl shadow-sm sm:px-10 relative z-10">
                     {error && (
-                        <div className="bg-red-50 border-l-4 border-red-400 p-4 mb-6 rounded-md">
-                            <p className="text-sm text-red-700">{error}</p>
+                        <div className="bg-red-50 border border-red-200 p-4 mb-6 rounded-xl">
+                            <p className="text-sm text-red-700 font-semibold">{error}</p>
                         </div>
                     )}
 
                     <form className="space-y-6" onSubmit={handleSubmit}>
                         <div>
-                            <label className="block text-sm font-medium text-gray-700">Email address</label>
-                            <div className="mt-1">
+                            <label className="block text-sm font-semibold text-slate-700 mb-1 ml-1">Email address</label>
+                            <div>
                                 <input
                                     type="email"
                                     required
-                                    className="appearance-none block w-full px-3 py-2.5 border border-gray-300 rounded-lg shadow-sm placeholder-gray-400 focus:outline-none focus:ring-green-500 focus:border-green-500 sm:text-sm transition-colors"
+                                    className="appearance-none block w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-slate-900 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-green-600 focus:border-green-600 sm:text-sm font-medium transition-colors"
                                     value={formData.email}
                                     onChange={(e) => setFormData({ ...formData, email: e.target.value })}
                                 />
@@ -74,12 +71,12 @@ const Login = () => {
                         </div>
 
                         <div>
-                            <label className="block text-sm font-medium text-gray-700">Password</label>
-                            <div className="mt-1">
+                            <label className="block text-sm font-semibold text-slate-700 mb-1 ml-1">Password</label>
+                            <div>
                                 <input
                                     type="password"
                                     required
-                                    className="appearance-none block w-full px-3 py-2.5 border border-gray-300 rounded-lg shadow-sm placeholder-gray-400 focus:outline-none focus:ring-green-500 focus:border-green-500 sm:text-sm transition-colors"
+                                    className="appearance-none block w-full px-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-slate-900 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-green-600 focus:border-green-600 sm:text-sm font-medium transition-colors"
                                     value={formData.password}
                                     onChange={(e) => setFormData({ ...formData, password: e.target.value })}
                                 />
@@ -90,7 +87,7 @@ const Login = () => {
                             <button
                                 type="submit"
                                 disabled={loading}
-                                className="w-full flex justify-center py-2.5 px-4 border border-transparent rounded-lg shadow-md text-sm font-medium text-white bg-green-500 hover:bg-green-600 hover:scale-[1.02] focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500 disabled:opacity-50 transition-all duration-200"
+                                className="w-full flex justify-center py-2.5 px-4 rounded-xl shadow-sm text-sm font-semibold text-white bg-green-600 hover:bg-green-700 disabled:opacity-50 transition-colors"
                             >
                                 {loading ? <Loader2 className="w-5 h-5 animate-spin" /> : 'Log in'}
                             </button>
@@ -100,17 +97,17 @@ const Login = () => {
                     <div className="mt-6">
                         <div className="relative">
                             <div className="absolute inset-0 flex items-center">
-                                <div className="w-full border-t border-gray-200" />
+                                <div className="w-full border-t border-slate-200" />
                             </div>
                             <div className="relative flex justify-center text-sm">
-                                <span className="px-2 bg-white text-gray-500">Or continue with</span>
+                                <span className="px-2 bg-white text-slate-500 font-medium">Or continue with</span>
                             </div>
                         </div>
 
                         <div className="mt-6">
                             <button
                                 onClick={handleGoogleLogin}
-                                className="w-full flex justify-center py-2.5 px-4 border border-gray-300 rounded-lg shadow-sm bg-white text-sm font-medium text-gray-700 hover:bg-gray-50 transition-colors"
+                                className="w-full flex justify-center items-center py-2.5 px-4 border border-slate-200 rounded-xl shadow-sm bg-white text-sm font-semibold text-slate-700 hover:bg-slate-50 transition-colors"
                             >
                                 <svg className="w-5 h-5 mr-2" viewBox="0 0 24 24" fill="currentColor" xmlns="http://www.w3.org/2000/svg">
                                     <path d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z" fill="#4285F4"/>
