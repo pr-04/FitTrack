@@ -5,6 +5,7 @@ import { Loader2, CheckCircle, Sparkles, Dumbbell, Target, Clock, Plus, Trash2 }
 import { motion } from 'framer-motion';
 import LogWorkoutModal from '../components/modals/LogWorkoutModal';
 import { getGoalLabel } from '../utils/labels';
+import { isTimedOrDistance, formatRepChip } from '../utils/repsClassifier';
 import { toast } from 'react-hot-toast';
 
 const Workout = () => {
@@ -98,9 +99,7 @@ const Workout = () => {
 
     const parseExercisePayload = (name, sets, repsStr) => {
         const rawReps = String(repsStr || '').trim();
-        const isTimedOrDistance = /(sec|min|m|km|meters|miles)/i.test(rawReps);
-        
-        if (isTimedOrDistance) {
+        if (isTimedOrDistance(rawReps)) {
             const exerciseName = name.includes(`(${rawReps})`) ? name : `${name} (${rawReps})`;
             return {
                 exercise: exerciseName,
@@ -142,14 +141,6 @@ const Workout = () => {
         }
     };
 
-    const formatRepChip = (repsStr) => {
-        const raw = String(repsStr || '').trim();
-        if (/(sec|min|m|km|meters|miles)/i.test(raw)) {
-            return raw;
-        }
-        return `${raw} reps`;
-    };
-
     let totalExCount = 0;
     let completedExCount = Object.keys(completedExercises).length;
     
@@ -166,7 +157,7 @@ const Workout = () => {
                 <div>
                     <h1 className="text-3xl font-bold tracking-tight text-slate-900">Workout Plan</h1>
                     <p className="text-slate-600 mt-1 font-medium">
-                        Roadmap for <span className="font-semibold text-slate-900">{getGoalLabel(user?.goal)}</span>.
+                        Plan for <span className="font-semibold text-slate-900">{getGoalLabel(user?.goal)}</span>.
                     </p>
                 </div>
                 <div className="flex flex-wrap items-center gap-3">
