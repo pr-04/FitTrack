@@ -142,8 +142,7 @@ wt project/
     ├── config/                    # Backend Configuration Modules
     │   ├── db.js                  # Mongoose MongoDB connection handler
     │   ├── passport.js            # Passport Google OAuth strategy definition
-    │   ├── gemini.js              # Google Generative AI SDK client initialization
-    │   └── grok.js                # OpenAI SDK client configured for xAI/Grok (secondary fallback)
+    │   └── gemini.js              # Google GenAI SDK client initialization
     ├── controllers/               # Business Logic Controllers
     │   ├── authController.js      # User registration, login, JWT issuance & Google callback
     │   ├── userController.js      # Profile fetch, biometric updates, onboarding completion, account deletion
@@ -633,7 +632,7 @@ VITE_API_URL=http://localhost:5000/api
 
 # 15. DEPENDENCIES
 
-- **`@google/generative-ai`**: Official Node SDK for Google Gemini AI models.
+- **`@google/genai`**: Official Node SDK for Google Gemini AI models.
 - **`mongoose`**: Object Data Modeling (ODM) library for MongoDB.
 - **`jsonwebtoken`**: JWT implementation for authorization tokens.
 - **`passport-google-oauth20`**: Google Strategy for Passport.
@@ -848,7 +847,7 @@ Modifying AI Diet Generation or Food Lookup
 
 # 30. FINAL AI SUMMARY
 
-FitTrack is a full-stack MERN application that provides personalized AI-generated 7-day workout routines and dietary meal plans, real-time AI food calorie/macronutrient estimations, WHO BMI calculations, and 7-day caloric performance tracking. Backend operations run on Express/Node with Mongoose MongoDB schemas, Passport Google OAuth 2.0, and JWT security. Frontend operations run on React 19 SPA with Vite, React Router v7, Tailwind CSS, Framer Motion, and Recharts. All AI workflows consume Google Gemini models (`gemini-3.5-flash-lite`, `gemini-3.1-flash-lite`; retired / do not use: `gemini-2.0-flash`, `gemini-2.5-flash`) via `@google/generative-ai` with strict system prompting and native JSON mode enforcement.
+FitTrack is a full-stack MERN application that provides personalized AI-generated 7-day workout routines and dietary meal plans, real-time AI food calorie/macronutrient estimations, WHO BMI calculations, and 7-day caloric performance tracking. Backend operations run on Express/Node with Mongoose MongoDB schemas, Passport Google OAuth 2.0, and JWT security. Frontend operations run on React 19 SPA with Vite, React Router v7, Tailwind CSS, Framer Motion, and Recharts. All AI workflows consume Google Gemini models (`gemini-3.5-flash-lite`, `gemini-3.1-flash-lite`; retired / do not use: `gemini-2.0-flash`, `gemini-2.5-flash`) via `@google/genai` with strict system prompting and native JSON mode enforcement.
 
 ---
 
@@ -873,10 +872,12 @@ Every `process.env` variable referenced in `server/` code has been audited from 
 | `GEMINI_FALLBACK_MODEL` | Optional | `'gemini-3.1-flash-lite'` | Resilience fallback model invoked on retryable 429/503 errors. Example: `gemini-3.1-flash-lite`. |
 | `AI_GENERATE_TOTAL_LIMIT_PER_HOUR` | Optional | `30` | Outer hourly rate limit per user counting all workout/diet plan generation attempts including failures. |
 | `AI_LOOKUP_TOTAL_LIMIT_PER_HOUR` | Optional | `300` | Outer hourly rate limit per user counting all nutrition lookup attempts including failures. |
-| `GOOGLE_CLIENT_ID` | Required for OAuth | N/A | OAuth 2.0 Client ID for Google login authentication. |
-| `GOOGLE_CLIENT_SECRET` | Required for OAuth | N/A | OAuth 2.0 Client Secret for Google login authentication. |
+| `GOOGLE_CLIENT_ID` | Required for OAuth | N/A | OAuth 2.0 Client ID for Google login authentication. (Optional if Google login disabled). |
+| `GOOGLE_CLIENT_SECRET` | Required for OAuth | N/A | OAuth 2.0 Client Secret for Google login authentication. (Optional if Google login disabled). |
 | `GOOGLE_CALLBACK_URL` | Optional | `http://localhost:5000/api/auth/google/callback` | Server-side callback endpoint registered with Google Cloud Console (e.g. `https://<render-backend>.onrender.com/api/auth/google/callback`). |
 | `CLIENT_URL` | Required | `http://localhost:5173` | Public frontend client URL where the client is hosted (e.g. Vercel `https://fittrack.vercel.app`). Used for CORS origin allowlist and post-OAuth redirect target. |
+| `AUTH_RATE_LIMIT_MAX` | Optional | `20` | Max failed auth attempts per 15 minutes per IP address. |
+| `ALLOWED_ORIGINS` | Optional | `''` | Comma-separated list of additional allowed CORS origins. |
 
 ### Client-side Environment Variables (`client/`)
 | Variable Name | Required in Prod | Default / Fallback Value | Description |

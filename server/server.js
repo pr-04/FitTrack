@@ -6,6 +6,7 @@ const session = require('express-session');
 const passport = require('passport');
 const dotenv = require('dotenv');
 const path = require('path');
+const fs = require('fs');
 const crypto = require('crypto');
 const MongoStore = require('connect-mongo').default;
 const connectDB = require('./config/db');
@@ -140,14 +141,21 @@ app.use('/api', notFound);
 
 // ─── Static File Serving ──────────────────────────────────────────────────────
 const clientPath = path.join(__dirname, '../client/dist');
-app.use(express.static(clientPath));
+const hasClientBuild = fs.existsSync(path.join(clientPath, 'index.html'));
+
+if (hasClientBuild) {
+    app.use(express.static(clientPath));
+}
 
 // Catch-all route for SPA — non-/api GET requests only
 app.get('*', (req, res, next) => {
     if (req.path.startsWith('/api')) {
         return next();
     }
-    res.sendFile(path.join(clientPath, 'index.html'));
+    if (hasClientBuild) {
+        return res.sendFile(path.join(clientPath, 'index.html'));
+    }
+    res.json({ status: 'ok', service: 'FitTrack API' });
 });
 
 // ─── Error Handling ───────────────────────────────────────────────────────────

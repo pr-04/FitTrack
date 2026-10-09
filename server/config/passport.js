@@ -2,52 +2,56 @@ const passport = require('passport');
 const GoogleStrategy = require('passport-google-oauth20').Strategy;
 const User = require('../models/User');
 
-passport.use(
-    new GoogleStrategy(
-        {
-            clientID: process.env.GOOGLE_CLIENT_ID,
-            clientSecret: process.env.GOOGLE_CLIENT_SECRET,
-            callbackURL: process.env.GOOGLE_CALLBACK_URL || 'http://localhost:5000/api/auth/google/callback',
-        },
-        async (accessToken, refreshToken, profile, done) => {
-            try {
-                const isEmailVerified = profile._json && (profile._json.email_verified === true || profile._json.email_verified === 'true');
-                if (!isEmailVerified) {
-                    return done(new Error('Google email is not verified'), null);
-                }
-
-                const email = profile.emails?.[0]?.value;
-                const name = profile.displayName;
-
-                // Try to find existing user by googleId
-                let user = await User.findOne({ googleId: profile.id });
-
-                if (!user) {
-                    // Check if an account with the same email already exists
-                    user = await User.findOne({ email });
-
-                    if (user) {
-                        // Link Google account to existing email account
-                        user.googleId = profile.id;
-                        await user.save();
-                    } else {
-                        // Brand new user via Google
-                        user = await User.create({
-                            name,
-                            email,
-                            googleId: profile.id,
-                            password: null,
-                        });
+if (process.env.GOOGLE_CLIENT_ID && process.env.GOOGLE_CLIENT_SECRET) {
+    passport.use(
+        new GoogleStrategy(
+            {
+                clientID: process.env.GOOGLE_CLIENT_ID,
+                clientSecret: process.env.GOOGLE_CLIENT_SECRET,
+                callbackURL: process.env.GOOGLE_CALLBACK_URL || 'http://localhost:5000/api/auth/google/callback',
+            },
+            async (accessToken, refreshToken, profile, done) => {
+                try {
+                    const isEmailVerified = profile._json && (profile._json.email_verified === true || profile._json.email_verified === 'true');
+                    if (!isEmailVerified) {
+                        return done(new Error('Google email is not verified'), null);
                     }
-                }
 
-                return done(null, user);
-            } catch (err) {
-                return done(err, null);
+                    const email = profile.emails?.[0]?.value;
+                    const name = profile.displayName;
+
+                    // Try to find existing user by googleId
+                    let user = await User.findOne({ googleId: profile.id });
+
+                    if (!user) {
+                        // Check if an account with the same email already exists
+                        user = await User.findOne({ email });
+
+                        if (user) {
+                            // Link Google account to existing email account
+                            user.googleId = profile.id;
+                            await user.save();
+                        } else {
+                            // Brand new user via Google
+                            user = await User.create({
+                                name,
+                                email,
+                                googleId: profile.id,
+                                password: null,
+                            });
+                        }
+                    }
+
+                    return done(null, user);
+                } catch (err) {
+                    return done(err, null);
+                }
             }
-        }
-    )
-);
+        )
+    );
+} else {
+    console.warn('Google OAuth disabled: GOOGLE_CLIENT_ID/SECRET not set');
+}
 
 // Minimal session serialization (we use JWT, so we only store the id)
 passport.serializeUser((user, done) => done(null, user.id));

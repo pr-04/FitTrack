@@ -380,6 +380,7 @@ The `scripts/` folder contains one-off tools for existing databases:
 - Build: `npm run build` (installs dependencies) — or use the `server/` folder as the root.
 - Start: `npm start`
 - Set every required server variable above, with `NODE_ENV=production`.
+- Note: `GOOGLE_CLIENT_ID` and `GOOGLE_CLIENT_SECRET` are only required when enabling Google login. If omitted, Google authentication routes return HTTP 503 while password-based authentication remains fully functional.
 - Set `CLIENT_URL` to your frontend URL, and `GOOGLE_CALLBACK_URL` to `https://<your-api-host>/api/auth/google/callback`.
 
 **Frontend (Vercel)**
