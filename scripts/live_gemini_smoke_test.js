@@ -3,8 +3,9 @@ module.paths.push(path.join(__dirname, '../server/node_modules'));
 require('dotenv').config({ path: path.join(__dirname, '../server/.env') });
 const { generateWorkoutPlan, generateDietPlan, lookupNutrition } = require('../server/services/aiService');
 
-async function testCommit1Integration() {
-    console.log('--- STARTING COMMIT 1 INTEGRATION TESTS ---');
+async function testGeminiSmokeTest() {
+    console.log('--- STARTING GEMINI SMOKE TESTS ---');
+
     let passed = 0;
     let failed = 0;
 
@@ -62,4 +63,5 @@ async function testCommit1Integration() {
     }
 }
 
-testCommit1Integration();
+testGeminiSmokeTest();
+

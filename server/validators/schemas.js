@@ -11,17 +11,18 @@ const mongoIdRegex = /^[0-9a-fA-F]{24}$/;
 const signupSchema = z.object({
     body: z.object({
         name: z.string({ message: 'Name is required' }).trim().min(1, 'Name is required'),
-        email: z.string({ message: 'Email is required' }).trim().email('Invalid email address'),
+        email: z.string({ message: 'Email is required' }).trim().toLowerCase().email('Invalid email address'),
         password: z.string({ message: 'Password is required' }).min(6, 'Password must be at least 6 characters')
     })
 });
 
 const loginSchema = z.object({
     body: z.object({
-        email: z.string({ message: 'Email is required' }).trim().email('Invalid email address'),
+        email: z.string({ message: 'Email is required' }).trim().toLowerCase().email('Invalid email address'),
         password: z.string({ message: 'Password is required' }).min(1, 'Password is required')
     })
 });
+
 
 const exchangeOAuthSchema = z.object({
     body: z.object({

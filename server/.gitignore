@@ -15,7 +15,13 @@ node_modules/
 secrets.*
 credentials.json
 
+# Build outputs & temporary files
+dist/
+build/
+tmp/
+
 # Logs
 *.log
 logs/
+
 

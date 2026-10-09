@@ -1,42 +1,38 @@
-const path = require('path');
-module.paths.push(path.join(__dirname, '../server/node_modules'));
-require('dotenv').config({ path: path.join(__dirname, '../server/.env') });
+const { describe, it, before, after } = require('node:test');
+const assert = require('node:assert/strict');
 
-const geminiConfig = require('../server/config/gemini');
-const { executeWithResilience, lookupNutrition, generateWorkoutPlan } = require('../server/services/aiService');
-const { workoutPlanSchema, dietPlanSchema } = require('../server/validators/planSchemas');
-const { NutritionCache } = require('../server/models/NutritionCache');
+const geminiConfig = require('../config/gemini');
+const { executeWithResilience, lookupNutrition } = require('../services/aiService');
+const { workoutPlanSchema, dietPlanSchema } = require('../validators/planSchemas');
+const { NutritionCache } = require('../models/NutritionCache');
 
-// Stub NutritionCache to prevent 10-second MongoDB buffering timeout in unit tests
-NutritionCache.findOne = async () => null;
-NutritionCache.updateOne = async () => ({});
+describe('AI Resilience Mocked Unit Tests', () => {
+    let originalGenerateContent;
+    let originalFindOne;
+    let originalUpdateOne;
 
-let passed = 0;
-let failed = 0;
+    before(() => {
+        originalGenerateContent = geminiConfig.ai.models.generateContent;
+        originalFindOne = NutritionCache.findOne;
+        originalUpdateOne = NutritionCache.updateOne;
 
-function assert(condition, message) {
-    if (condition) {
-        console.log(`✓ PASSED: ${message}`);
-        passed++;
-    } else {
-        console.error(`✗ FAILED: ${message}`);
-        failed++;
-    }
-}
+        // Stub NutritionCache to prevent 10-second MongoDB buffering timeout in unit tests
+        NutritionCache.findOne = async () => null;
+        NutritionCache.updateOne = async () => ({});
+    });
 
-// Store original method
-const originalGenerateContent = geminiConfig.ai.models.generateContent;
+    after(() => {
+        geminiConfig.ai.models.generateContent = originalGenerateContent;
+        NutritionCache.findOne = originalFindOne;
+        NutritionCache.updateOne = originalUpdateOne;
+    });
 
-async function runMockTests() {
-    console.log("=== RUNNING MOCKED MODEL RESILIENCE TESTS ===");
-
-    // Scenario 1: First response invalid, second response valid -> expect success on attempt 2
-    try {
+    it('succeeds on attempt 2 when first response is invalid and second is valid', async () => {
         let callCount = 0;
         geminiConfig.ai.models.generateContent = async () => {
             callCount++;
             if (callCount === 1) {
-                // Invalid response: only 2 days instead of 7
+                // Invalid response: only 1 day instead of 7
                 return {
                     candidates: [{
                         content: { parts: [{ text: JSON.stringify({
@@ -78,22 +74,19 @@ async function runMockTests() {
             schema: workoutPlanSchema
         });
 
-        assert(res && res.attempt === 2 && res.data.title === "ELITE 7-DAY SPLIT", "First response invalid then second valid succeeds on attempt 2");
-    } catch (err) {
-        assert(false, `Scenario 1 failed with unexpected error: ${err.message}`);
-    }
+        assert.ok(res);
+        assert.equal(res.attempt, 2);
+        assert.equal(res.data.title, "ELITE 7-DAY SPLIT");
+    });
 
-    // Scenario 2: Both responses invalid -> expect PLAN_VALIDATION_FAILURE and redacted truncated log
-    try {
+    it('throws PLAN_VALIDATION_FAILURE and redacts PII when all attempts fail', async () => {
         let loggedErrorOutput = '';
         const originalConsoleError = console.error;
         console.error = (...args) => {
             loggedErrorOutput += args.join(' ') + '\n';
-            originalConsoleError(...args);
         };
 
         geminiConfig.ai.models.generateContent = async () => {
-            // Out-of-bounds calories (50,000) with fake API key secret string
             const badText = JSON.stringify({
                 dailyCalories: 50000,
                 secretKey: "AIzaSyDummyTestKeyForPIIRedactionSanitization"
@@ -118,23 +111,17 @@ async function runMockTests() {
             });
         } catch (err) {
             threwError = true;
-            assert(err.message.includes('PLAN_VALIDATION_FAILURE'), "Both responses invalid throws PLAN_VALIDATION_FAILURE (triggers 502)");
+            assert.ok(err.message.includes('PLAN_VALIDATION_FAILURE'));
+        } finally {
+            console.error = originalConsoleError;
         }
 
-        console.error = originalConsoleError;
+        assert.ok(threwError);
+        assert.ok(loggedErrorOutput.includes('[REDACTED_API_KEY]'));
+        assert.equal(loggedErrorOutput.includes('AIzaSyDummyTestKeyForPIIRedactionSanitization'), false);
+    });
 
-        assert(
-            threwError &&
-            loggedErrorOutput.includes('[REDACTED_API_KEY]') &&
-            !loggedErrorOutput.includes('AIzaSyDummyTestKeyForPIIRedactionSanitization'),
-            "Final failure logs redacted & truncated raw output without API keys/PII"
-        );
-    } catch (err) {
-        assert(false, `Scenario 2 failed with unexpected error: ${err.message}`);
-    }
-
-    // Scenario 3: isFood false -> expect COULD_NOT_ESTIMATE error
-    try {
+    it('rejects non-food queries with COULD_NOT_ESTIMATE error', async () => {
         geminiConfig.ai.models.generateContent = async () => {
             const nonFoodText = JSON.stringify({
                 isFood: false,
@@ -149,21 +136,17 @@ async function runMockTests() {
             };
         };
 
-        let threwEstimateError = false;
-        try {
-            await lookupNutrition('a brick');
-        } catch (err) {
-            threwEstimateError = true;
-            assert(err.message === 'COULD_NOT_ESTIMATE', "isFood: false throws COULD_NOT_ESTIMATE error");
-        }
+        await assert.rejects(
+            async () => {
+                await lookupNutrition('a brick');
+            },
+            (err) => {
+                return err.message === 'COULD_NOT_ESTIMATE';
+            }
+        );
+    });
 
-        assert(threwEstimateError, "Lookup non-food correctly rejected");
-    } catch (err) {
-        assert(false, `Scenario 3 failed with unexpected error: ${err.message}`);
-    }
-
-    // Scenario 4: NutritionCache findOne hangs indefinitely -> expect 1500ms timeout degrade to AI lookup
-    try {
+    it('degrades gracefully to AI lookup when cache findOne hangs', async () => {
         NutritionCache.findOne = () => new Promise(() => {}); // never resolves
         geminiConfig.ai.models.generateContent = async () => {
             const foodText = JSON.stringify({
@@ -180,18 +163,8 @@ async function runMockTests() {
         };
 
         const res = await lookupNutrition('hanging cache test query');
-        assert(res && res.source === 'ai' && res.calories === 300, "Slow cache findOne (>1500ms) degrades gracefully to AI lookup");
-    } catch (err) {
-        assert(false, `Scenario 4 failed with unexpected error: ${err.message}`);
-    } finally {
-        NutritionCache.findOne = async () => null;
-    }
-
-    // Restore original method
-    geminiConfig.ai.models.generateContent = originalGenerateContent;
-
-    console.log(`\n=== MOCKED RESILIENCE TEST SUMMARY: ${passed} PASSED, ${failed} FAILED ===`);
-    if (failed > 0) process.exit(1);
-}
-
-runMockTests();
+        assert.ok(res);
+        assert.equal(res.source, 'ai');
+        assert.equal(res.calories, 300);
+    });
+});
