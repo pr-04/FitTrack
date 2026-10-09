@@ -1,415 +1,402 @@
-# 🏋️‍♂️ FitTrack - AI-Powered Fitness & Nutrition Ecosystem
+# 🏋️ FitTrack — AI-Powered Fitness & Nutrition Tracker
 
-FitTrack is a premium, full-stack health, nutrition, and workout tracking ecosystem. It integrates traditional health metrics tracking (workout logging, calorie logging, weight history, and BMI calculations) with Generative AI capabilities (Google Gemini API & xAI Grok API) to provide users with dynamically tailored workout and diet roadmaps, natural language food lookups, and intelligent context-aware progress summaries.
+FitTrack is a full-stack MERN app that combines everyday health tracking (workout logs, calorie logs, weight and BMI) with Google Gemini to generate personalised 7-day workout and diet plans and to turn plain-English meal descriptions into calorie and macro estimates.
+
+[![CI](https://img.shields.io/badge/tests-passing-brightgreen)](#-testing)
+[![License: MIT](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
+![React](https://img.shields.io/badge/React-19-61dafb?logo=react&logoColor=white)
+![Node](https://img.shields.io/badge/Node.js-20%2B-339933?logo=node.js&logoColor=white)
+![MongoDB](https://img.shields.io/badge/MongoDB-Atlas-47A248?logo=mongodb&logoColor=white)
+
+**🔗 Live demo:** `<your-deployed-url>`
+
+<!-- Add screenshots to docs/screenshots/ and uncomment:
+![Dashboard](docs/screenshots/dashboard.png)
+![Workout plan](docs/screenshots/workout.png)
+-->
 
 ---
 
-## 🧭 Table of Contents
-1. [🏗️ Architecture & System Design](#️-architecture-system-design)
-2. [🤖 Core AI Engines](#-core-ai-engines)
-3. [🔐 Authentication & Security Flow](#-authentication--security-flow)
-4. [📊 Database Schema & Data Models](#-database-schema--data-models)
-5. [🔌 API Reference & Routing Map](#-api-reference--routing-map)
-6. [🛠️ Tech Stack Directory](#️-tech-stack-directory)
-7. [📂 Project Structure & Directory Map](#-project-structure--directory-map)
-8. [🚀 Getting Started & Local Installation](#-getting-started--local-installation)
-9. [🖥️ Production & Deployment](#️-production--deployment)
+## 📑 Table of Contents
+
+1. [Features](#-features)
+2. [Tech Stack](#-tech-stack)
+3. [Architecture](#-architecture)
+4. [AI Engine](#-ai-engine)
+5. [Authentication & Security](#-authentication--security)
+6. [Data Models](#-data-models)
+7. [API Reference](#-api-reference)
+8. [Project Structure](#-project-structure)
+9. [Getting Started](#-getting-started)
+10. [Environment Variables](#-environment-variables)
+11. [Testing](#-testing)
+12. [Maintenance Scripts](#-maintenance-scripts)
+13. [Deployment](#-deployment)
+14. [License & Author](#-license--author)
 
 ---
 
-## 🏗️ Architecture & System Design
+## ✨ Features
 
-FitTrack is structured as a decoupled client-server MERN stack application. Below is the workflow diagram showcasing how the frontend React client, Node/Express backend, database, authentication providers, and Generative AI engines interact.
+- **AI workout planner** — a personalised 7-day split based on your age, weight, height, fitness level, goal and workout location (home or gym).
+- **AI diet planner** — daily calorie and macro targets with meal suggestions, respecting dietary preferences (vegetarian, vegan, pescatarian, etc.).
+- **Natural-language food lookup** — type "3 scrambled eggs and avocado" and get estimated calories, protein, carbs and fats, then log it in one click.
+- **Workout & meal logging** — record exercises (sets, reps, weight) and meals, with quick suggestions from your recent entries.
+- **Dashboard & tracker** — daily calorie performance, streaks, weight/BMI trends and history charts.
+- **Guided onboarding** — a short profile setup that drives all targets and plans.
+- **Email/password and Google sign-in**.
+- **Production-minded backend** — validation, rate limiting, secure headers, retry/fallback logic for AI calls, and a unit-test suite.
+
+---
+
+## 🛠 Tech Stack
+
+| Layer | Technologies |
+|:---|:---|
+| **Frontend** | React 19, Vite, React Router v7, Tailwind CSS, Framer Motion, Recharts, Lucide React, React Hot Toast, Axios |
+| **Backend** | Node.js, Express, Mongoose, Zod, Passport (Google OAuth 2.0), JSON Web Tokens, bcryptjs |
+| **Security** | Helmet, CORS allowlist, express-rate-limit, express-mongo-sanitize, express-session + connect-mongo |
+| **AI** | Google Gemini via the `@google/genai` SDK |
+| **Database** | MongoDB Atlas |
+| **Hosting** | Vercel (client) and Render (server) |
+
+---
+
+## 🏗 Architecture
 
 ```mermaid
 flowchart TD
-    User([User Browser]) -->|Interacts with UI| Client[Vite + React Frontend]
-    Client -->|Protected Pages| AuthGates{JWT & Session Auth Gate}
-    
-    subgraph Frontend [React Application - Client]
-        Client -->|Router| Router[App.jsx Route Handler]
-        Router -->|Onboarding Flow| OnboardingPage[Onboarding.jsx]
-        Router -->|Dashboard Dashboard| DashPage[Dashboard.jsx]
-        Router -->|Workout Logging| WorkoutPage[Workout.jsx / Workouts.jsx]
-        Router -->|Nutrition Tracker| DietPage[Diet.jsx]
-        Router -->|Visual Charts| Recharts[Recharts Engine]
-        Client -->|Axios Orchestration| AxiosClient[Axios Interceptor with Bearer JWT]
+    User([User Browser]) --> Client[React + Vite Client]
+    Client -->|Axios + Bearer JWT| API[Express API]
+
+    subgraph Server [Node.js / Express]
+        API --> MW[Helmet · CORS · Rate limits · Sanitize · Zod validation]
+        MW --> Routes[auth · user · workout · diet · tracker · dashboard]
+        Routes --> Controllers[Controllers]
+        Controllers --> AI[aiService.js]
+        Controllers --> Models[Mongoose Models]
     end
 
-    subgraph Backend [Node.js + Express API - Server]
-        AxiosClient -->|Rest API Request| ExpressServer[Express.js App]
-        ExpressServer -->|Router Pipeline| Routes[API Routes Map]
-        
-        Routes -->|authRoutes| AuthController[authController.js]
-        Routes -->|userRoutes| UserController[userController.js]
-        Routes -->|workoutRoutes| WorkoutController[workoutController.js]
-        Routes -->|dietRoutes| DietController[dietController.js]
-        Routes -->|dashboardRoutes| DashController[dashboardController.js]
-        
-        AuthController -->|Bcrypt & Sign| JWT[JWT Token Utility]
-        AuthController -->|Strategy Auth| Passport[Passport.js Google OAuth 2.0]
-    end
-
-    subgraph External & Storage Services
-        Passport -->|OAuth Handshake| GoogleCloud[Google Cloud Console Auth]
-        ExpressServer -->|connect-mongo| MongoSession[(MongoDB Session Store)]
-        ExpressServer -->|Mongoose ODM| MongoDB[(MongoDB Atlas Database)]
-        WorkoutController -->|generate-content| Gemini[Google Gemini AI API gemini-2.0-flash]
-        DietController -->|nutrition-lookup| Gemini
-        DietController -->|xAI Fallback| Grok[xAI Grok API]
-    end
+    AI -->|Structured JSON| Gemini[Google Gemini API]
+    AI <-->|Lookup cache| Models
+    Models --> DB[(MongoDB Atlas)]
+    API -->|OAuth + sessions| Google[Google OAuth 2.0]
 ```
+
+The client and server are deployed separately. The client talks to the API through a single Axios instance that attaches the JWT and redirects to `/login` on a `401`.
 
 ---
 
-## 🤖 Core AI Engines
+## 🤖 AI Engine
 
-FitTrack implements Generative AI to automate workout program design and meal tracking. Rather than using conversational chatbots that return unformatted text, FitTrack utilizes **native JSON outputs** from the AI to seed database models directly.
+All AI calls go through `server/services/aiService.js`. Gemini is asked for **structured JSON**, which is validated with Zod (`server/validators/planSchemas.js`) before anything is saved, so malformed or out-of-range model output never reaches the database.
 
-### 🏋️‍♂️ 1. AI Workout Planner (`workoutController.js`)
-* **Engine**: Google Gemini API (`gemini-2.0-flash`).
-* **Input**: User's physical parameters (age, weight, height), fitness level, and desired goals (e.g., hypertrophy, endurance, fat loss, flexibility).
-* **System Prompting**: Configured with strict instructions to output valid JSON.
-* **Mechanism**: The backend calls the `gemini-2.0-flash` model and sets the `responseMimeType` parameter to `application/json`.
-* **Output Schema**:
-  ```json
-  {
-    "plan": {
-      "title": "ELITE PERFORMANCE: Hypertrophy Split",
-      "overview": "7-day muscle hypertrophy cycle focused on progressive overload...",
-      "days": [
-        {
-          "day": "Day 1",
-          "type": "Upper Body Strength",
-          "exercises": [
-            { "name": "Bench Press", "sets": 4, "reps": "8-10", "rest": "90s" }
-          ]
-        }
-      ]
-    }
-  }
-  ```
+| Feature | Endpoint | What it does |
+|:---|:---|:---|
+| Workout plan | `POST /api/workout/generate` | Builds a 7-day plan from the user's profile and goal |
+| Diet plan | `POST /api/diet/generate` | Builds daily calories, macros and meals |
+| Food lookup | `GET /api/diet/lookup` | Estimates calories and macros from free text |
 
-### 🥗 2. AI Nutrition Planner (`dietController.js`)
-* **Engine**: Google Gemini API (`gemini-2.0-flash`).
-* **Input**: User's target goals (e.g., caloric deficit for fat loss, caloric surplus for muscle gain) and dietary restrictions (e.g., vegetarian, vegan, pescatarian, any).
-* **Output Schema**:
-  ```json
-  {
-    "plan": {
-      "dailyCalories": 2200,
-      "macros": { "protein": "150g", "carbs": "250g", "fats": "70g" },
-      "meals": {
-        "Breakfast": ["Oatmeal with whey protein", "1 medium banana"],
-        "Lunch": ["Grilled paneer/chicken with brown rice", "Mixed greens"],
-        "Snacks": ["Almonds (30g)", "1 Apple"],
-        "Dinner": ["Sautéed tofu/fish with sweet potato", "Broccoli"]
+**Reliability features**
+
+- A shared overall deadline and a per-attempt timeout for every request.
+- Schema validation with value clamping, plus one retry if the response fails to parse.
+- On `503` errors, one jittered retry, then fallback to an optional second model (`GEMINI_FALLBACK_MODEL`).
+- On `429` (quota) errors, an immediate switch to the fallback model.
+- A `NutritionCache` collection so repeated food lookups don't spend API quota.
+
+**Example workout plan shape**
+
+```json
+{
+  "plan": {
+    "title": "Hypertrophy Split",
+    "overview": "7-day muscle-building cycle focused on progressive overload",
+    "days": [
+      {
+        "day": "Day 1",
+        "type": "Upper Body Strength",
+        "exercises": [
+          { "name": "Bench Press", "sets": 4, "reps": "8-10", "rest": "90s" }
+        ]
       }
-    }
+    ]
   }
-  ```
-
-### 🔍 3. AI Natural Language Nutrition Lookup (`dietController.js`)
-* Instead of forcing users to search rigid, limited databases, FitTrack features a natural language search query box.
-* **Processing**: The user enters a sentence (e.g., `"3 scrambled eggs and avocado"`).
-* **AI Parser**: The Gemini API processes this input and estimates the nutritional breakdown, returning a clean JSON object containing `calories`, `protein`, `carbs`, and `fats`.
-* **Flow**: The parsed numbers are returned to the user, allowing them to adjust parameters and log the meal to MongoDB with one click.
-
----
-
-## 🔐 Authentication & Security Flow
-
-FitTrack implements a secure, stateless session authentication model coupled with social single sign-on (SSO).
-
-```
-[Credentials Login] ──> Hashed in DB (Bcryptjs) ──> Issue JWT ──> Client LocalStorage
-                                                                        │
-[Google SSO Login]  ──> Passport.js OAuth 2.0 ──> Issue JWT ──> Client LocalStorage
-                                                                        │
-[Outgoing Requests] ◄───────────────────────────────────────────────────┘
-       │
- Axios Request Interceptor
-       │ (Appends Authorization: Bearer <token> header)
-       ▼
-Express Server Validation ──> decode JWT ──> Hydrate req.user ──> Next()
+}
 ```
 
-1. **Credentials Pipeline**: Standard sign-ups secure password inputs using `bcryptjs` with a salt factor of 10.
-2. **Google OAuth 2.0 Integration**: Built using `Passport.js` with the `passport-google-oauth20` strategy. The frontend opens the OAuth screen using `@react-oauth/google` and routes callbacks back to the Express server to initiate standard session verification.
-3. **Session Store Persistence**: Uses `express-session` backed by `connect-mongo` to persist OAuth states and sessions directly in MongoDB Atlas with a 14-day Time-To-Live (TTL) expiration.
-4. **Stateless JWT Guard**: Upon successful verification, the backend issues a signed JSON Web Token (JWT). The React client stores this token in `localStorage`.
-5. **Axios Client Interceptors**:
-   * **Request Interceptor**: Automatically inspects `localStorage` for `fittrack_token` and appends it to the `Authorization: Bearer <token>` header of every outbound API request.
-   * **Response Interceptor**: Monitors API responses. If the backend throws a `401 Unauthorized` (indicating token expiry or tampering), the interceptor wipes the local credentials storage and redirects the browser back to the `/login` route.
+---
+
+## 🔐 Authentication & Security
+
+**Email/password:** passwords are hashed with bcrypt, and a signed JWT is returned on login. The client stores it in `localStorage` (`fittrack_token`) and sends it as `Authorization: Bearer <token>`.
+
+**Google sign-in** uses a short-lived, single-use code instead of putting a token in the URL:
+
+```
+Browser ──► /api/auth/google ──► Google consent screen
+                                     │
+Google ──► /api/auth/google/callback (server verifies the Google profile)
+                                     │
+Server creates a single-use code (stored hashed) ──► redirects to client /oauth/callback?code=…
+                                     │
+Client ──► POST /api/auth/oauth/exchange { code } ──► receives JWT
+```
+
+An existing account is only linked to a Google login when Google reports the email as verified.
+
+**Hardening in place**
+
+| Protection | Details |
+|:---|:---|
+| Secure headers | Helmet |
+| CORS | Allowlist built from `CLIENT_URL` and `ALLOWED_ORIGINS` |
+| Input validation | Zod schemas on every write route and on AI inputs |
+| NoSQL injection | `express-mongo-sanitize` |
+| Rate limiting | See table below |
+| Production checks | The server refuses to start in production if required secrets are missing |
+| Error handling | Internal error details are hidden in production responses |
+
+**Rate limits**
+
+| Scope | Limit |
+|:---|:---|
+| All `/api` routes | 200 requests / 15 min |
+| Auth routes | 20 / 15 min (configurable with `AUTH_RATE_LIMIT_MAX`) |
+| AI plan generation | 10 / 15 min and 30 / hour per user |
+| Food lookup | 60 / 15 min and 300 / hour per user |
 
 ---
 
-## 📊 Database Schema & Data Models
+## 📊 Data Models
 
-The database architecture consists of 6 Mongoose collections in MongoDB Atlas.
-
-### 👤 1. User Model (`models/User.js`)
-Stores user profiles, preferences, and onboarding flags:
-* `name` (String, required)
-* `email` (String, unique, indexed)
-* `password` (String, default null for OAuth users)
-* `googleId` (String, unique sparse index for OAuth identification)
-* `age`, `weight` (kg), `height` (cm)
-* `goal` (Enum: `fat_loss`, `muscle_gain`, `body_recomposition`, `maintain`, `strength`, `endurance`, `general_fitness`, `flexibility`)
-* `dietType` (Enum: `vegetarian`, `non-vegetarian`, `vegan`, `pescatarian`, `any`)
-* `activityLevel` (Enum: `sedentary`, `light`, `moderate`, `active`, `very_active`)
-* `workoutLocation` (Enum: `Home`, `Gym`)
-* `isOnboarded` (Boolean, defaults to false)
-
-### 🏋️‍♂️ 2. Workout Plan Model (`models/Workout.js`)
-Saves generated AI workout splits:
-* `userId` (ObjectId referencing `User`, indexed)
-* `plan` (Object representing the generated 7-day nested plan)
-
-### 🥗 3. Diet Plan Model (`models/Diet.js`)
-Saves generated AI diet roadmaps:
-* `userId` (ObjectId referencing `User`, indexed)
-* `plan` (Object representing the daily macro thresholds and food choices)
-
-### 📝 4. Workout Logs (`models/WorkoutLog.js`)
-Tracks history of completed exercises:
-* `userId` (ObjectId referencing `User`)
-* `exercise` (String, required)
-* `sets` (Number, required)
-* `reps` (Number, required)
-* `weight` (Number, defaults to 0 for bodyweight exercises)
-* `date` (Date, defaults to current time)
-
-### 🍎 5. Diet Logs (`models/DietLog.js`)
-Tracks daily caloric consumption:
-* `userId` (ObjectId referencing `User`)
-* `name` (String, representing the meal description)
-* `calories` (Number, required)
-* `protein`, `carbs`, `fats` (Numbers, defaults to 0)
-* `date` (Date, defaults to current time)
-
-### 💾 6. Log Model (`models/Log.js`)
-* Unified backwards-compatible collection logging general workout, weight, or food events dynamically.
+| Model | Purpose |
+|:---|:---|
+| `User` | Profile, goal, diet type, activity level, workout location, onboarding flag, optional `googleId` |
+| `Workout` | Saved AI-generated workout plan per user |
+| `Diet` | Saved AI-generated diet plan per user |
+| `WorkoutLog` | Completed exercises (exercise, sets, reps, weight, date) |
+| `DietLog` | Logged meals (name, calories, protein, carbs, fats, date) |
+| `Log` | Legacy unified log collection kept for backward compatibility |
+| `NutritionCache` | Cached results of AI food lookups |
+| `OAuthCode` | Single-use Google sign-in codes (stored hashed, expire automatically) |
 
 ---
 
-## 🔌 API Reference & Routing Map
+## 🔌 API Reference
 
-All backend routes are protected by the `jwtAuth` middleware, which decodes authorization headers and queries Mongoose to populate `req.user`.
+All routes are prefixed with `/api`. Routes marked 🔒 need an `Authorization: Bearer <token>` header.
 
-### 🔐 Authentication Routes (`/api/auth`)
-| Method | Endpoint | Description | Auth Required |
-|:---|:---|:---|:---|
-| `POST` | `/api/auth/signup` | Registers new user; hashes password via bcryptjs | No |
-| `POST` | `/api/auth/login` | Validates credentials; returns JWT token & user object | No |
-| `GET` | `/api/auth/google` | Triggers Google Passport.js OAuth flow | No |
-| `GET` | `/api/auth/google/callback` | OAuth redirect landing; establishes session and serves token | No |
+### Auth — `/api/auth`
 
-### 👤 User Profile Routes (`/api/user`)
-| Method | Endpoint | Description | Auth Required |
-|:---|:---|:---|:---|
-| `GET` | `/api/user/profile` | Retrieves current logged-in user profile metrics | Yes |
-| `PUT` | `/api/user/update` | Updates physical details and triggers onboarding state | Yes |
-| `DELETE` | `/api/user/profile` | Disposes user profile and linked tracking history | Yes |
+| Method | Endpoint | Description |
+|:---|:---|:---|
+| `POST` | `/signup` | Create an account |
+| `POST` | `/login` | Log in and receive a JWT |
+| `GET` | `/google` | Start Google OAuth |
+| `GET` | `/google/callback` | Google redirect target |
+| `POST` | `/oauth/exchange` | Exchange the single-use code for a JWT |
 
-### 🏋️‍♂️ Workout Routes (`/api/workout`)
-| Method | Endpoint | Description | Auth Required |
-|:---|:---|:---|:---|
-| `POST` | `/api/workout/generate`| Queries Gemini for customized 7-day training splits | Yes |
-| `POST` | `/api/workout/log` | Inserts completed exercise, sets, reps, and weights | Yes |
-| `GET` | `/api/workout/history` | Fetches historical workout log entries | Yes |
-| `GET` | `/api/workout/recent-exercises` | Suggests recently logged exercises for quick selection | Yes |
-| `DELETE`| `/api/workout/history/:id`| Disposes a specific saved AI workout plan | Yes |
+### User — `/api/user` 🔒
 
-### 🥗 Diet & Nutrition Routes (`/api/diet`)
-| Method | Endpoint | Description | Auth Required |
-|:---|:---|:---|:---|
-| `POST` | `/api/diet/generate` | Queries Gemini for customized 7-day caloric diet plans | Yes |
-| `POST` | `/api/diet/log` | Adds a logged meal (calories + macronutrients) to history | Yes |
-| `GET` | `/api/diet/history` | Fetches history of logged calorie intake | Yes |
-| `GET` | `/api/diet/recent-foods` | Queries top 10 recently consumed meals for autocomplete | Yes |
-| `GET` | `/api/diet/lookup` | Parses query string via Gemini to estimate calories/macros | Yes |
+| Method | Endpoint | Description |
+|:---|:---|:---|
+| `GET` | `/profile` | Get the current profile |
+| `PUT` | `/profile` | Update profile / complete onboarding |
+| `DELETE` | `/profile` | Delete the account and its data |
 
-### 📊 Dashboard & Tracker Routes (`/api/tracker` & `/api/dashboard`)
-| Method | Endpoint | Description | Auth Required |
-|:---|:---|:---|:---|
-| `GET` | `/api/tracker` | Fetches general stats and normalized analytics graphs data | Yes |
-| `GET` | `/api/dashboard` | Aggregates daily calorie performance, streak, and recent logs | Yes |
+### Workout — `/api/workout` 🔒
 
----
+| Method | Endpoint | Description |
+|:---|:---|:---|
+| `POST` | `/generate` | Generate an AI workout plan |
+| `POST` | `/log` | Log a completed exercise |
+| `GET` | `/history` | Workout history |
+| `GET` | `/recent-exercises` | Recently used exercises |
+| `DELETE` | `/history/:id` | Delete a history entry |
 
-## 🛠️ Tech Stack Directory
+### Diet — `/api/diet` 🔒
 
-### Frontend (Client Module)
-* **React 19 (Vite)**: Component-driven UI framework with fast hot module replacement (HMR).
-* **React Router DOM v7**: Declarative routing with path protection to block access for unlogged users.
-* **Tailwind CSS & Autoprefixer**: Utility-first CSS styling incorporating glassmorphism layouts and responsive design.
-* **Framer Motion**: Hardware-accelerated animations for dashboard entry states and modal transitions.
-* **Recharts**: D3-based charting framework used to map daily and weekly calorie progress, weight variations, and user BMI targets.
-* **Lucide React**: Modern iconography toolkit.
-* **React Hot Toast**: Beautiful, non-blocking notification indicators for feedback alerts.
-* **Axios**: HTTP communication engine handling client-server API requests.
+| Method | Endpoint | Description |
+|:---|:---|:---|
+| `POST` | `/generate` | Generate an AI diet plan |
+| `POST` | `/log` | Log a meal |
+| `GET` | `/history` | Meal history |
+| `GET` | `/recent-foods` | Recently logged foods |
+| `GET` | `/lookup` | Estimate nutrition from free text |
 
-### Backend (Server Module)
-* **Node.js & Express**: High-concurrency event-loop runtime and routing server.
-* **Mongoose**: Schematized Object Data Modeling (ODM) layer mapping data structures to MongoDB Atlas.
-* **Google Generative AI SDK (`@google/generative-ai`)**: Native SDK querying `gemini-2.0-flash` with system guidelines and JSON schema modes.
-* **OpenAI SDK**: Helper library for xAI Grok API integration.
-* **Passport.js & Passport Google OAuth 2.0**: Social SSO login provider.
-* **Jsonwebtoken (JWT) & Bcryptjs**: Cryptographic secure signing, parsing, and password hashing utility.
-* **Connect Mongo & Express Session**: Key-value session store utilizing MongoDB Atlas to persist server session identifiers.
+### Tracker & Dashboard 🔒
+
+| Method | Endpoint | Description |
+|:---|:---|:---|
+| `GET` | `/api/tracker` | Aggregated stats for charts |
+| `GET` | `/api/dashboard` | Daily summary, streaks and recent logs |
 
 ---
 
-## 📂 Project Structure & Directory Map
+## 📂 Project Structure
 
 ```text
-wt-project/ (Root Workspace)
-├── client/                     # React + Vite Client Application
+FitTrack/
+├── client/                      # React + Vite frontend
 │   ├── src/
-│   │   ├── components/         # Global Shared UI Components
-│   │   │   ├── ui/             # Reusable UI Controls (Button, Input, Alert, Card, Select)
-│   │   │   ├── modals/         # Input Form Overlays (LogFoodModal, LogWorkoutModal)
-│   │   │   ├── Layout.jsx      # Dashboard Frame, Responsive Navbar & Content Container
-│   │   │   └── PageBackground.jsx # Uniform page gradient layout overlay
-│   │   ├── context/            # Shared Context Providers
-│   │   │   └── AuthContext.jsx # Global User State, Session Checking, Login/Logout Handler
-│   │   ├── pages/              # View Container Components
-│   │   │   ├── Dashboard.jsx   # Analytics Summary, Streaks, Daily Reminders, Target Widgets
-│   │   │   ├── Diet.jsx        # Diet View, Food lookup forms, Macro calculations
-│   │   │   ├── Landing.jsx     # Marketing landing page containing tech metrics
-│   │   │   ├── Login.jsx       # Standard Credentials login layout & OAuth buttons
-│   │   │   ├── OAuthCallback.jsx # Capture token params redirected from Google Login
-│   │   │   ├── Onboarding.jsx  # Multi-page form tracking physical params & user goals
-│   │   │   ├── Profile.jsx     # User details settings panel
-│   │   │   ├── Signup.jsx      # New account registration view
-│   │   │   ├── Tracker.jsx     # Aggregated view of historical food logs and exercises
-│   │   │   ├── Workout.jsx     # Current Active 7-day Workout plan & log controls
-│   │   │   └── Workouts.jsx    # General workout plan selector & history cards
-│   │   ├── services/
-│   │   │   └── api.js          # Axios API Interceptor Instance with configured auth hooks
-│   │   ├── utils/              # Client Helper Utilities
-│   │   ├── App.jsx             # Main Router configuring Protected Routes and Gates
-│   │   ├── index.css           # Styling entrypoint (loads custom scrollbars & tailwind configurations)
-│   │   └── main.jsx            # React root DOM initialization
-│   └── package.json            # Frontend script tasks & dependencies
-├── server/                     # Node.js Express Backend API
-│   ├── config/                 # Environmental & Database Integrations
-│   │   ├── db.js               # MongoDB Connection logic using Mongoose
-│   │   ├── gemini.js           # Google Generative AI configurations and safety parameters
-│   │   ├── grok.js             # xAI Grok OpenAI Client configuration
-│   │   └── passport.js         # Google OAuth login strategies configuration
-│   ├── controllers/            # Controller Action Logic (Binds Route definitions to Database)
-│   │   ├── authController.js   # User account validation, creation & verification
-│   │   ├── dashboardController.js # Analytics aggregator & streak engine calculations
-│   │   ├── dietController.js   # Meal plans generator & lookup controller
-│   │   ├── trackerController.js # Aggregated logs queries
-│   │   ├── userController.js   # Profile updates & account deletion
-│   │   └── workoutController.js # Exercise routines generator & loggers
-│   ├── middleware/             # Request Interceptors
-│   │   ├── authMiddleware.js   # Restrict endpoints to validated JWT Bearer requests
-│   │   └── errorMiddleware.js  # Catch-all handles for 404 routes & uncaught system errors
-│   ├── models/                 # Mongoose Database Collection Schemas
-│   ├── routes/                 # Express Endpoint routing tables
-│   ├── server.js               # System entry point initializing server
-│   └── package.json            # Backend dependencies & boot configurations
-├── package.json                # Root Workspace orchestrator script configurations
-└── wt_project_details.pdf      # Architectural Reference PDF
+│   │   ├── components/          # Layout, ErrorBoundary, ui/, modals/
+│   │   ├── context/             # AuthContext
+│   │   ├── pages/               # Landing, Login, Signup, Onboarding, Dashboard,
+│   │   │                        # Workout, Diet, Tracker, Profile, OAuthCallback
+│   │   ├── services/api.js      # Axios instance + interceptors
+│   │   └── utils/               # biometrics, labels, repsClassifier
+│   └── vercel.json              # SPA rewrite rules
+├── server/                      # Express API
+│   ├── config/                  # db, gemini, passport
+│   ├── controllers/             # auth, user, workout, diet, tracker, dashboard
+│   ├── middleware/              # auth, errors, rateLimiters, validate
+│   ├── models/                  # Mongoose schemas
+│   ├── routes/                  # Express routers
+│   ├── services/aiService.js    # Gemini calls, retries, fallback, caching
+│   ├── validators/              # Zod schemas (requests and AI output)
+│   ├── utils/                   # biometrics, enums, targets, time, userResponse
+│   ├── tests/                   # Unit tests (node:test)
+│   └── server.js                # App entry point
+├── scripts/                     # One-off DB maintenance and smoke-test scripts
+├── PROJECT_CONTEXT.md           # Extended technical notes
+├── LICENSE
+└── package.json                 # Root scripts (install-all, build, test, start)
 ```
 
 ---
 
-## 🚀 Getting Started & Local Installation
+## 🚀 Getting Started
 
 ### Prerequisites
-* **Node.js** version 18 or higher installed locally.
-* **MongoDB Atlas** account or local MongoDB Instance running.
-* **Google Cloud Console Project** with OAuth credentials enabled (for Google Login).
-* **Google Gemini API Key** (from Google AI Studio).
-* **xAI API Key** (optional, for Grok AI integration).
 
-### Step 1: Clone the Repository
+- **Node.js 20+** and npm
+- A **MongoDB Atlas** cluster (or a local MongoDB instance)
+- A **Google Gemini API key** from [Google AI Studio](https://aistudio.google.com/)
+- A **Google Cloud OAuth client** (only if you want Google sign-in)
+
+### 1. Clone and install
+
 ```bash
-git clone https://github.com/pr-04/FitTrack.git
+git clone <your-repo-url>
 cd FitTrack
-```
-
-### Step 2: Configure Environment Variables
-Create a `.env` file inside the `server/` directory:
-```env
-# Server Network Port
-PORT=5000
-NODE_ENV=development
-
-# MongoDB Access URI
-MONGO_URI=mongodb+srv://<username>:<password>@cluster0.mongodb.net/fittrack?retryWrites=true&w=majority
-
-# Cryptographic Signatures
-JWT_SECRET=your_jwt_signing_secret_key_here
-SESSION_SECRET=your_express_session_secret_here
-
-# Google Generative AI Studio API Credentials
-GEMINI_API_KEY=AIzaSy...your_gemini_api_key...
-GEMINI_MODEL=gemini-2.0-flash
-
-# xAI Grok Console API Keys (Optional fallback)
-XAI_API_KEY=xai-...your_grok_api_key...
-
-# Google OAuth 2.0 Client Credentials (obtained from Google Cloud Console Credentials page)
-GOOGLE_CLIENT_ID=your_google_client_id.apps.googleusercontent.com
-GOOGLE_CLIENT_SECRET=GOCSPX-your_google_client_secret_here
-
-# Frontend Client Address
-CLIENT_URL=http://localhost:5173
-```
-
-Create a `.env` file inside the `client/` directory:
-```env
-# Backend API Base Endpoint
-VITE_API_URL=http://localhost:5000/api
-
-# Google Auth Client Key
-VITE_GOOGLE_CLIENT_ID=your_google_client_id.apps.googleusercontent.com
-```
-
-### Step 3: Install Workspace Dependencies
-Execute this command at the **root directory** of the project workspace. This triggers the installation scripts for both modules:
-```bash
 npm run install-all
 ```
 
-### Step 4: Start the Development Server
-You can boot both the frontend client and the backend server concurrently from the root directory:
+### 2. Configure environment variables
+
 ```bash
-npm run dev
+cp server/.env.example server/.env
+cp client/.env.example client/.env
 ```
 
-* The **React Client** will be accessible at: [http://localhost:5173](http://localhost:5173)
-* The **Express API Server** runs at: [http://localhost:5000](http://localhost:5000)
+Then fill in the values (see [Environment Variables](#-environment-variables)). **Never commit real `.env` files.**
+
+### 3. Google OAuth setup (optional)
+
+In Google Cloud Console → APIs & Services → Credentials, create an OAuth client and add:
+
+- **Authorized JavaScript origin:** `http://localhost:5173`
+- **Authorized redirect URI:** `http://localhost:5000/api/auth/google/callback`
+
+### 4. Run it
+
+Start the two apps in separate terminals:
+
+```bash
+npm start --prefix server      # API on http://localhost:5000
+npm run dev --prefix client    # App on http://localhost:5173
+```
 
 ---
 
-## 🖥️ Production & Deployment
+## 🔧 Environment Variables
 
-When building and compiling for production (e.g. Render, Vercel, Heroku):
-1. **Compilation Command**: Runs `npm run build` from the workspace root. This is defined in `package.json` and executes:
-   ```bash
-   npm run install-all && npm run build --prefix client
-   ```
-2. **Serving Static Assets**: The compiled static assets of the frontend are written to `client/dist`. The Express backend serves these files statically:
-   ```javascript
-   const clientPath = path.join(__dirname, '../client/dist');
-   app.use(express.static(clientPath));
-   ```
-3. **Catch-All SPA Routing**: Since the client is a Single Page Application (SPA), routes like `/app/dashboard` or `/app/diet` must be routed back to React Router. The Express server provides a catch-all route at the bottom of its stack to redirect arbitrary browser requests back to the frontend build:
-   ```javascript
-   app.get('*', (req, res) => {
-       res.sendFile(path.join(clientPath, 'index.html'));
-   });
-   ```
+### Server — `server/.env`
+
+| Variable | Required | Description |
+|:---|:---:|:---|
+| `NODE_ENV` | No | `development` or `production` |
+| `PORT` | No | API port (default `5000`) |
+| `MONGO_URI` | **Yes** | MongoDB connection string |
+| `JWT_SECRET` | **Yes** | Long random string used to sign JWTs |
+| `JWT_EXPIRE` | No | Token lifetime (e.g. `30d`) |
+| `SESSION_SECRET` | **Yes** | Secret for the OAuth handshake session |
+| `GEMINI_API_KEY` | **Yes** | Google Gemini API key |
+| `GEMINI_MODEL` | No | Model for plan generation |
+| `GEMINI_LOOKUP_MODEL` | No | Model for food lookups |
+| `GEMINI_FALLBACK_MODEL` | No | Optional backup model used on overload or quota errors |
+| `GOOGLE_CLIENT_ID` | For Google login | OAuth client ID |
+| `GOOGLE_CLIENT_SECRET` | For Google login | OAuth client secret |
+| `GOOGLE_CALLBACK_URL` | For Google login | Must match the redirect URI in Google Cloud Console |
+| `CLIENT_URL` | **Yes** | Frontend URL (used for redirects and CORS) |
+| `ALLOWED_ORIGINS` | No | Extra comma-separated CORS origins |
+| `AUTH_RATE_LIMIT_MAX` | No | Max auth attempts per 15 min per IP (default `20`) |
+| `AI_GENERATE_TOTAL_LIMIT_PER_HOUR` | No | Hourly cap on plan generations (default `30`) |
+| `AI_LOOKUP_TOTAL_LIMIT_PER_HOUR` | No | Hourly cap on food lookups (default `300`) |
+
+### Client — `client/.env`
+
+| Variable | Description |
+|:---|:---|
+| `VITE_API_URL` | Backend base URL, e.g. `http://localhost:5000/api` |
+
+> Use `server/.env.example` as the source of truth for current defaults.
 
 ---
 
-## 👤 Author
-Developed and maintained by **Priyanshu Ranjan** ([GitHub Profile](https://github.com/pr-04)).
-For contributions, bug reports, and features request, please open a pull request or file an issue in the main repository.
+## 🧪 Testing
+
+```bash
+npm test                              # run all server unit tests from the repo root
+cd client && npm run lint             # lint the frontend
+cd client && npm run build            # verify the production build
+```
+
+The tests cover enum normalisation, AI plan schemas, resilience and retry behaviour, the nutrition cache, calorie/macro targets, date handling, response shaping and account deletion. They use stubs and mocks, so they need **no database and no API keys**.
+
+---
+
+## 🗃 Maintenance Scripts
+
+The `scripts/` folder contains one-off tools for existing databases:
+
+| Script | Purpose |
+|:---|:---|
+| `normalize-enums.js` | Normalise legacy enum values on user documents |
+| `migrate-legacy-logs.js` | Move old `Log` records into `WorkoutLog` / `DietLog` |
+| `clean-database.js` | Remove invalid or orphaned records |
+| `live_gemini_smoke_test.js` / `live_lookup_edge_cases.js` | Manual checks that call the **real** Gemini API (uses quota) |
+| `test_*.js` | Stub-based tests for the scripts above |
+
+> ⚠️ Back up your database first, and read each script's header before running it. The database scripts only apply changes when run with `--execute`.
+
+---
+
+## ☁️ Deployment
+
+**Backend (Render)**
+
+- Build: `npm run build` (installs dependencies) — or use the `server/` folder as the root.
+- Start: `npm start`
+- Set every required server variable above, with `NODE_ENV=production`.
+- Set `CLIENT_URL` to your frontend URL, and `GOOGLE_CALLBACK_URL` to `https://<your-api-host>/api/auth/google/callback`.
+
+**Frontend (Vercel)**
+
+- Root directory: `client`
+- Build command: `npm run build`, output directory: `dist`
+- Set `VITE_API_URL=https://<your-api-host>/api`
+- `client/vercel.json` already rewrites all routes to `index.html` for React Router.
+
+**Google Cloud Console:** add your production frontend URL as an authorized JavaScript origin and your production callback URL as an authorized redirect URI, or Google sign-in will fail.
+
+---
+
+## 📄 License & Author
+
+Released under the [MIT License](LICENSE).
+
+Built by **Priyanshu Ranjan** — [@pr-04](https://github.com/pr-04).
+
+Found a bug or have an idea? Open an issue or a pull request.
